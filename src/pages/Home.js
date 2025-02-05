@@ -1,4 +1,5 @@
 import React from 'react';
+import Navbar from '../components/Navbar/NavBar';
 import Clients from '../components/Clients';
 import Cta from '../components/Cta';
 import Footer from '../components/Footer';
@@ -11,6 +12,7 @@ import Services from '../components/Services';
 const Home = () => {
     return (
         <>
+            <Navbar />
             <Hero />
             <Intro />
             <Services />
