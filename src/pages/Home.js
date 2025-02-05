@@ -6,12 +6,14 @@ import Hero from '../components/Hero';
 import Intro from '../components/Intro';
 import Portfolio from '../components/Portfolio';
 import Services from '../components/Services';
+import Map from '..//components/Map.js';
 
 
 const Home = () => {
     return (
         <>
             <Hero />
+             <Map />
             <Intro />
             <Services />
             <Portfolio />
