@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import NavBar from '../components/Navbar/NavBar';
+import NavBar from './Navbar/NavBar';
 import heroImg from '../images/web-dev.svg';
 
 const Hero = () => {
