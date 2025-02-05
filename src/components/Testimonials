@@ -1,0 +1,65 @@
+import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+const testimonials = [
+  { id: 1, text: "Great service and support!", name: "Alice Johnson" },
+  { id: 2, text: "Highly recommended!", name: "Michael Smith" },
+  { id: 3, text: "Exceptional experience!", name: "Emma Williams" },
+];
+
+export default function Testimonials() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const prevTestimonial = () => {
+    setCurrentIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
+  };
+
+  const nextTestimonial = () => {
+    setCurrentIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
+  };
+
+  return (
+    <div className="relative max-w-2xl mx-auto text-center py-10">
+      {/* Title */}
+      <h2 className="text-4xl font-bold text-white mb-6">
+        What Our Clients Say About Us
+      </h2>
+
+      {/* Testimonial Box */}
+      <div className="relative bg-white text-black p-6 rounded-lg shadow-lg max-w-lg mx-auto">
+        <p className="text-lg italic">"{testimonials[currentIndex].text}"</p>
+        <h3 className="mt-4 font-semibold">{testimonials[currentIndex].name}</h3>
+      </div>
+
+      {/* Left Arrow */}
+      <button
+        onClick={prevTestimonial}
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-gray-200 hover:bg-gray-300"
+      >
+        <ChevronLeft className="w-6 h-6 text-gray-700" />
+      </button>
+
+      {/* Right Arrow */}
+      <button
+        onClick={nextTestimonial}
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-gray-200 hover:bg-gray-300"
+      >
+        <ChevronRight className="w-6 h-6 text-gray-700" />
+      </button>
+
+      {/* Dots Navigation */}
+      <div className="flex justify-center mt-6 space-x-2">
+        {testimonials.map((_, index) => (
+          <div
+            key={index}
+            className={`w-3 h-3 rounded-full ${
+              currentIndex === index
+                ? "border-2 border-green-500"
+                : "bg-gray-400"
+            }`}
+          ></div>
+        ))}
+      </div>
+    </div>
+  );
+}
