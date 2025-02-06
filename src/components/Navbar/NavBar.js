@@ -15,7 +15,7 @@ const NavBar = () => {
       const scrollHandler = () => {
         window.pageYOffset > 10 ? setTop(false) : setTop(true)
       };
-      window.addEventListener('scroll', scrollHandler);
+      window.addEventListener('scroll', scrollHandler);git 
       return () => window.removeEventListener('scroll', scrollHandler);
     }, [top]);
 
