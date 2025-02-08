@@ -6,7 +6,7 @@ import Hero from '../components/Hero';
 import Intro from '../components/Intro';
 import Portfolio from '../components/Portfolio';
 import Services from '../components/Services';
-import Map from '../components/Map';
+import MapPage from '../components/MapPage/MapPage'
 
 
 const Home = () => {
@@ -14,7 +14,7 @@ const Home = () => {
         <>
             <Hero />
             <Intro />
-            <Map />
+            <MapPage />
             <Services />
             <Portfolio />
             <Clients />
