@@ -57,13 +57,13 @@ const FooterShapes = () => {
           if (leftPercent > 100) leftPercent = 100;
 
           // Each row is ~30px above the previous + small random wiggle
-          const rowBase = row * 30;
+          const rowBase = row * 40;
           const wiggle = Math.random() * 10;
           const finalBottom = rowBase + wiggle;
 
           // **Wider size range**: 30–90 px
           const minSize = 30;
-          const maxSize = 90;
+          const maxSize = 110;
           const size = Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize;
 
           // 30% chance of blur up to 3px
