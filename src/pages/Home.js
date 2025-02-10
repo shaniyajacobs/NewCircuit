@@ -1,6 +1,8 @@
 import React from 'react';
 import Navbar from '../components/Navbar/NavBar';
 import Clients from '../components/Clients';
+import PersonalityQuiz from "../components/PersonalityQuiz";
+import ClientTestimonials from "../components/ClientTestimonials";
 import Cta from '../components/Cta';
 import Footer from '../components/Footer';
 import Hero from '../components/Hero';
@@ -16,6 +18,8 @@ const Home = () => {
             <Navbar />
             <Hero />
             <HowItWorks />
+            <ClientTestimonials />
+            <PersonalityQuiz />
             <Intro />
             <Services />
             <Portfolio />
@@ -28,4 +32,3 @@ const Home = () => {
 }
 
 export default Home;
-
