@@ -7,6 +7,7 @@ import Hero from '../components/Hero';
 import Intro from '../components/Intro';
 import Portfolio from '../components/Portfolio';
 import Services from '../components/Services';
+import {HowItWorks} from '../components/CircuitHowItWorks';
 
 
 const Home = () => {
@@ -14,6 +15,7 @@ const Home = () => {
         <>
             <Navbar />
             <Hero />
+            <HowItWorks />
             <Intro />
             <Services />
             <Portfolio />
