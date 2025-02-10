@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import ladyImage from '../images/lady.png'; // Import the lady image
 
+
 const Hero = () => {
     return (
         <div className="w-full h-[1200px] overflow-hidden pt-20">
