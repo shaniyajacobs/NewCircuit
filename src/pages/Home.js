@@ -1,4 +1,5 @@
 import React from 'react';
+import Navbar from '../components/Navbar/NavBar';
 import Clients from '../components/Clients';
 import Cta from '../components/Cta';
 import Footer from '../components/Footer';
@@ -12,8 +13,9 @@ import {HowItWorks} from '../components/CircuitHowItWorks';
 const Home = () => {
     return (
         <>
-            <HowItWorks />
+            <Navbar />
             <Hero />
+            <HowItWorks />
             <Intro />
             <Services />
             <Portfolio />
