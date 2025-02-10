@@ -2,7 +2,7 @@ import React from "react";
 
 export function RestaurantPartnerships() {
   return (
-    <div className="flex flex-col items-center bg-black pt-11">
+    <div className="flex flex-col items-center bg-[#211F20] pt-11">
       <SectionTitle title="Restaurant Partnerships" />
       <div className="mt-12 w-full max-w-[1252px] max-md:mt-10 max-md:max-w-full">
         <div className="flex gap-5 max-md:flex-col">

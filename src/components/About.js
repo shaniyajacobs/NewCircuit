@@ -3,7 +3,7 @@ import aboutImage from "../images/aboutImage.png"; // Import your image
 
 export function AboutSection() {
   return (
-    <section className="flex items-center min-h-screen bg-black text-white px-20 max-md:px-5 max-md:flex-col">
+    <section className="flex items-center min-h-screen bg-[#211F20] text-white px-20 max-md:px-5 max-md:flex-col">
       {/* Left Side: Text */}
       <div className="w-1/2 max-md:w-full">
         <h2 className="text-7xl font-extrabold text-left text-white max-md:text-4xl">
