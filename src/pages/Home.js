@@ -1,5 +1,8 @@
 import React from 'react';
+import Navbar from '../components/Navbar/NavBar';
 import Clients from '../components/Clients';
+import PersonalityQuiz from "../components/PersonalityQuiz";
+import ClientTestimonials from "../components/ClientTestimonials";
 import Cta from '../components/Cta';
 import Footer from '../components/Footer';
 import Hero from '../components/Hero';
@@ -12,12 +15,14 @@ import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 
 const Home = () => {
     return (
-        <>
-            
+        <>            
+            <Navbar />
+            <Hero />
             <HowItWorks />
+            <ClientTestimonials />
+            <PersonalityQuiz />
             <RestaurantPartnerships/>
             <AboutSection />
-            {/* <Hero /> */}
             <Intro />
             <Services />
             <Portfolio />
@@ -30,4 +35,3 @@ const Home = () => {
 }
 
 export default Home;
-
