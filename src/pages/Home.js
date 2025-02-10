@@ -12,6 +12,8 @@ import Services from '../components/Services';
 import {HowItWorks} from '../components/CircuitHowItWorks';
 import {AboutSection} from '../components/About'
 import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
+import MapPage from '../components/MapPage/MapPage'
+
 
 const Home = () => {
     return (
@@ -19,6 +21,7 @@ const Home = () => {
             <Navbar />
             <Hero />
             <HowItWorks />
+            <MapPage />
             <ClientTestimonials />
             <PersonalityQuiz />
             <RestaurantPartnerships/>
