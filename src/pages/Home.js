@@ -6,7 +6,7 @@ import Hero from '../components/Hero';
 import Intro from '../components/Intro';
 import Portfolio from '../components/Portfolio';
 import Services from '../components/Services';
-
+import Pricing from '../components/Pricing/Pricing';
 
 const Home = () => {
     return (
@@ -17,6 +17,7 @@ const Home = () => {
             <Portfolio />
             <Clients />
             <Cta/>
+            <Pricing/>
             <Footer />
         </>
 
