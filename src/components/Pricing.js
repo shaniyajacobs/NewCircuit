@@ -1,30 +1,3 @@
-/*
-import React from 'react';
-import {Link} from 'react-router-dom';
-const Pricing = () => {
-    return ( 
-        <div className="w-full flex items-center justify-center text-white cta">
-            <div className="mx-8 w-full h-96 text-center lg:text-left py-16 px-12 flex lg:justify-between items-center">                    
-                <div className="w-full flex flex-col lg:flex-row lg:justify-around">
-                    <div className="mb-4">
-                        <p className='text-2xl md:text-4xl font-bold mb-4'>Are you ready to scale your business?</p>
-                        <p className="text-lg md:text-2xl">Get in touch and let us build something amazing <span className='font-black'>together!</span></p>
-                    </div>
-                    
-                    <div className="w-full lg:w-72 pt-6 lg:mx-12">
-                        <Link to="/contact" className="bg-transparent border hover:bg-blue-900 hover:border-blue-800 text-white justify-center text-center rounded-lg px-10 py-3 flex items-center group">Send a message
-                        <svg className="w-5 h-5 ml-1 group-hover:translate-x-2 duration-500 ease-in" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd"></path></svg>
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        </div>
-     );
-}
- 
-export default Pricing;
-*/
-
 import React, { useState } from "react";
 
 const Pricing = () => {
@@ -79,7 +52,7 @@ const Pricing = () => {
           > 
             <div className="flex flex-col items-center px-9 pt-7 pb-20 mx-auto mt-9 w-full bg-blue-700 rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.25)] text-zinc-100 max-md:px-5 max-md:mt-10">
      
-              <h3 className="self-stretch text-4xl leading-none">
+              <h3 className="self-stretch text-4xl leading-none text-center" >
                 {isBundle ? "The Introduction" : "Brunch" }
               </h3>
               
@@ -118,7 +91,7 @@ const Pricing = () => {
               <div className="self-stretch px-4 pb-6 h-10 text-xl leading-3 whitespace-nowrap bg-blue-700 rounded-tl-3xl rounded-tr-3xl text-center pt-3">
                 Popular
               </div>
-              <h3 className="mt-9 text-4xl leading-none">
+              <h3 className="mt-9 text-4xl leading-none text-center">
                 {isBundle ? "The Connection" : "Happy Hour" }
               </h3>
               <div className="flex gap-5 items-start mt-8 max-w-full text-lg leading-[50px] w-[296px]">
@@ -155,7 +128,7 @@ const Pricing = () => {
           >
 
             <div className="flex flex-col items-center px-11 pt-7 pb-20 mx-auto mt-9 w-full bg-blue-700 rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.25)] text-zinc-100 max-md:px-5 max-md:mt-10">
-              <h3 className="self-stretch text-4xl leading-none max-md:mr-2.5">
+              <h3 className="self-stretch text-4xl leading-none max-md:mr-2.5 text-center" >
                 {isBundle ? "The Adventure" : "Dinner" }
               </h3>
               <div className="flex gap-5 items-start self-stretch mt-4 text-lg leading-[50px]">
