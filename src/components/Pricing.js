@@ -79,7 +79,7 @@ const Pricing = () => {
           > 
             <div className="flex flex-col items-center px-9 pt-7 pb-20 mx-auto mt-9 w-full bg-blue-700 rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.25)] text-zinc-100 max-md:px-5 max-md:mt-10">
      
-              <h3 className="self-stretch text-4xl leading-none">
+              <h3 className="self-stretch text-4xl leading-none text-center" >
                 {isBundle ? "The Introduction" : "Brunch" }
               </h3>
               
@@ -118,7 +118,7 @@ const Pricing = () => {
               <div className="self-stretch px-4 pb-6 h-10 text-xl leading-3 whitespace-nowrap bg-blue-700 rounded-tl-3xl rounded-tr-3xl text-center pt-3">
                 Popular
               </div>
-              <h3 className="mt-9 text-4xl leading-none">
+              <h3 className="mt-9 text-4xl leading-none text-center">
                 {isBundle ? "The Connection" : "Happy Hour" }
               </h3>
               <div className="flex gap-5 items-start mt-8 max-w-full text-lg leading-[50px] w-[296px]">
@@ -155,7 +155,7 @@ const Pricing = () => {
           >
 
             <div className="flex flex-col items-center px-11 pt-7 pb-20 mx-auto mt-9 w-full bg-blue-700 rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.25)] text-zinc-100 max-md:px-5 max-md:mt-10">
-              <h3 className="self-stretch text-4xl leading-none max-md:mr-2.5">
+              <h3 className="self-stretch text-4xl leading-none max-md:mr-2.5 text-center" >
                 {isBundle ? "The Adventure" : "Dinner" }
               </h3>
               <div className="flex gap-5 items-start self-stretch mt-4 text-lg leading-[50px]">
