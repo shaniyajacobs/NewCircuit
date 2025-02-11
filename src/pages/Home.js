@@ -4,6 +4,10 @@ import PersonalityQuiz from "../components/PersonalityQuiz";
 import ClientTestimonials from "../components/ClientTestimonials";
 import Footer from '../components/Footer';
 import Hero from '../components/Hero';
+import Intro from '../components/Intro';
+import Portfolio from '../components/Portfolio';
+import Services from '../components/Services';
+import Pricing from '../components/Pricing/Pricing';
 import FAQSection from '../components/FAQ/FAQSection';
 import {HowItWorks} from '../components/CircuitHowItWorks';
 import {AboutSection} from '../components/About'
@@ -16,12 +20,14 @@ const Home = () => {
         <>            
             <Navbar />
             <Hero />
+
             <HowItWorks />
             <MapPage />
             <ClientTestimonials />
             <PersonalityQuiz />
             <RestaurantPartnerships/>
             <AboutSection />
+            <Pricing/>
             <FAQSection/>
             <Footer />
         </>
