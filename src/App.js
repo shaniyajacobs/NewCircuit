@@ -17,7 +17,7 @@ import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   useEffect(() => {
-    const aos_init = () => {
+    /*const aos_init = () => {
       AOS.init({
         once: true,
         duration: 1000,
@@ -27,7 +27,7 @@ function App() {
 
     window.addEventListener('load', () => {
       aos_init();
-    });
+    });*/
   }, []);
 
   useDocTitle("MLD | Molad e Konsult - Bespoke Web and Mobile Applications");

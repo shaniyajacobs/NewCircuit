@@ -1,23 +1,34 @@
 import React from 'react';
-import Clients from '../components/Clients';
-import Cta from '../components/Cta';
+import Navbar from '../components/Navbar/NavBar';
+import PersonalityQuiz from "../components/PersonalityQuiz";
+import ClientTestimonials from "../components/ClientTestimonials";
 import Footer from '../components/Footer';
 import Hero from '../components/Hero';
 import Intro from '../components/Intro';
 import Portfolio from '../components/Portfolio';
 import Services from '../components/Services';
 import Pricing from '../components/Pricing/Pricing';
+import FAQSection from '../components/FAQ/FAQSection';
+import {HowItWorks} from '../components/CircuitHowItWorks';
+import {AboutSection} from '../components/About'
+import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
+import MapPage from '../components/MapPage/MapPage'
+
 
 const Home = () => {
     return (
-        <>
+        <>            
+            <Navbar />
             <Hero />
-            <Intro />
-            <Services />
-            <Portfolio />
-            <Clients />
-            <Cta/>
+
+            <HowItWorks />
+            <MapPage />
+            <ClientTestimonials />
+            <PersonalityQuiz />
+            <RestaurantPartnerships/>
+            <AboutSection />
             <Pricing/>
+            <FAQSection/>
             <Footer />
         </>
 
@@ -25,4 +36,3 @@ const Home = () => {
 }
 
 export default Home;
-
