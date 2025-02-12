@@ -42,6 +42,7 @@ const LoginForm = styled.form`
   border-radius: 12px;
   width: 100%;
   max-width: 400px;
+  min-width: 320px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
@@ -61,6 +62,7 @@ const Input = styled.input`
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 1rem;
+  min-height: 42px;
 `;
 
 const Button = styled.button`
@@ -117,6 +119,7 @@ const ContentWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 0 20px;
 `;
 
 const FooterShapes = () => {
