@@ -31,7 +31,7 @@ const Logo = styled.h1`
   text-decoration: none;
 
   img {
-    height: 50px;
+    height: 80px;
     width: auto;
   }
 `;
