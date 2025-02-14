@@ -12,6 +12,9 @@ import Home from './pages/Home';
 import Contact from './pages/Contact';
 import DemoProduct from './pages/DemoProduct';
 import Login from './pages/Login';
+import CreateAccount from './pages/CreateAccount';
+import ForgotPassword from './pages/ForgotPassword';
+import ReEnterPassword from './pages/ReEnterPassword';
 
 import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
@@ -42,6 +45,9 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/get-demo" element={<DemoProduct />} /> 
             <Route path="/signin" element={<Login />} /> 
+            <Route path="/create-account" element={<CreateAccount />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reenter-password" element={<ReEnterPassword />} />
           </Routes>
         </ScrollToTop>
       </Router>

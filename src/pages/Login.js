@@ -4,6 +4,7 @@ import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
 import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
 import circuitLogo from '../images/Cir_Secondary_RGB_Mixed Blackk.png';
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 
 const shapeOptions = [
@@ -88,6 +89,7 @@ const ForgotPassword = styled.a`
   text-decoration: none;
   font-size: 0.9rem;
   margin: -1rem 0 1.5rem;
+  cursor: pointer;
 
   &:hover {
     text-decoration: underline;
@@ -104,6 +106,7 @@ const PatternContainer = styled.div`
   z-index: 0;
   pointer-events: none;
 `;
+
 
 const ShapeImage = styled.img`
   position: absolute;
@@ -123,7 +126,7 @@ const ContentWrapper = styled.div`
   padding: 0 20px;
 `;
 
-const FooterShapes = () => {
+export const FooterShapes = () => {
   const rowCount = 8;
   const shapesPerRow = 12;
 
@@ -177,8 +180,8 @@ const FooterShapes = () => {
           let leftPercent = col * spacing + horizontalOffset;
           if (leftPercent > 100) leftPercent = 100;
 
-          const rowBase = row * 40;
-          const { size, blur } = patternData.styles[row][col];
+          const style = patternData.styles[row][col];
+          const finalBottom = row * 40;
 
           return (
             <ShapeImage
@@ -186,11 +189,11 @@ const FooterShapes = () => {
               src={shape.src}
               alt={shape.alt}
               style={{
-                width: `${size}px`,
-                height: `${size}px`,
+                width: `${style.size}px`,
+                height: `${style.size}px`,
                 left: `${leftPercent}%`,
-                bottom: `${rowBase}px`,
-                filter: `blur(${blur}px)`,
+                bottom: `${finalBottom}px`,
+                filter: `blur(${style.blur}px)`,
                 zIndex: row,
               }}
             />
@@ -205,10 +208,19 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Login attempt with:', { email, password });
+  };
+
+  const handleCreateAccount = () => {
+    navigate('/create-account');
+  };
+
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
   };
 
   return (
@@ -216,8 +228,8 @@ const Login = () => {
       <FooterShapes />
       <ContentWrapper>
         <Logo href="/">
-        <img src={circuitLogo} alt="Circuit Logo" />
-    </Logo>
+          <img src={circuitLogo} alt="Circuit Logo" />
+        </Logo>
         <LoginForm onSubmit={handleSubmit}>
           <InputGroup>
             <Label htmlFor="email">Email</Label>
@@ -249,12 +261,15 @@ const Login = () => {
             />
           </InputGroup>
 
-          <ForgotPassword href="/forgot-password">
-            Forgot your password
+          <ForgotPassword href="#" onClick={(e) => {
+            e.preventDefault();
+            handleForgotPassword();
+          }}>
+            Forgot your password?
           </ForgotPassword>
 
           <Button type="submit">Log in</Button>
-          <Button type="button" secondary>
+          <Button type="button" secondary onClick={handleCreateAccount}>
             Create an Account
           </Button>
         </LoginForm>
