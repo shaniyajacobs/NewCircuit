@@ -2,55 +2,67 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HeaderBar from '../components/HeaderBar';
 import blackLogo from '../images/black.svg';
+import atlantaImg from '../images/atlanta.jpeg';
+import chicagoImg from '../images/chicago.jpeg';
+import dallasImg from '../images/dallas.jpg';
+import houstonImg from '../images/houston.jpeg';
+import losAngelesImg from '../images/la.jpeg';
+import louisvilleImg from '../images/louisville.jpg';
+import miamiImg from '../images/miami.jpeg';
+import newYorkImg from '../images/nyc.jpeg';
+import sacramentoImg from '../images/sacremento.jpg';
+import seattleImg from '../images/seattle.jpeg';
+import washingtonDCImg from '../images/washington.jpeg';
+import sanfranciscoImg from '../images/sf.jpeg';
 
 const cities = [
     {
         name: 'Atlanta',
-        image: 'https://images.unsplash.com/photo-1575917649705-5b59aaa12e6b?ixlib=rb-4.0.3'
+        image: atlantaImg
     },
     {
         name: 'Chicago',
-        image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?ixlib=rb-4.0.3'
+        image: chicagoImg
     },
     {
         name: 'Dallas',
-        image: 'https://media.istockphoto.com/id/479756412/photo/dallas-skyline-at-sunset.jpg?s=612x612&w=0&k=20&c=ktZhWB87hBG5YJ3Q90NbZKEGlWbY4YmcknY_3PyR1p0='
+        image: dallasImg
     },
     {
         name: 'Houston',
-        image: 'https://images.unsplash.com/photo-1622007151631-25aa98ab394b?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aG91c3RvbiUyMHNreWxpbmV8ZW58MHx8MHx8fDA%3D'
+        image: houstonImg
     },
     {
         name: 'Los Angeles',
-        image: 'https://images.unsplash.com/photo-1580655653885-65763b2597d0?ixlib=rb-4.0.3'
+        image: losAngelesImg
     },
     {
         name: 'Louisville',
-        image: 'https://media.istockphoto.com/id/587194676/photo/louisville-kentucky-skyline.jpg?s=612x612&w=0&k=20&c=hrSGLVOqHkOdyjQrfvaHAwAcvCiWWK_AnzFZDDgGLEg='
+        image: louisvilleImg
     },
     {
         name: 'Miami',
-        image: 'https://images.unsplash.com/photo-1535498730771-e735b998cd64?ixlib=rb-4.0.3'
+        image: miamiImg
     },
     {
         name: 'New York City',
-        image: 'https://images.unsplash.com/photo-1522083165195-3424ed129620?ixlib=rb-4.0.3'
+        image: newYorkImg
     },
     {
         name: 'Sacramento',
-        image: 'https://media.istockphoto.com/id/956590696/photo/sacramento-city-scape.jpg?s=612x612&w=0&k=20&c=CWkjvhwrI439YTtv0_Xg_zmYXTnlNF_yO6HAHaF_Ceo='
+        image: sacramentoImg
     },
     {
         name: 'San Francisco',
-        image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3'
+        image: sanfranciscoImg
     },
     {
         name: 'Seattle',
-        image: 'https://images.unsplash.com/photo-1502175353174-a7a70e73b362?ixlib=rb-4.0.3'
+        image: seattleImg
     },
     {
         name: 'Washington D.C.',
-        image: 'https://images.unsplash.com/photo-1617581629397-a72507c3de9e?ixlib=rb-4.0.3'
+        image: washingtonDCImg
     },
 ];
 
@@ -95,10 +107,20 @@ const LocationScreen = () => {
                                     className="relative rounded-2xl overflow-hidden aspect-square cursor-pointer group"
                                     onClick={() => handleCityClick(city)}
                                 >
+                                    <div 
+                                        className="absolute inset-0 bg-cover bg-center"
+                                        style={{ 
+                                            backgroundImage: `url(${city.blurHash})`,
+                                            filter: 'blur(20px)',
+                                            transform: 'scale(1.1)'
+                                        }}
+                                    />
                                     <img 
                                         src={city.image} 
                                         alt={city.name}
+                                        loading="lazy"
                                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                        onLoad={(e) => e.target.parentElement.querySelector('div').style.display = 'none'}
                                     />
                                     <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-30 transition-opacity">
                                         <div className="absolute inset-0 flex items-center justify-center">
