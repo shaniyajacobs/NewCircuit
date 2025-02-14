@@ -4,7 +4,6 @@ import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
 import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
 import circuitLogo from '../images/Cir_Secondary_RGB_Mixed Blackk.png';
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 
 const shapeOptions = [
@@ -89,7 +88,6 @@ const ForgotPassword = styled.a`
   text-decoration: none;
   font-size: 0.9rem;
   margin: -1rem 0 1.5rem;
-  cursor: pointer;
 
   &:hover {
     text-decoration: underline;
@@ -106,7 +104,6 @@ const PatternContainer = styled.div`
   z-index: 0;
   pointer-events: none;
 `;
-
 
 const ShapeImage = styled.img`
   position: absolute;
@@ -126,7 +123,7 @@ const ContentWrapper = styled.div`
   padding: 0 20px;
 `;
 
-export const FooterShapes = () => {
+const FooterShapes = () => {
   const rowCount = 8;
   const shapesPerRow = 12;
 
@@ -180,8 +177,8 @@ export const FooterShapes = () => {
           let leftPercent = col * spacing + horizontalOffset;
           if (leftPercent > 100) leftPercent = 100;
 
-          const style = patternData.styles[row][col];
-          const finalBottom = row * 40;
+          const rowBase = row * 40;
+          const { size, blur } = patternData.styles[row][col];
 
           return (
             <ShapeImage
@@ -189,11 +186,11 @@ export const FooterShapes = () => {
               src={shape.src}
               alt={shape.alt}
               style={{
-                width: `${style.size}px`,
-                height: `${style.size}px`,
+                width: `${size}px`,
+                height: `${size}px`,
                 left: `${leftPercent}%`,
-                bottom: `${finalBottom}px`,
-                filter: `blur(${style.blur}px)`,
+                bottom: `${rowBase}px`,
+                filter: `blur(${blur}px)`,
                 zIndex: row,
               }}
             />
@@ -204,23 +201,21 @@ export const FooterShapes = () => {
   );
 };
 
-const Login = () => {
+const CreateAccount = () => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
+  const [createPassword, setCreatePassword] = useState('');
+  const [reenterPassword, setReenterPassword] = useState('');
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [showReenterPassword, setShowReenterPassword] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Login attempt with:', { email, password });
-  };
-
-  const handleCreateAccount = () => {
-    navigate('/create-account');
-  };
-
-  const handleForgotPassword = () => {
-    navigate('/forgot-password');
+    // Add password matching validation here
+    if (createPassword !== reenterPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+    console.log('Create account attempt with:', { email, createPassword });
   };
 
   return (
@@ -243,39 +238,48 @@ const Login = () => {
           </InputGroup>
 
           <InputGroup>
-            <Label htmlFor="password">
-              Password
+            <Label htmlFor="createPassword">
+              Create Password
               <span 
                 style={{ float: 'right', cursor: 'pointer' }}
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowCreatePassword(!showCreatePassword)}
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showCreatePassword ? 'Hide' : 'Show'}
               </span>
             </Label>
             <Input
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              type={showCreatePassword ? 'text' : 'password'}
+              id="createPassword"
+              value={createPassword}
+              onChange={(e) => setCreatePassword(e.target.value)}
               required
             />
           </InputGroup>
 
-          <ForgotPassword href="#" onClick={(e) => {
-            e.preventDefault();
-            handleForgotPassword();
-          }}>
-            Forgot your password?
-          </ForgotPassword>
+          <InputGroup>
+            <Label htmlFor="reenterPassword">
+              Re-enter Password
+              <span 
+                style={{ float: 'right', cursor: 'pointer' }}
+                onClick={() => setShowReenterPassword(!showReenterPassword)}
+              >
+                {showReenterPassword ? 'Hide' : 'Show'}
+              </span>
+            </Label>
+            <Input
+              type={showReenterPassword ? 'text' : 'password'}
+              id="reenterPassword"
+              value={reenterPassword}
+              onChange={(e) => setReenterPassword(e.target.value)}
+              required
+            />
+          </InputGroup>
 
           <Button type="submit">Log in</Button>
-          <Button type="button" secondary onClick={handleCreateAccount}>
-            Create an Account
-          </Button>
         </LoginForm>
       </ContentWrapper>
     </LoginContainer>
   );
 };
 
-export default Login;
+export default CreateAccount;
