@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
 import styled from 'styled-components';
 import cirCrossPBlue from '../images/cir_cross_PWhite.svg';
 import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
 import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
 import circuitLogo from '../images/Cir_Secondary_RGB_Mixed Blackk.png';
+import React, { useState, useEffect, useMemo } from 'react';
 
 
 const shapeOptions = [
@@ -95,13 +95,14 @@ const ForgotPassword = styled.a`
 `;
 
 const PatternContainer = styled.div`
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   overflow: hidden;
   z-index: 0;
+  pointer-events: none;
 `;
 
 const ShapeImage = styled.img`
@@ -125,32 +126,51 @@ const ContentWrapper = styled.div`
 const FooterShapes = () => {
   const rowCount = 8;
   const shapesPerRow = 12;
-  const shapeGrid = [];
 
-  // Build shape grid
-  for (let r = 0; r < rowCount; r++) {
-    shapeGrid[r] = [];
-    for (let c = 0; c < shapesPerRow; c++) {
-      let possibilities = [...shapeOptions];
+  const patternData = useMemo(() => {
+    // Generate grid of shapes
+    const grid = Array(rowCount).fill().map(() => 
+      Array(shapesPerRow).fill(shapeOptions[0])
+    );
+    
+    // Generate all random values up front
+    const styles = Array(rowCount).fill().map(() => 
+      Array(shapesPerRow).fill().map(() => ({
+        size: Math.floor(Math.random() * (110 - 30)) + 30, // random size between 30-110
+        blur: Math.random() < 0.3 ? Math.random() * 3 : 0,
+      }))
+    );
+    
+    // Fill grid with shapes
+    for (let r = 0; r < rowCount; r++) {
+      for (let c = 0; c < shapesPerRow; c++) {
+        let possibilities = [...shapeOptions];
 
-      if (c > 0) {
-        const leftShape = shapeGrid[r][c - 1];
-        possibilities = possibilities.filter(p => p !== leftShape);
+        if (c > 0) {
+          const leftShape = grid[r][c - 1];
+          possibilities = possibilities.filter(p => p.src !== leftShape.src);
+        }
+
+        if (r > 0) {
+          const upShape = grid[r - 1][c];
+          possibilities = possibilities.filter(p => p.src !== upShape.src);
+        }
+
+        if (possibilities.length === 0) {
+          possibilities = [...shapeOptions];
+        }
+
+        const randomIndex = Math.floor(Math.random() * possibilities.length);
+        grid[r][c] = possibilities[randomIndex];
       }
-
-      if (r > 0) {
-        const upShape = shapeGrid[r - 1][c];
-        possibilities = possibilities.filter(p => p !== upShape);
-      }
-
-      const chosenShape = possibilities[Math.floor(Math.random() * possibilities.length)];
-      shapeGrid[r][c] = chosenShape;
     }
-  }
+
+    return { grid, styles };
+  }, []); // Empty dependency array means this only runs once
 
   return (
     <PatternContainer>
-      {shapeGrid.map((rowArray, row) =>
+      {patternData.grid.map((rowArray, row) =>
         rowArray.map((shape, col) => {
           const spacing = 100 / (shapesPerRow - 1);
           const horizontalOffset = (row % 2 === 1) ? spacing / 2 : 0;
@@ -158,13 +178,7 @@ const FooterShapes = () => {
           if (leftPercent > 100) leftPercent = 100;
 
           const rowBase = row * 40;
-          const wiggle = Math.random() * 10;
-          const finalBottom = rowBase + wiggle;
-
-          const minSize = 30;
-          const maxSize = 110;
-          const size = Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize;
-          const blurAmount = Math.random() < 0.3 ? Math.random() * 3 : 0;
+          const { size, blur } = patternData.styles[row][col];
 
           return (
             <ShapeImage
@@ -175,8 +189,8 @@ const FooterShapes = () => {
                 width: `${size}px`,
                 height: `${size}px`,
                 left: `${leftPercent}%`,
-                bottom: `${finalBottom}px`,
-                filter: `blur(${blurAmount}px)`,
+                bottom: `${rowBase}px`,
+                filter: `blur(${blur}px)`,
                 zIndex: row,
               }}
             />
