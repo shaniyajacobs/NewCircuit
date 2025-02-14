@@ -10,11 +10,16 @@ import {HowItWorks} from '../components/CircuitHowItWorks';
 import {AboutSection} from '../components/About'
 import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 import MapPage from '../components/MapPage/MapPage'
+import Dashboard from '../pages/Dashboard.js';
+import { MyConnectionsPage } from '../components/Dashboard/My Connections.js';
 
 
 const Home = () => {
     return (
         <>            
+            
+            <Dashboard />
+            <MyConnectionsPage />
             <Navbar />
             <Hero />
             <HowItWorks />
