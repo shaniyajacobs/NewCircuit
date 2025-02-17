@@ -15,6 +15,8 @@ import Login from './pages/Login';
 import CreateAccount from './pages/CreateAccount';
 import ForgotPassword from './pages/ForgotPassword';
 import ReEnterPassword from './pages/ReEnterPassword';
+import Profile from './pages/Profile';
+import VerifyPhone from './pages/VerifyPhone';
 
 import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
@@ -48,6 +50,8 @@ function App() {
             <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reenter-password" element={<ReEnterPassword />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/verify-phone" element={<VerifyPhone />} />
           </Routes>
         </ScrollToTop>
       </Router>
