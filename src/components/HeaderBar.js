@@ -46,7 +46,7 @@ const HeaderBar = ({
                         {title}
                     </h1>
                 )}
-                <div className="w-32"></div>
+                <div className="min-w-[4rem]"></div>
             </div>
         </div>
     );

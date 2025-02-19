@@ -13,6 +13,7 @@ import Contact from './pages/Contact';
 import DemoProduct from './pages/DemoProduct';
 import LocationScreen from './pages/LocationScreen';
 import QuizStartScreen from './pages/QuizStartScreen';
+import PersonalityQuizPage from './pages/PersonalityQuizPage';
 
 import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
@@ -44,6 +45,7 @@ function App() {
             <Route path="/get-demo" element={<DemoProduct />} />
             <Route path="/signin" element={<LocationScreen />} />
             <Route path="/quiz-start" element={<QuizStartScreen />} />
+            <Route path="/personalityquizpage/:step" element={<PersonalityQuizPage/>} />
           </Routes>
         </ScrollToTop>
       </Router>
