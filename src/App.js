@@ -9,13 +9,10 @@ import {
 } from 'react-router-dom';
 // All pages
 import Home from './pages/Home';
-import Contact from './pages/Contact';
-import DemoProduct from './pages/DemoProduct';
-
 import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
-import DashHome from './components/Dashboard/DashboardPages/DashHome';
 import Dashboard from './pages/Dashboard';
+import NavBar from './components/Navbar/NavBar';
 
 function App() {
   useEffect(() => {
@@ -40,8 +37,6 @@ function App() {
         <ScrollToTop>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/get-demo" element={<DemoProduct />} /> 
             <Route path="/dashboard/*" element={<Dashboard />} /> 
 
           </Routes>
