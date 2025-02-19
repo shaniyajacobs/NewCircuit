@@ -12,13 +12,14 @@ import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 import MapPage from '../components/MapPage/MapPage'
 import Dashboard from '../pages/Dashboard.js';
 import { MyConnectionsPage } from '../components/Dashboard/My Connections.js';
-
+import { ChatWindow } from '../components/Dashboard/messages.js';
 
 const Home = () => {
     return (
         <>            
             
             <Dashboard />
+            <ChatWindow />
             <MyConnectionsPage />
             <Navbar />
             <Hero />
