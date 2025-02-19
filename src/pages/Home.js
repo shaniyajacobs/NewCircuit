@@ -15,7 +15,7 @@ import Dashboard from './Dashboard';
 const Home = () => {
     return (
         <>            
-            {/* <Navbar />
+            <Navbar />
             <Hero />
             <HowItWorks />
             <MapPage />
@@ -27,7 +27,7 @@ const Home = () => {
             <div id="about">
                 <AboutSection />
             </div>
-            <Pricing/> */}
+            <Pricing/>
             <Dashboard/>
             <Footer />
         </>
