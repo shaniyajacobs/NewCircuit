@@ -3,8 +3,8 @@ import React from "react";
 const EventCard = ({ event, type }) => {
   return (
     <div
-      className={`flex flex-col items-center p-8 rounded-2xl ${
-        event.isActive ? "bg-blue-50" : ""
+      className={`flex-col items-center p-8 rounded-2xl mr-[30px] ${
+        event.isActive ? "bg-[#85A2F2]" : "bg-[#F3F3F3]"
       }`}
     >
       <div className="text-2xl font-medium text-center text-black">
@@ -20,7 +20,7 @@ const EventCard = ({ event, type }) => {
         <>
           <div className="text-base text-slate-600">{event.status}</div>
           {event.action && (
-            <div className="text-xs text-blue-500 cursor-pointer">
+            <div className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl">
               {event.action}
             </div>
           )}
@@ -33,7 +33,14 @@ const EventCard = ({ event, type }) => {
             <span>Open Spots for Women: {event.womenSpots}</span>
           </div>
           {event.isActive && (
-            <div className="text-xs text-blue-500 cursor-pointer">Sign Up</div>
+            <div className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl">
+              Sign Up
+              </div>
+          )}
+          {!event.isActive && (
+            <div className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl">
+                Join Wait List
+              </div>
           )}
         </>
       )}
