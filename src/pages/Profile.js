@@ -4,27 +4,93 @@ import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
 import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
 import circuitLogo from '../images/Cir_Secondary_RGB_Mixed Blackk.png';
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-import { signOut } from "firebase/auth";
-import { auth } from "./firebaseConfig";
+import { signOut, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "./firebaseConfig";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 
 // Profile Component that combines logout and form
 const Profile = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { email, password } = location.state || {};
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    birthDate: '',
+    phoneNumber: ''
+  });
+
+  useEffect(() => {
+    if (!email || !password) {
+      navigate('/create-account');
+    }
+    setLoading(false);
+  }, [email, password]);
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setFormData({
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+            birthDate: userData.birthDate ? new Date(userData.birthDate.seconds * 1000).toISOString().split('T')[0] : '',
+            phoneNumber: userData.phoneNumber || ''
+          });
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setLoading(false);
+      }
+    };
+
+    if (auth.currentUser) {
+      fetchUserData();
+    }
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Instead of creating auth account here, just store the data and navigate
+      navigate('/verify-phone', {
+        state: { 
+          phoneNumber: formData.phoneNumber,
+          userData: {
+            email,
+            password,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            birthDate: formData.birthDate
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut(auth);
     navigate("/login"); // Redirect back to login
   };
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    dateOfBirth: '',
-    email: '',
-    phoneNumber: ''
-  });
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <LoginContainer>
@@ -33,9 +99,15 @@ const Profile = () => {
         <Logo href="/">
           <img src={circuitLogo} alt="Circuit Logo" />
         </Logo>
-        <h1>Welcome, {auth.currentUser?.email}</h1>
+        <h1>Complete Your Profile</h1>
 
-        <LoginForm>
+        {error && (
+          <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
+
+        <LoginForm onSubmit={handleSubmit}>
           <InputGroup>
             <Label>First Name</Label>
             <Input
@@ -43,6 +115,7 @@ const Profile = () => {
               value={formData.firstName}
               onChange={(e) => setFormData({...formData, firstName: e.target.value})}
               placeholder="Enter your first name"
+              required
             />
           </InputGroup>
 
@@ -53,26 +126,17 @@ const Profile = () => {
               value={formData.lastName}
               onChange={(e) => setFormData({...formData, lastName: e.target.value})}
               placeholder="Enter your last name"
+              required
             />
           </InputGroup>
 
           <InputGroup>
             <Label>Date of Birth</Label>
             <Input
-              type="text"
-              value={formData.dateOfBirth}
-              onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-              placeholder="MM/DD/YYYY"
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label>Email</Label>
-            <Input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              placeholder="Enter your email"
+              type="date"
+              value={formData.birthDate}
+              onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+              required
             />
           </InputGroup>
 
@@ -83,13 +147,16 @@ const Profile = () => {
               value={formData.phoneNumber}
               onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
               placeholder="Enter your phone number"
+              required
             />
           </InputGroup>
 
-          <Button type="button">NEXT</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : "Continue to Phone Verification"}
+          </Button>
         </LoginForm>
 
-        <button onClick={handleLogout}>Log Out</button>
+        <button onClick={handleLogout} className="mt-4">Log Out</button>
       </ContentWrapper>
     </LoginContainer>
   );

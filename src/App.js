@@ -23,6 +23,7 @@ import ScrollToTop from './components/ScrollToTop';
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Navigate } from "react-router-dom";
+import { ProfileProvider } from './contexts/ProfileContext';
 
 
 function App() {
@@ -43,7 +44,7 @@ function App() {
   useDocTitle("MLD | Molad e Konsult - Bespoke Web and Mobile Applications");
 
   return (
-    <>
+    <ProfileProvider>
       <Router>
         <ScrollToTop>
           <Routes>
@@ -54,13 +55,12 @@ function App() {
             <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reenter-password" element={<ReEnterPassword />} />
-            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-
+            <Route path="/profile" element={<Profile />} />
             <Route path="/verify-phone" element={<VerifyPhone />} />
           </Routes>
         </ScrollToTop>
       </Router>
-    </>
+    </ProfileProvider>
   );
 }
 

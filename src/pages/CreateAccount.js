@@ -4,6 +4,10 @@ import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
 import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
 import circuitLogo from '../images/Cir_Secondary_RGB_Mixed Blackk.png';
 import React, { useState, useEffect, useMemo } from 'react';
+import { auth, db } from './firebaseConfig';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import { doc, setDoc } from 'firebase/firestore';
 
 
 const shapeOptions = [
@@ -202,20 +206,50 @@ const FooterShapes = () => {
 };
 
 const CreateAccount = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [createPassword, setCreatePassword] = useState('');
   const [reenterPassword, setReenterPassword] = useState('');
-  const [showCreatePassword, setShowCreatePassword] = useState(false);
-  const [showReenterPassword, setShowReenterPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add password matching validation here
-    if (createPassword !== reenterPassword) {
-      alert('Passwords do not match');
-      return;
+    console.log('Form submitted'); // Debug log
+    setError('');
+    setLoading(true);
+
+    try {
+      // Validate passwords match
+      if (createPassword !== reenterPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+
+      // Validate password strength
+      if (createPassword.length < 6) {
+        setError('Password should be at least 6 characters');
+        return;
+      }
+
+      console.log('Attempting navigation with:', { email, password: createPassword }); // Debug log
+
+      // Store credentials in state and navigate to profile
+      navigate('/profile', {
+        state: {
+          email: email,
+          password: createPassword
+        },
+        replace: true
+      });
+      
+      console.log('Navigation completed'); // Debug log
+    } catch (error) {
+      console.error('Error:', error);
+      setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    console.log('Create account attempt with:', { email, createPassword });
   };
 
   return (
@@ -226,6 +260,12 @@ const CreateAccount = () => {
           <img src={circuitLogo} alt="Circuit Logo" />
         </Logo>
         <LoginForm onSubmit={handleSubmit}>
+          {error && (
+            <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>
+              {error}
+            </div>
+          )}
+          
           <InputGroup>
             <Label htmlFor="email">Email</Label>
             <Input
@@ -234,48 +274,41 @@ const CreateAccount = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
           </InputGroup>
 
           <InputGroup>
             <Label htmlFor="createPassword">
               Create Password
-              <span 
-                style={{ float: 'right', cursor: 'pointer' }}
-                onClick={() => setShowCreatePassword(!showCreatePassword)}
-              >
-                {showCreatePassword ? 'Hide' : 'Show'}
-              </span>
             </Label>
             <Input
-              type={showCreatePassword ? 'text' : 'password'}
+              type="password"
               id="createPassword"
               value={createPassword}
               onChange={(e) => setCreatePassword(e.target.value)}
               required
+              disabled={loading}
             />
           </InputGroup>
 
           <InputGroup>
             <Label htmlFor="reenterPassword">
               Re-enter Password
-              <span 
-                style={{ float: 'right', cursor: 'pointer' }}
-                onClick={() => setShowReenterPassword(!showReenterPassword)}
-              >
-                {showReenterPassword ? 'Hide' : 'Show'}
-              </span>
             </Label>
             <Input
-              type={showReenterPassword ? 'text' : 'password'}
+              type="password"
               id="reenterPassword"
               value={reenterPassword}
               onChange={(e) => setReenterPassword(e.target.value)}
               required
+              disabled={loading}
             />
           </InputGroup>
 
-          <Button type="submit">Log in</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Creating Account...' : 'Create Account'}
+          </Button>
         </LoginForm>
       </ContentWrapper>
     </LoginContainer>
