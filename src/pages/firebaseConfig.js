@@ -9,6 +9,7 @@ import { getAnalytics } from "firebase/analytics";
 const firebaseConfig = {
   apiKey: "AIzaSyA8UBk7or93z6u1NeXV1jmuHOmyusJ-rwE",
   authDomain: "circuit-eb73c.firebaseapp.com",
+  databaseURL: "https://circuit-eb73c-default-rtdb.firebaseio.com",
   projectId: "circuit-eb73c",
   storageBucket: "circuit-eb73c.firebasestorage.app",
   messagingSenderId: "997074025294",
