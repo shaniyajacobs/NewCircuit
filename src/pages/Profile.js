@@ -6,7 +6,174 @@ import circuitLogo from '../images/Cir_Secondary_RGB_Mixed Blackk.png';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { signOut } from "firebase/auth";
+import { auth } from "./firebaseConfig";
 
+// Profile Component that combines logout and form
+const Profile = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate("/login"); // Redirect back to login
+  };
+
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    dateOfBirth: '',
+    email: '',
+    phoneNumber: ''
+  });
+
+  return (
+    <LoginContainer>
+      <FooterShapes />
+      <ContentWrapper>
+        <Logo href="/">
+          <img src={circuitLogo} alt="Circuit Logo" />
+        </Logo>
+        <h1>Welcome, {auth.currentUser?.email}</h1>
+
+        <LoginForm>
+          <InputGroup>
+            <Label>First Name</Label>
+            <Input
+              type="text"
+              value={formData.firstName}
+              onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+              placeholder="Enter your first name"
+            />
+          </InputGroup>
+
+          <InputGroup>
+            <Label>Last Name</Label>
+            <Input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+              placeholder="Enter your last name"
+            />
+          </InputGroup>
+
+          <InputGroup>
+            <Label>Date of Birth</Label>
+            <Input
+              type="text"
+              value={formData.dateOfBirth}
+              onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+              placeholder="MM/DD/YYYY"
+            />
+          </InputGroup>
+
+          <InputGroup>
+            <Label>Email</Label>
+            <Input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              placeholder="Enter your email"
+            />
+          </InputGroup>
+
+          <InputGroup>
+            <Label>Phone Number</Label>
+            <Input
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+              placeholder="Enter your phone number"
+            />
+          </InputGroup>
+
+          <Button type="button">NEXT</Button>
+        </LoginForm>
+
+        <button onClick={handleLogout}>Log Out</button>
+      </ContentWrapper>
+    </LoginContainer>
+  );
+};
+
+export default Profile;
+
+// FooterShapes component (unchanged)
+const FooterShapes = () => {
+  const rowCount = 8;
+  const shapesPerRow = 12;
+
+  const patternData = useMemo(() => {
+    const grid = Array(rowCount).fill().map(() => 
+      Array(shapesPerRow).fill(shapeOptions[0])
+    );
+    
+    const styles = Array(rowCount).fill().map(() => 
+      Array(shapesPerRow).fill().map(() => ({
+        size: Math.floor(Math.random() * (110 - 30)) + 30,
+        blur: Math.random() < 0.3 ? Math.random() * 3 : 0,
+      }))
+    );
+    
+    for (let r = 0; r < rowCount; r++) {
+      for (let c = 0; c < shapesPerRow; c++) {
+        let possibilities = [...shapeOptions];
+
+        if (c > 0) {
+          const leftShape = grid[r][c - 1];
+          possibilities = possibilities.filter(p => p.src !== leftShape.src);
+        }
+
+        if (r > 0) {
+          const upShape = grid[r - 1][c];
+          possibilities = possibilities.filter(p => p.src !== upShape.src);
+        }
+
+        if (possibilities.length === 0) {
+          possibilities = [...shapeOptions];
+        }
+
+        const randomIndex = Math.floor(Math.random() * possibilities.length);
+        grid[r][c] = possibilities[randomIndex];
+      }
+    }
+
+    return { grid, styles };
+  }, []);
+
+  return (
+    <PatternContainer>
+      {patternData.grid.map((rowArray, row) =>
+        rowArray.map((shape, col) => {
+          const spacing = 100 / (shapesPerRow - 1);
+          const horizontalOffset = (row % 2 === 1) ? spacing / 2 : 0;
+          let leftPercent = col * spacing + horizontalOffset;
+          if (leftPercent > 100) leftPercent = 100;
+
+          const style = patternData.styles[row][col];
+          const finalBottom = row * 40;
+
+          return (
+            <ShapeImage
+              key={`${row}-${col}`}
+              src={shape.src}
+              alt={shape.alt}
+              style={{
+                width: `${style.size}px`,
+                height: `${style.size}px`,
+                left: `${leftPercent}%`,
+                bottom: `${finalBottom}px`,
+                filter: `blur(${style.blur}px)`,
+                zIndex: row,
+              }}
+            />
+          );
+        })
+      )}
+    </PatternContainer>
+  );
+};
+
+// Styled components
 const shapeOptions = [
   { src: cirCrossPBlue, alt: 'Cross' },
   { src: cirHeartPBlue, alt: 'Heart' },
@@ -42,7 +209,7 @@ const LoginForm = styled.form`
   padding: 2rem;
   border-radius: 12px;
   width: 100%;
-  max-width: 600px;  // Changed from 400px to 600px
+  max-width: 600px;  
   min-width: 320px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
@@ -93,7 +260,6 @@ const PatternContainer = styled.div`
   pointer-events: none;
 `;
 
-
 const ShapeImage = styled.img`
   position: absolute;
   opacity: 0.8;
@@ -109,158 +275,6 @@ const ContentWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;  // Added top padding
+  padding: 40px 20px;
   margin-top: -40px;
 `;
-
-export const FooterShapes = () => {
-  const rowCount = 8;
-  const shapesPerRow = 12;
-
-  const patternData = useMemo(() => {
-    // Generate grid of shapes
-    const grid = Array(rowCount).fill().map(() => 
-      Array(shapesPerRow).fill(shapeOptions[0])
-    );
-    
-    // Generate all random values up front
-    const styles = Array(rowCount).fill().map(() => 
-      Array(shapesPerRow).fill().map(() => ({
-        size: Math.floor(Math.random() * (110 - 30)) + 30, // random size between 30-110
-        blur: Math.random() < 0.3 ? Math.random() * 3 : 0,
-      }))
-    );
-    
-    // Fill grid with shapes
-    for (let r = 0; r < rowCount; r++) {
-      for (let c = 0; c < shapesPerRow; c++) {
-        let possibilities = [...shapeOptions];
-
-        if (c > 0) {
-          const leftShape = grid[r][c - 1];
-          possibilities = possibilities.filter(p => p.src !== leftShape.src);
-        }
-
-        if (r > 0) {
-          const upShape = grid[r - 1][c];
-          possibilities = possibilities.filter(p => p.src !== upShape.src);
-        }
-
-        if (possibilities.length === 0) {
-          possibilities = [...shapeOptions];
-        }
-
-        const randomIndex = Math.floor(Math.random() * possibilities.length);
-        grid[r][c] = possibilities[randomIndex];
-      }
-    }
-
-    return { grid, styles };
-  }, []); // Empty dependency array means this only runs once
-
-  return (
-    <PatternContainer>
-      {patternData.grid.map((rowArray, row) =>
-        rowArray.map((shape, col) => {
-          const spacing = 100 / (shapesPerRow - 1);
-          const horizontalOffset = (row % 2 === 1) ? spacing / 2 : 0;
-          let leftPercent = col * spacing + horizontalOffset;
-          if (leftPercent > 100) leftPercent = 100;
-
-          const style = patternData.styles[row][col];
-          const finalBottom = row * 40;
-
-          return (
-            <ShapeImage
-              key={`${row}-${col}`}
-              src={shape.src}
-              alt={shape.alt}
-              style={{
-                width: `${style.size}px`,
-                height: `${style.size}px`,
-                left: `${leftPercent}%`,
-                bottom: `${finalBottom}px`,
-                filter: `blur(${style.blur}px)`,
-                zIndex: row,
-              }}
-            />
-          );
-        })
-      )}
-    </PatternContainer>
-  );
-};
-
-const Profile = () => {
-    const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        dateOfBirth: '',
-        email: '',
-        phoneNumber: ''
-      });
-
-      return (
-        <LoginContainer>
-          <FooterShapes />
-          <ContentWrapper>
-            <Logo href="/">
-              <img src={circuitLogo} alt="Circuit Logo" />
-            </Logo>
-            <LoginForm>
-              <InputGroup>
-                <Label>First Name</Label>
-                <Input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                  placeholder="Enter your first name"
-                />
-              </InputGroup>
-              <InputGroup>
-            <Label>Last Name</Label>
-            <Input
-              type="text"
-              value={formData.lastName}
-              onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-              placeholder="Enter your last name"
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label>Date of Birth</Label>
-            <Input
-              type="text"
-              value={formData.dateOfBirth}
-              onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-              placeholder="MM/DD/YYYY"
-            />
-          </InputGroup>
-          <InputGroup>
-            <Label>Email</Label>
-            <Input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              placeholder="Enter your email"
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label>Phone Number</Label>
-            <Input
-              type="tel"
-              value={formData.phoneNumber}
-              onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-              placeholder="Enter your phone number"
-            />
-          </InputGroup>
-
-          <Button type="button">NEXT</Button>
-        </LoginForm>
-      </ContentWrapper>
-    </LoginContainer>
-    );
-};
-
-export default Profile;
