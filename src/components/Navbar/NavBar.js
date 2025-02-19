@@ -43,9 +43,9 @@ const NavBar = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        <Link to="/signin" className="text-gray-900 hover:text-[#0E49E8] px-3 py-2 text-base font-medium">
+                        <button className="text-gray-900 hover:text-[#0E49E8] px-3 py-2 text-base font-medium">
                             Sign In
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </div>
