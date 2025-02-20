@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import AOS from 'aos';
 import "aos/dist/aos.css";
 import './index.css';
@@ -21,6 +21,11 @@ import VerifyPhone from './pages/VerifyPhone';
 import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
 
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { Navigate } from "react-router-dom";
+import { ProfileProvider } from './contexts/ProfileContext';
+
+
 function App() {
   useEffect(() => {
     /*const aos_init = () => {
@@ -39,7 +44,7 @@ function App() {
   useDocTitle("MLD | Molad e Konsult - Bespoke Web and Mobile Applications");
 
   return (
-    <>
+    <ProfileProvider>
       <Router>
         <ScrollToTop>
           <Routes>
@@ -50,14 +55,42 @@ function App() {
             <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reenter-password" element={<ReEnterPassword />} />
-            <Route path="/profile" element={<Profile />} />
+            {/* Wrap protected routes with PrivateRoute */}
+            <Route path="/profile" element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            } />
             <Route path="/verify-phone" element={<VerifyPhone />} />
           </Routes>
         </ScrollToTop>
       </Router>
-    </>
+    </ProfileProvider>
   );
 }
+
+const PrivateRoute = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // Track loading state
+  const auth = getAuth();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false); // Stop loading once the auth state is determined
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading screen while checking auth state
+  }
+
+  return user ? children : <Navigate to="/signin" />;
+};
+
+
 
 
 export default App;
