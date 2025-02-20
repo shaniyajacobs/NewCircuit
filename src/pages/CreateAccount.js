@@ -1,16 +1,8 @@
 import styled from 'styled-components';
-import cirCrossPBlue from '../images/cir_cross_PWhite.svg';
-import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
-import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
-import circuitLogo from '../images/Cir_Secondary_RGB_Mixed Blackk.png';
+import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState, useEffect, useMemo } from 'react';
+import { FooterShapes } from './Login';
 
-
-const shapeOptions = [
-  { src: cirCrossPBlue, alt: 'Cross' },
-  { src: cirHeartPBlue, alt: 'Heart' },
-  { src: cirMinusPBlue, alt: 'Minus' },
-];
 
 const LoginContainer = styled.div`
   display: flex;
@@ -18,7 +10,7 @@ const LoginContainer = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: #7B9EFF;
+  background-color: #211f20;
   padding: 20px;
 `;
 
@@ -68,7 +60,7 @@ const Input = styled.input`
 const Button = styled.button`
   width: 100%;
   padding: 0.75rem;
-  background-color: ${props => props.secondary ? 'white' : '#000'};
+  background-color: ${props => props.secondary ? 'white' : '#211f20'};
   color: ${props => props.secondary ? '#000' : 'white'};
   border: ${props => props.secondary ? '1px solid #000' : 'none'};
   border-radius: 6px;
@@ -79,36 +71,6 @@ const Button = styled.button`
   &:hover {
     opacity: 0.9;
   }
-`;
-
-const ForgotPassword = styled.a`
-  display: block;
-  text-align: right;
-  color: #333;
-  text-decoration: none;
-  font-size: 0.9rem;
-  margin: -1rem 0 1.5rem;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const PatternContainer = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  z-index: 0;
-  pointer-events: none;
-`;
-
-const ShapeImage = styled.img`
-  position: absolute;
-  opacity: 0.8;
-  user-select: none;
 `;
 
 const ContentWrapper = styled.div`
@@ -122,84 +84,6 @@ const ContentWrapper = styled.div`
   justify-content: center;
   padding: 0 20px;
 `;
-
-const FooterShapes = () => {
-  const rowCount = 8;
-  const shapesPerRow = 12;
-
-  const patternData = useMemo(() => {
-    // Generate grid of shapes
-    const grid = Array(rowCount).fill().map(() => 
-      Array(shapesPerRow).fill(shapeOptions[0])
-    );
-    
-    // Generate all random values up front
-    const styles = Array(rowCount).fill().map(() => 
-      Array(shapesPerRow).fill().map(() => ({
-        size: Math.floor(Math.random() * (110 - 30)) + 30, // random size between 30-110
-        blur: Math.random() < 0.3 ? Math.random() * 3 : 0,
-      }))
-    );
-    
-    // Fill grid with shapes
-    for (let r = 0; r < rowCount; r++) {
-      for (let c = 0; c < shapesPerRow; c++) {
-        let possibilities = [...shapeOptions];
-
-        if (c > 0) {
-          const leftShape = grid[r][c - 1];
-          possibilities = possibilities.filter(p => p.src !== leftShape.src);
-        }
-
-        if (r > 0) {
-          const upShape = grid[r - 1][c];
-          possibilities = possibilities.filter(p => p.src !== upShape.src);
-        }
-
-        if (possibilities.length === 0) {
-          possibilities = [...shapeOptions];
-        }
-
-        const randomIndex = Math.floor(Math.random() * possibilities.length);
-        grid[r][c] = possibilities[randomIndex];
-      }
-    }
-
-    return { grid, styles };
-  }, []); // Empty dependency array means this only runs once
-
-  return (
-    <PatternContainer>
-      {patternData.grid.map((rowArray, row) =>
-        rowArray.map((shape, col) => {
-          const spacing = 100 / (shapesPerRow - 1);
-          const horizontalOffset = (row % 2 === 1) ? spacing / 2 : 0;
-          let leftPercent = col * spacing + horizontalOffset;
-          if (leftPercent > 100) leftPercent = 100;
-
-          const rowBase = row * 40;
-          const { size, blur } = patternData.styles[row][col];
-
-          return (
-            <ShapeImage
-              key={`${row}-${col}`}
-              src={shape.src}
-              alt={shape.alt}
-              style={{
-                width: `${size}px`,
-                height: `${size}px`,
-                left: `${leftPercent}%`,
-                bottom: `${rowBase}px`,
-                filter: `blur(${blur}px)`,
-                zIndex: row,
-              }}
-            />
-          );
-        })
-      )}
-    </PatternContainer>
-  );
-};
 
 const CreateAccount = () => {
   const [email, setEmail] = useState('');
