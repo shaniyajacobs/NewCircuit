@@ -6,6 +6,9 @@ import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "./firebaseConfig"; // Import Firebase auth
+
 
 const shapeOptions = [
   { src: cirCrossPBlue, alt: 'Cross' },
@@ -221,9 +224,16 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login attempt with:', { email, password });
+    try {
+      await signInWithEmailAndPassword(auth, email, password); //Now email & password exist
+      console.log("Login successful");
+      navigate("/profile"); //Redirect after successful login
+    } catch (error) {
+      console.error("Login failed:", error.message);
+      alert("Login failed: " + error.message);
+    }
   };
 
   const handleCreateAccount = () => {
@@ -248,11 +258,11 @@ const Login = () => {
               type="email"
               id="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)} // Ensure email is tracked
               required
             />
           </InputGroup>
-
+  
           <InputGroup>
             <Label htmlFor="password">
               Password
@@ -267,19 +277,22 @@ const Login = () => {
               type={showPassword ? 'text' : 'password'}
               id="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)} // Ensure password is tracked
               required
             />
           </InputGroup>
-
+  
           <ForgotPassword href="#" onClick={(e) => {
             e.preventDefault();
-            handleForgotPassword();
+            handleForgotPassword(); // Call forgot password function
           }}>
             Forgot your password?
           </ForgotPassword>
-
+  
+          {/* Log In Button */}
           <Button type="submit">Log in</Button>
+  
+          {/* Create Account Button */}
           <Button type="button" secondary onClick={handleCreateAccount}>
             Create an Account
           </Button>
@@ -287,6 +300,6 @@ const Login = () => {
       </ContentWrapper>
     </LoginContainer>
   );
-};
+}
 
 export default Login;

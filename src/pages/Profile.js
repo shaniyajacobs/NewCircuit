@@ -1,9 +1,163 @@
 import styled from 'styled-components';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { FooterShapes } from './Login';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { signOut, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "./firebaseConfig";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 
+// Profile Component that combines logout and form
+const Profile = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { email, password } = location.state || {};
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    birthDate: '',
+    phoneNumber: ''
+  });
+
+  useEffect(() => {
+    if (!email || !password) {
+      navigate('/create-account');
+    }
+    setLoading(false);
+  }, [email, password]);
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setFormData({
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+            birthDate: userData.birthDate ? new Date(userData.birthDate.seconds * 1000).toISOString().split('T')[0] : '',
+            phoneNumber: userData.phoneNumber || ''
+          });
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setLoading(false);
+      }
+    };
+
+    if (auth.currentUser) {
+      fetchUserData();
+    }
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Instead of creating auth account here, just store the data and navigate
+      navigate('/verify-phone', {
+        state: { 
+          phoneNumber: formData.phoneNumber,
+          userData: {
+            email,
+            password,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            birthDate: formData.birthDate
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate("/login"); // Redirect back to login
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <LoginContainer>
+      <FooterShapes />
+      <ContentWrapper>
+        <Logo href="/">
+          <img src={circuitLogo} alt="Circuit Logo" />
+        </Logo>
+        <h1>Complete Your Profile</h1>
+
+        {error && (
+          <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
+
+        <LoginForm onSubmit={handleSubmit}>
+          <InputGroup>
+            <Label>First Name</Label>
+            <Input
+              type="text"
+              value={formData.firstName}
+              onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+              placeholder="Enter your first name"
+              required
+            />
+          </InputGroup>
+
+          <InputGroup>
+            <Label>Last Name</Label>
+            <Input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+              placeholder="Enter your last name"
+              required
+            />
+          </InputGroup>
+
+          <InputGroup>
+            <Label>Date of Birth</Label>
+            <Input
+              type="date"
+              value={formData.birthDate}
+              onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+              required
+            />
+          </InputGroup>
+
+          <InputGroup>
+            <Label>Phone Number</Label>
+            <Input
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+              placeholder="Enter your phone number"
+              required
+            />
+          </InputGroup>
+
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : "Continue to Phone Verification"}
+          </Button>
+        </LoginForm>
+
+        <button onClick={handleLogout} className="mt-4">Log Out</button>
+      </ContentWrapper>
+    </LoginContainer>
+  );
+};
 
 
 const LoginContainer = styled.div`
@@ -35,7 +189,7 @@ const LoginForm = styled.form`
   padding: 2rem;
   border-radius: 12px;
   width: 100%;
-  max-width: 600px;  // Changed from 400px to 600px
+  max-width: 600px;  
   min-width: 320px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
@@ -75,7 +229,6 @@ const Button = styled.button`
   }
 `;
 
-
 const ContentWrapper = styled.div`
   position: relative;
   z-index: 1;
@@ -85,80 +238,8 @@ const ContentWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;  // Added top padding
+  padding: 40px 20px;
   margin-top: -40px;
 `;
-
-const Profile = () => {
-    const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        dateOfBirth: '',
-        email: '',
-        phoneNumber: ''
-      });
-
-      return (
-        <LoginContainer>
-          <FooterShapes />
-          <ContentWrapper>
-            <Logo href="/">
-              <img src={circuitLogo} alt="Circuit Logo" />
-            </Logo>
-            <LoginForm>
-              <InputGroup>
-                <Label>First Name</Label>
-                <Input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                  placeholder="Enter your first name"
-                />
-              </InputGroup>
-              <InputGroup>
-            <Label>Last Name</Label>
-            <Input
-              type="text"
-              value={formData.lastName}
-              onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-              placeholder="Enter your last name"
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label>Date of Birth</Label>
-            <Input
-              type="text"
-              value={formData.dateOfBirth}
-              onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-              placeholder="MM/DD/YYYY"
-            />
-          </InputGroup>
-          <InputGroup>
-            <Label>Email</Label>
-            <Input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              placeholder="Enter your email"
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label>Phone Number</Label>
-            <Input
-              type="tel"
-              value={formData.phoneNumber}
-              onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-              placeholder="Enter your phone number"
-            />
-          </InputGroup>
-
-          <Button type="button">NEXT</Button>
-        </LoginForm>
-      </ContentWrapper>
-    </LoginContainer>
-    );
-};
 
 export default Profile;
