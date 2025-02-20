@@ -2,7 +2,7 @@ import styled from 'styled-components';
 import cirCrossPBlue from '../images/cir_cross_PWhite.svg';
 import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
 import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
-import circuitLogo from '../images/Cir_Secondary_RGB_Mixed Blackk.png';
+import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,7 +19,7 @@ const LoginContainer = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: #7B9EFF;
+  background-color: #211f20;
   padding: 20px;
 `;
 
@@ -69,7 +69,7 @@ const Input = styled.input`
 const Button = styled.button`
   width: 100%;
   padding: 0.75rem;
-  background-color: ${props => props.secondary ? 'white' : '#000'};
+  background-color: ${props => props.secondary ? 'white' : '#211f20'};
   color: ${props => props.secondary ? '#000' : 'white'};
   border: ${props => props.secondary ? '1px solid #000' : 'none'};
   border-radius: 6px;
@@ -126,7 +126,13 @@ const ContentWrapper = styled.div`
   padding: 0 20px;
 `;
 
+function seededRandom(seed) {
+  const x = Math.sin(seed++) * 10000;
+  return x - Math.floor(x);
+}
+
 export const FooterShapes = () => {
+  const SEED = 777;
   const rowCount = 8;
   const shapesPerRow = 12;
 
@@ -137,11 +143,15 @@ export const FooterShapes = () => {
     );
     
     // Generate all random values up front
-    const styles = Array(rowCount).fill().map(() => 
-      Array(shapesPerRow).fill().map(() => ({
-        size: Math.floor(Math.random() * (110 - 30)) + 30, // random size between 30-110
-        blur: Math.random() < 0.3 ? Math.random() * 3 : 0,
-      }))
+    const styles = Array(rowCount).fill().map((_, rowIndex) => 
+      Array(shapesPerRow).fill().map((_, colIndex) => {
+        // Use different seeds for each shape and property
+        const shapeSeed = SEED + (rowIndex * shapesPerRow + colIndex) * 10;
+        return {
+          size: Math.floor(seededRandom(shapeSeed) * (110 - 30)) + 30,
+          blur: seededRandom(shapeSeed + 1) < 0.3 ? seededRandom(shapeSeed + 2) * 3 : 0,
+        };
+      })
     );
     
     // Fill grid with shapes
@@ -163,7 +173,8 @@ export const FooterShapes = () => {
           possibilities = [...shapeOptions];
         }
 
-        const randomIndex = Math.floor(Math.random() * possibilities.length);
+        const shapeSeed = SEED + (r * shapesPerRow + c) * 10 + 3;
+        const randomIndex = Math.floor(seededRandom(shapeSeed) * possibilities.length);
         grid[r][c] = possibilities[randomIndex];
       }
     }

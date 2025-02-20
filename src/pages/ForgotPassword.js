@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import circuitLogo from '../images/Cir_Secondary_RGB_Mixed Blackk.png';
+import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import { FooterShapes } from './Login';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -10,7 +10,7 @@ const Container = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: #7B9EFF;
+  background-color: #211f20;
   padding: 20px;
 `;
 
@@ -64,7 +64,7 @@ const Input = styled.input`
 const Button = styled.button`
   width: 100%;
   padding: 0.75rem;
-  background-color: #000;
+  background-color: #211f20;
   color: white;
   border: none;
   border-radius: 6px;
