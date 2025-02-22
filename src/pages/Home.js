@@ -13,12 +13,16 @@ import MapPage from '../components/MapPage/MapPage'
 import Dashboard from '../pages/Dashboard.js';
 import { MyConnectionsPage } from '../components/Dashboard/My Connections.js';
 import { ChatWindow } from '../components/Dashboard/messages.js';
+import { SettingsPage } from '../components/Dashboard/settings.js';
+import { ChangePassword } from '../components/Dashboard/changePassword.js'
 
 const Home = () => {
     return (
         <>            
             
             <Dashboard />
+            <SettingsPage />
+            <ChangePassword/>
             <ChatWindow />
             <MyConnectionsPage />
             <Navbar />
