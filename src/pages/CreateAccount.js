@@ -99,7 +99,6 @@ const CreateAccount = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted'); // Debug log
     setError('');
     setLoading(true);
 
@@ -116,21 +115,26 @@ const CreateAccount = () => {
         return;
       }
 
-      console.log('Attempting navigation with:', { email, password: createPassword }); // Debug log
+      // Create the user account in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, createPassword);
+      const user = userCredential.user;
 
-      // Store credentials in state and navigate to profile
+      // Navigate to profile page with user data
       navigate('/profile', {
         state: {
           email: email,
-          password: createPassword
-        },
-        replace: true
+          password: createPassword,
+          userId: user.uid
+        }
       });
-      
-      console.log('Navigation completed'); // Debug log
+
     } catch (error) {
       console.error('Error:', error);
-      setError('An error occurred. Please try again.');
+      let errorMessage = 'An error occurred. Please try again.';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered.';
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

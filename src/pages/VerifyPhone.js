@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth, db } from './firebaseConfig';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 
 
 const LoginContainer = styled.div`
@@ -187,21 +187,34 @@ const VerifyPhone = () => {
             setLoading(true);
             setError('');
             
-            // Verify the code and get the user credential
-            const result = await window.confirmationResult.confirm(otpCode);
-            const user = result.user;
+            // Verify the code
+            await window.confirmationResult.confirm(otpCode);
 
-            // Create user profile in Firestore with the auth UID
-            await setDoc(doc(db, "users", user.uid), {
-                userId: user.uid,  // Store the auth UID
+            // Check if user document exists
+            const userDocRef = doc(db, "users", auth.currentUser.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            const userData = {
+                userId: auth.currentUser.uid,
                 email: userData.email,
                 firstName: userData.firstName,
                 lastName: userData.lastName,
                 birthDate: new Date(userData.birthDate),
                 phoneNumber: phoneNumber,
                 phoneVerified: true,
-                createdAt: new Date()
-            });
+                updatedAt: new Date()
+            };
+
+            if (userDoc.exists()) {
+                // Update existing document
+                await updateDoc(userDocRef, userData);
+            } else {
+                // Create new document
+                await setDoc(userDocRef, {
+                    ...userData,
+                    createdAt: new Date()
+                });
+            }
 
             // Navigate to locations screen
             navigate('/locations');
