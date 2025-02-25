@@ -60,15 +60,15 @@ const Profile = () => {
 
     try {
       // Instead of creating auth account here, just store the data and navigate
-      navigate('/verify-phone', {
+      navigate('/verify-email', {
         state: { 
-          phoneNumber: formData.phoneNumber,
           userData: {
             email,
             password,
             firstName: formData.firstName,
             lastName: formData.lastName,
-            birthDate: formData.birthDate
+            birthDate: formData.birthDate,
+            phoneNumber: formData.phoneNumber
           }
         }
       });
@@ -149,7 +149,7 @@ const Profile = () => {
           </InputGroup>
 
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : "Continue to Phone Verification"}
+            {loading ? "Saving..." : "Continue to Email Verification"}
           </Button>
         </LoginForm>
 

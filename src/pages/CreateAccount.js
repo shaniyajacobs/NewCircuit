@@ -107,24 +107,25 @@ const CreateAccount = () => {
       // Validate passwords match
       if (createPassword !== reenterPassword) {
         setError('Passwords do not match');
+        setLoading(false);
         return;
       }
 
       // Validate password strength
       if (createPassword.length < 6) {
         setError('Password should be at least 6 characters');
+        setLoading(false);
         return;
       }
 
-      console.log('Attempting navigation with:', { email, password: createPassword }); // Debug log
+      console.log('Validation passed, attempting navigation'); // Debug log
 
-      // Store credentials in state and navigate to profile
+      // Navigate to profile with state
       navigate('/profile', {
         state: {
           email: email,
           password: createPassword
-        },
-        replace: true
+        }
       });
       
       console.log('Navigation completed'); // Debug log
@@ -163,9 +164,7 @@ const CreateAccount = () => {
           </InputGroup>
 
           <InputGroup>
-            <Label htmlFor="createPassword">
-              Create Password
-            </Label>
+            <Label htmlFor="createPassword">Create Password</Label>
             <Input
               type="password"
               id="createPassword"
@@ -177,9 +176,7 @@ const CreateAccount = () => {
           </InputGroup>
 
           <InputGroup>
-            <Label htmlFor="reenterPassword">
-              Re-enter Password
-            </Label>
+            <Label htmlFor="reenterPassword">Re-enter Password</Label>
             <Input
               type="password"
               id="reenterPassword"
@@ -191,7 +188,16 @@ const CreateAccount = () => {
           </InputGroup>
 
           <Button type="submit" disabled={loading}>
-            {loading ? 'Creating Account...' : 'Create Account'}
+            {loading ? 'Creating Account...' : 'Continue'}
+          </Button>
+
+          <Button 
+            type="button" 
+            secondary 
+            onClick={() => navigate('/signin')}
+            disabled={loading}
+          >
+            Back to Sign In
           </Button>
         </LoginForm>
       </ContentWrapper>
