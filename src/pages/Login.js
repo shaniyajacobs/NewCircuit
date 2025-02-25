@@ -6,8 +6,10 @@ import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { auth } from "./firebaseConfig"; // Import Firebase auth
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from "./firebaseConfig"; // Import Firestore
 
 
 const shapeOptions = [
@@ -222,17 +224,59 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
+
     try {
-      await signInWithEmailAndPassword(auth, email, password); //Now email & password exist
-      console.log("Login successful");
-      navigate("/profile"); //Redirect after successful login
+      // Try to sign in
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check if email is verified
+      if (!user.emailVerified) {
+        setError('Please verify your email before logging in.');
+        // Optionally send verification email again
+        await sendEmailVerification(user);
+        setLoading(false);
+        return;
+      }
+
+      // Get user data from Firestore
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      
+      if (userDoc.exists()) {
+        console.log("Login successful");
+        navigate("/locations"); // Navigate to locations page after successful login
+      } else {
+        setError('User profile not found');
+        await signOut(auth); // Sign out if no profile exists
+      }
     } catch (error) {
-      console.error("Login failed:", error.message);
-      alert("Login failed: " + error.message);
+      console.error("Login failed:", error);
+      switch (error.code) {
+        case 'auth/user-not-found':
+          setError('No account found with this email');
+          break;
+        case 'auth/wrong-password':
+          setError('Incorrect password');
+          break;
+        case 'auth/invalid-email':
+          setError('Invalid email address');
+          break;
+        case 'auth/too-many-requests':
+          setError('Too many failed attempts. Please try again later');
+          break;
+        default:
+          setError('Login failed. Please try again');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -252,17 +296,31 @@ const Login = () => {
           <img src={circuitLogo} alt="Circuit Logo" />
         </Logo>
         <LoginForm onSubmit={handleSubmit}>
+          {error && (
+            <div style={{ 
+              color: 'red', 
+              marginBottom: '1rem', 
+              textAlign: 'center',
+              padding: '10px',
+              backgroundColor: '#fff1f1',
+              borderRadius: '4px'
+            }}>
+              {error}
+            </div>
+          )}
+
           <InputGroup>
             <Label htmlFor="email">Email</Label>
             <Input
               type="email"
               id="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)} // Ensure email is tracked
+              onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
           </InputGroup>
-  
+
           <InputGroup>
             <Label htmlFor="password">
               Password
@@ -277,23 +335,32 @@ const Login = () => {
               type={showPassword ? 'text' : 'password'}
               id="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)} // Ensure password is tracked
+              onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
           </InputGroup>
-  
-          <ForgotPassword href="#" onClick={(e) => {
-            e.preventDefault();
-            handleForgotPassword(); // Call forgot password function
-          }}>
+
+          <ForgotPassword 
+            href="#" 
+            onClick={(e) => {
+              e.preventDefault();
+              handleForgotPassword();
+            }}
+          >
             Forgot your password?
           </ForgotPassword>
-  
-          {/* Log In Button */}
-          <Button type="submit">Log in</Button>
-  
-          {/* Create Account Button */}
-          <Button type="button" secondary onClick={handleCreateAccount}>
+
+          <Button type="submit" disabled={loading}>
+            {loading ? "Logging in..." : "Log in"}
+          </Button>
+
+          <Button 
+            type="button" 
+            secondary 
+            onClick={handleCreateAccount}
+            disabled={loading}
+          >
             Create an Account
           </Button>
         </LoginForm>
