@@ -20,7 +20,9 @@ import VerifyPhone from './pages/VerifyPhone';
 import VerifyEmail from './pages/VerifyEmail';
 import LocationScreen from './pages/LocationScreen';
 import QuizStartScreen from './pages/QuizStartScreen';
-
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { Navigate } from "react-router-dom";
+import { ProfileProvider } from './contexts/ProfileContext';
 import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -50,11 +52,6 @@ const preloadImages = () => {
     };
   });
 };
-
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { Navigate } from "react-router-dom";
-import { ProfileProvider } from './contexts/ProfileContext';
-
 
 function App() {
   useEffect(() => {
