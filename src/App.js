@@ -20,11 +20,14 @@ import VerifyPhone from './pages/VerifyPhone';
 import VerifyEmail from './pages/VerifyEmail';
 import LocationScreen from './pages/LocationScreen';
 import QuizStartScreen from './pages/QuizStartScreen';
+
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Navigate } from "react-router-dom";
 import { ProfileProvider } from './contexts/ProfileContext';
 import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
+import Dashboard from './pages/Dashboard';
+import NavBar from './components/Navbar/NavBar';
 
 // Preload function
 const preloadImages = () => {
@@ -77,6 +80,7 @@ function App() {
         <ScrollToTop>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/dashboard/*" element={<Dashboard />} /> 
             <Route path="/contact" element={<Contact />} />
             <Route path="/get-demo" element={<DemoProduct />} />
             <Route path="/signin" element={<Login />} /> 
