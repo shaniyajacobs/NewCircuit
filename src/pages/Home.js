@@ -28,7 +28,6 @@ const Home = () => {
                 <AboutSection />
             </div>
             <Pricing/>
-            <Dashboard/>
             <Footer />
         </>
 
