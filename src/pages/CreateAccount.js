@@ -3,9 +3,9 @@ import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState, useEffect, useMemo } from 'react';
 import { FooterShapes } from './Login';
 import { auth, db } from './firebaseConfig';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 
 const LoginContainer = styled.div`
@@ -99,39 +99,45 @@ const CreateAccount = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted'); // Debug log
     setError('');
     setLoading(true);
 
     try {
-      // Validate passwords match
+      // Email format validation
+      if (!email || !/\S+@\S+\.\S+/.test(email)) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Check if email exists in Firebase Auth
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      console.log("Sign in methods found:", methods); // Debug log
+      
+      if (methods && methods.length > 0) {
+        setLoading(false);
+        setError('This email is already registered. Please sign in or use a different email.');
+        return;
+      }
+
+      // Password validation
       if (createPassword !== reenterPassword) {
-        setError('Passwords do not match');
-        setLoading(false);
-        return;
+        throw new Error('Passwords do not match');
       }
 
-      // Validate password strength
       if (createPassword.length < 6) {
-        setError('Password should be at least 6 characters');
-        setLoading(false);
-        return;
+        throw new Error('Password should be at least 6 characters');
       }
 
-      console.log('Validation passed, attempting navigation'); // Debug log
-
-      // Navigate to profile with state
+      // If all validations pass, proceed with navigation
       navigate('/profile', {
         state: {
           email: email,
           password: createPassword
         }
       });
-      
-      console.log('Navigation completed'); // Debug log
+
     } catch (error) {
       console.error('Error:', error);
-      setError('An error occurred. Please try again.');
+      setError(error.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

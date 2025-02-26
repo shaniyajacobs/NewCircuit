@@ -234,28 +234,24 @@ const Login = () => {
     setError('');
 
     try {
-      // Try to sign in
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Check if email is verified
       if (!user.emailVerified) {
         setError('Please verify your email before logging in.');
-        // Optionally send verification email again
         await sendEmailVerification(user);
         setLoading(false);
         return;
       }
 
-      // Get user data from Firestore
       const userDoc = await getDoc(doc(db, "users", user.uid));
       
       if (userDoc.exists()) {
         console.log("Login successful");
-        navigate("/locations"); // Navigate to locations page after successful login
+        navigate("/dashboard"); // Changed from /locations to /dashboard
       } else {
         setError('User profile not found');
-        await signOut(auth); // Sign out if no profile exists
+        await signOut(auth);
       }
     } catch (error) {
       console.error("Login failed:", error);
