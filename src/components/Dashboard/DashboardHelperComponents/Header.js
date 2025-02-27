@@ -1,10 +1,14 @@
 import React from "react";
 
-const Header = () => {
+const Header = (props) => {
+  const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "My Connections", 
+    "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/dashMyCoupons": "My Coupons", 
+    "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashSignOut": "Sign Out"}
+  const { path } = props;
   return (
     <div className="flex justify-between items-center px-10 py-7 bg-white rounded-xl max-sm:flex-col max-sm:gap-5 max-sm:p-5">
       <div className="text-4xl font-semibold text-indigo-950 max-sm:text-2xl">
-        Home
+        {PathTitleMappings[path]}
       </div>
       <div className="flex gap-5 items-center">
         <div className="flex justify-center items-center h-[66px] w-[62px]">
