@@ -41,11 +41,16 @@ const Card = styled.div`
 
 const Title = styled.h2`
   text-align: center;
-  color: #333;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700; /* Bold */
+  font-style: normal;
+  font-size: 50px; /* Larger font */
+  line-height: 60px; /* Proper spacing */
+  letter-spacing: -2.7px; /* Adjusted character spacing */
+  color: #ECECEC; /* Light gray */
   margin-bottom: 2rem;
-  font-size: 1.5rem; 
-  font-weight: bold;
 `;
+
 
 const Label = styled.label`
   display: block;
