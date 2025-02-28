@@ -71,13 +71,10 @@ const Hero = () => {
                             {/* First Testimonial */}
                             <div className="space-y-4">
                                 <p className="text-2xl">
-                                    I was hesitant to try speed dating online, but Circuit made 
-                                    the experience seamless and exciting. The events are 
-                                    well-organized, and the platform is so easy to use. What 
-                                    sets Circuit apart is the energy—it's vibrant, immersive, 
-                                    and actually fun! Plus, the incentives motivated me to 
-                                    meet my matches in person, which Highly recommend to 
-                                    anyone tired of the usual swiping!
+                                    I was hesitant about online speed dating, but Circuit made it seamless and exciting. 
+                                    The events are well-organized, the platform is easy to use, and the energy is vibrant 
+                                    and fun! The incentives also encouraged me to meet my matches in person. Highly recommend 
+                                    for anyone tired of swiping!
                                 </p>
                                 <p className="text-[#0E49E8] font-bold">— Taylor J., New York City</p>
                             </div>
@@ -85,13 +82,10 @@ const Hero = () => {
                             {/* Second Testimonial */}
                             <div className="space-y-4">
                                 <p className="text-2xl">
-                                    Circuit is unlike anything I've tried before. The virtual speed 
-                                    dating events are lively and engaging, and the focus on 
-                                    real-life connections is so refreshing. I loved how easy it 
-                                    was to meet intentional singles who are actually looking 
-                                    for something meaningful. The incentives for meeting in 
-                                    person are such a unique touch—it's like they really care 
-                                    about their users finding love.
+                                    Circuit is unlike anything I’ve tried. The virtual speed dating events are lively, engaging, 
+                                    and refreshingly focused on real connections. It’s easy to meet intentional singles seeking 
+                                    something meaningful, and the in-person incentives show they truly care about helping users 
+                                    find love.
                                 </p>
                                 <p className="text-[#0E49E8] font-bold">— Jordan L., Chicago</p>
                             </div>
