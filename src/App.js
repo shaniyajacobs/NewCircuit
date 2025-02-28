@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import AOS from 'aos';
 import "aos/dist/aos.css";
 import './index.css';
@@ -11,9 +11,50 @@ import {
 import Home from './pages/Home';
 import Contact from './pages/Contact';
 import DemoProduct from './pages/DemoProduct';
+import Login from './pages/Login';
+import CreateAccount from './pages/CreateAccount';
+import ForgotPassword from './pages/ForgotPassword';
+import ReEnterPassword from './pages/ReEnterPassword';
+import Profile from './pages/Profile';
+import VerifyPhone from './pages/VerifyPhone';
+import VerifyEmail from './pages/VerifyEmail';
+import LocationScreen from './pages/LocationScreen';
+import QuizStartScreen from './pages/QuizStartScreen';
 
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { Navigate } from "react-router-dom";
+import { ProfileProvider } from './contexts/ProfileContext';
 import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
+import Dashboard from './pages/Dashboard';
+import NavBar from './components/Navbar/NavBar';
+
+// Preload function
+const preloadImages = () => {
+  const images = [
+    require('./images/atlanta.jpeg').default,
+    require('./images/chicago.jpeg').default,
+    require('./images/dallas.jpg').default,
+    require('./images/houston.jpeg').default,
+    require('./images/la.jpeg').default,
+    require('./images/louisville.jpg').default,
+    require('./images/miami.jpeg').default,
+    require('./images/nyc.jpeg').default,
+    require('./images/sacremento.jpg').default,
+    require('./images/seattle.jpeg').default,
+    require('./images/sf.jpeg').default,
+    require('./images/washington.jpeg').default
+  ];
+
+  images.forEach(src => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      // Optional: log when each image is loaded
+      console.log(`Preloaded: ${src}`);
+    };
+  });
+};
 
 function App() {
   useEffect(() => {
@@ -28,24 +69,58 @@ function App() {
     window.addEventListener('load', () => {
       aos_init();
     });*/
+    preloadImages();
   }, []);
 
   useDocTitle("MLD | Molad e Konsult - Bespoke Web and Mobile Applications");
 
   return (
-    <>
+    <ProfileProvider>
       <Router>
         <ScrollToTop>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/dashboard/*" element={<Dashboard />} /> 
             <Route path="/contact" element={<Contact />} />
-            <Route path="/get-demo" element={<DemoProduct />} /> 
+            <Route path="/get-demo" element={<DemoProduct />} />
+            <Route path="/signin" element={<Login />} /> 
+            <Route path="/create-account" element={<CreateAccount />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reenter-password" element={<ReEnterPassword />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/verify-phone" element={<VerifyPhone />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/signin" element={<LocationScreen />} />
+            <Route path="/quiz-start" element={<QuizStartScreen />} />
           </Routes>
         </ScrollToTop>
       </Router>
-    </>
+    </ProfileProvider>
   );
 }
+
+const PrivateRoute = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // Track loading state
+  const auth = getAuth();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false); // Stop loading once the auth state is determined
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading screen while checking auth state
+  }
+
+  return user ? children : <Navigate to="/signin" />;
+};
+
+
 
 
 export default App;

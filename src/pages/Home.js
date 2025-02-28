@@ -10,8 +10,7 @@ import {HowItWorks} from '../components/CircuitHowItWorks';
 import {AboutSection} from '../components/About'
 import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 import MapPage from '../components/MapPage/MapPage'
-import DateCalendar from '../components/datecalendar';
-
+import Dashboard from './Dashboard';
 
 const Home = () => {
     return (
@@ -29,11 +28,10 @@ const Home = () => {
                 <AboutSection />
             </div>
             <Pricing/>
-            <DateCalendar />
+            <Dashboard/>
             <FAQSection/>
             <Footer />
         </>
-
     )
 }
 
