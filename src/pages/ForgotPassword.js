@@ -40,7 +40,7 @@ const Card = styled.div`
 
 const Title = styled.h2`
   text-align: center;
-  color: #333;
+  color: #000;
   margin-bottom: 2rem;
   font-size: 1.5rem; 
   font-weight: bold;
@@ -49,7 +49,7 @@ const Title = styled.h2`
 const Label = styled.label`
   display: block;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: #000;
 `;
 
 const Input = styled.input`
