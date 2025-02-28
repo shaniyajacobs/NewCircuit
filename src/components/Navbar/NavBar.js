@@ -1,8 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../images/Cir_Primary_RGB_Mixed Black.png'; // Adjust the path based on your image location
 
 const NavBar = () => {
+    const navigate = useNavigate();
     const scrollToSection = (id) => {
         const element = document.getElementById(id);
         if (element) {
@@ -43,7 +44,10 @@ const NavBar = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        <button className="text-gray-900 hover:text-[#0E49E8] px-3 py-2 text-base font-medium">
+                        <button 
+                            onClick={() => navigate('/login')}
+                            className="text-gray-900 hover:text-[#0E49E8] px-3 py-2 text-base font-medium"
+                        >
                             Sign In
                         </button>
                     </div>
