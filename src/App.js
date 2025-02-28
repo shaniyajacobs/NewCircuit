@@ -21,6 +21,7 @@ import VerifyPhone from './pages/VerifyPhone';
 import VerifyEmail from './pages/VerifyEmail';
 import LocationScreen from './pages/LocationScreen';
 import QuizStartScreen from './pages/QuizStartScreen';
+import PersonalityQuizPage from './pages/PersonalityQuizPage';
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ProfileProvider } from './contexts/ProfileContext';
@@ -118,6 +119,7 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/locations" element={<LocationScreen />} />
             <Route path="/quiz-start" element={<QuizStartScreen />} />
+            <Route path="/personalityquizpage/:step" element={<PersonalityQuizPage/>} />
           </Routes>
         </ScrollToTop>
       </Router>
