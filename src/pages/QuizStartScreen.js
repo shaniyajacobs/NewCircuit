@@ -1,8 +1,10 @@
 import React from 'react';
 import HeaderBar from '../components/HeaderBar';
 import blackLogo from '../images/black.svg';
+import { useNavigate } from 'react-router-dom';
 
 const QuizStartScreen = () => {
+    const navigate = useNavigate();
     return (
         <div className="min-h-screen">
             <HeaderBar 
@@ -21,6 +23,7 @@ const QuizStartScreen = () => {
                         Take our personality quiz to help us find your perfect connection
                     </p>
                     <button 
+                        onClick={() => navigate('/personalityquizpage/1')}
                         className="bg-white text-[#151D48] px-8 py-4 rounded-xl text-xl font-semibold hover:bg-opacity-90 transition-all shadow-lg"
                     >
                         Begin Your Journey
