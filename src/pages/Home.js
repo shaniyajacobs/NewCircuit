@@ -28,9 +28,10 @@ const Home = () => {
                 <AboutSection />
             </div>
             <Pricing/>
+            <Dashboard/>
+            <FAQSection/>
             <Footer />
         </>
-
     )
 }
 
