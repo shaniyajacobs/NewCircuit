@@ -88,7 +88,16 @@ export function HowItWorks() {
       {/* Centering the Title */}
       <div className="flex z-10 flex-col mb-16 w-full max-w-[644px] font-bold text-center">
         <div className="text-7xl tracking-tighter leading-none text-blue-700 max-md:max-w-full max-md:text-4xl">
-          How It Works
+          <h1
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: "700",
+            fontStyle: "normal",
+            fontSize: "50px",
+            lineHeight: "60px",
+            letterSpacing: "-2.7px",
+          }}
+          >How It Works</h1>
         </div>
       </div>
       

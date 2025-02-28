@@ -44,7 +44,17 @@ const ClientTestimonials = () => {
   return (
     <div className="relative pt-10 pb-9 bg-blue-700">
   <div className="font-poppins text-center text-white text-4xl font-bold mb-6">
+    <h1
+    style={{
+      fontFamily: "'Poppins', sans-serif",
+      fontWeight: "700",
+      fontStyle: "normal",
+      fontSize: "50px",
+      lineHeight: "60px",
+      letterSpacing: "-2.7px",
+    }}>
     What Our Clients Say About Us
+    </h1>
   </div>
 
   {/* Left Background Image */}

@@ -1,9 +1,22 @@
 import React from "react";
+import { useNavigate } from 'react-router-dom';
 
 export function RestaurantPartnerships() {
   return (
     <div className="flex flex-col items-center bg-[#211F20] pt-11">
-      <SectionTitle title="Restaurant Partnerships" />
+      <h1
+      style={{
+        fontFamily: "'Poppins', sans-serif",
+        fontWeight: "700",
+        fontStyle: "normal",
+        fontSize: "50px",
+        lineHeight: "60px",
+        letterSpacing: "-2.7px",
+        color: "#ECECEC",
+      }}
+      >
+        Restaurant Partnerships
+      </h1>
       <div className="mt-12 w-full max-w-[1252px] max-md:mt-10 max-md:max-w-full">
         <div className="flex gap-5 max-md:flex-col">
           <PartnershipSection
@@ -73,8 +86,13 @@ function ImageWithAlt({ src, alt, className }) {
 }
 
 function CallToActionButton({ text }) {
+  const navigate = useNavigate();
+  
   return (
-    <button className="px-7 py-5 mt-16 max-w-full text-4xl font-semibold text-center text-blue-700 bg-lime-300 rounded-[30px] shadow-[0px_5px_4px_rgba(0,0,0,0.25)] w-[611px] max-md:px-5 max-md:mt-10 max-md:max-w-full">
+    <button 
+      onClick={() => navigate('/login')}
+      className="w-[400px] px-6 py-4 mt-16 text-2xl font-semibold text-blue-700 bg-lime-300 rounded-[20px] shadow-[0px_5px_4px_rgba(0,0,0,0.25)] max-md:px-5 max-md:mt-10 max-md:max-w-full hover:opacity-90"
+    >
       {text}
     </button>
   );

@@ -8,9 +8,18 @@ const Pricing = () => {
       className="flex flex-col items-center px-14 pt-28 pb-40 max-md:px-5 max-md:py-24"
       //data-aos="fade-up"
     >
-      <h2 className="ml-8 text-7xl font-bold text-[80px] leading-none text-center text-blue-700 max-md:max-w-full max-md:text-4xl">
+      <h1 
+      style={{
+        fontFamily: "'Poppins', sans-serif",
+        fontWeight: "700",
+        fontStyle: "normal",
+        fontSize: "50px",
+        lineHeight: "60px",
+        letterSpacing: "-2.7px",
+      }}
+      >
         Pricing Options
-      </h2>
+      </h1>
 
       <div className="flex gap-6 items-center mt-28 max-w-full w-[378px] max-md:mt-10">
         <span
@@ -77,7 +86,7 @@ const Pricing = () => {
               {isBundle ? "$78" : "$28" }
               </div>
               <button className="px-16 py-3 mt-9 max-w-full text-base tracking-tight leading-loose text-center text-blue-700 rounded-lg bg-zinc-100 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
-                Sign up now
+                Sign Up Now
               </button>
             </div>
           </div>
@@ -116,7 +125,7 @@ const Pricing = () => {
               {isBundle ? "$144" : "$28" }
               </div>
               <button className="px-16 py-3 mt-9 max-w-full text-base tracking-tight leading-loose text-center rounded-lg bg-zinc-100 text-neutral-800 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
-                Sign up now
+                Sign Up Now
               </button>
             </div>
           </div>
@@ -153,7 +162,7 @@ const Pricing = () => {
               {isBundle ? "$220" : "#38" }
               </div>
               <button className="px-16 py-3 mt-9 ml-2.5 max-w-full text-base tracking-tight leading-loose text-center text-blue-700 rounded-lg bg-zinc-100 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
-                Sign up now
+                Sign Up Now
               </button>
             </div>
           </div>

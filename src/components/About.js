@@ -6,9 +6,18 @@ export function AboutSection() {
     <section className="flex items-center min-h-screen bg-[#211F20] text-white px-20 max-md:px-5 max-md:flex-col">
       {/* Left Side: Text */}
       <div className="w-1/2 max-md:w-full">
-        <h2 className="text-7xl font-extrabold text-left text-white max-md:text-4xl">
-          ABOUT
-        </h2>
+        <h1 
+        style={{
+          fontFamily: "'Poppins', sans-serif",
+          fontWeight: "700",
+          fontStyle: "normal",
+          fontSize: "50px",
+          lineHeight: "60px",
+          letterSpacing: "-2.7px",
+        }}
+        >
+          About
+        </h1>
         <CircuitComponent />
         <AboutDescription />
       </div>

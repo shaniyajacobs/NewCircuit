@@ -12,16 +12,26 @@ const Hero = () => {
                         <div className="max-w-2xl -ml-4">
                             <div className="space-y-8">
                                 <h4 className="text-[#E2FF65] font-semibold text-xl">Our Mission</h4>
-                                <h1 className="text-6xl font-bold leading-tight text-white">
+                                <h1 
+                                    className="text-6xl font-bold leading-tight text-white"
+                                    style={{
+                                        fontFamily: "'Poppins', sans-serif",
+                                        fontWeight: "700",
+                                        fontStyle: "normal",
+                                        fontSize: "50px",
+                                        lineHeight: "60px",
+                                        letterSpacing: "-2.7px",
+                                    }}
+                                    >
                                     Creating Sparks<br />
-                                    that last a lifetime
+                                    That Last a Lifetime
                                 </h1>
                                 <p className="text-xl text-white/90">
                                     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse
                                     mattis metus neque, ac hendrerit risus pharetra ac.
                                 </p>
-                                <Link to="/signup" className="inline-block">
-                                    <button className="bg-[#E2FF65] text-[#0E49E8] px-8 py-3 rounded-full font-semibold hover:bg-yellow-300 transition-colors">
+                                <Link to="/login" className="inline-block">
+                                    <button className="w-[400px] px-6 py-4 bg-[#E2FF65] text-[#0E49E8] text-2xl font-semibold rounded-[20px] hover:bg-yellow-300 transition-colors shadow-[0px_5px_4px_rgba(0,0,0,0.25)] max-md:px-5 max-md:max-w-full">
                                         Spark Your Connection
                                     </button>
                                 </Link>
@@ -44,7 +54,18 @@ const Hero = () => {
             <div className="bg-white h-[500px] py-16">
                 <div className="container mx-auto">
                     <div className="-ml-4">
-                        <h2 className="text-[#0E49E8] text-2xl font-bold mb-8">What are they saying?</h2>
+                        <h1 
+                        style={{
+                            fontFamily: "'Poppins', sans-serif",
+                            fontWeight: "700", // Decreased the boldness of the header
+                            fontStyle: "normal",
+                            fontSize: "50px",
+                            lineHeight: "60px",
+                            letterSpacing: "-2.7px",
+                            color: "#0E49E8", // Changed the color to a lighter black
+                        }}
+                        className="mb-8"
+                            >What Are They Saying?</h1>
                         
                         <div className="grid md:grid-cols-2 gap-12">
                             {/* First Testimonial */}
