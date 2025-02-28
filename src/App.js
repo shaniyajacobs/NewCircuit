@@ -5,7 +5,8 @@ import './index.css';
 import {
   BrowserRouter as Router,
   Routes,
-  Route
+  Route,
+  Navigate
 } from 'react-router-dom';
 // All pages
 import Home from './pages/Home';
@@ -20,9 +21,9 @@ import VerifyPhone from './pages/VerifyPhone';
 import VerifyEmail from './pages/VerifyEmail';
 import LocationScreen from './pages/LocationScreen';
 import QuizStartScreen from './pages/QuizStartScreen';
+import PersonalityQuizPage from './pages/PersonalityQuizPage';
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { Navigate } from "react-router-dom";
 import { ProfileProvider } from './contexts/ProfileContext';
 import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
@@ -56,6 +57,28 @@ const preloadImages = () => {
   });
 };
 
+// Move PrivateRoute component definition before App component
+const PrivateRoute = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const auth = getAuth();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return user ? children : <Navigate to="/login" />; // Changed from /signin to /login
+};
+
 function App() {
   useEffect(() => {
     /*const aos_init = () => {
@@ -80,47 +103,28 @@ function App() {
         <ScrollToTop>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/dashboard/*" element={<Dashboard />} /> 
+            <Route path="/dashboard/*" element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            } />
             <Route path="/contact" element={<Contact />} />
             <Route path="/get-demo" element={<DemoProduct />} />
-            <Route path="/signin" element={<Login />} /> 
+            <Route path="/login" element={<Login />} />
             <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reenter-password" element={<ReEnterPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/verify-phone" element={<VerifyPhone />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/signin" element={<LocationScreen />} />
+            <Route path="/locations" element={<LocationScreen />} />
             <Route path="/quiz-start" element={<QuizStartScreen />} />
+            <Route path="/personalityquizpage/:step" element={<PersonalityQuizPage/>} />
           </Routes>
         </ScrollToTop>
       </Router>
     </ProfileProvider>
   );
 }
-
-const PrivateRoute = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Track loading state
-  const auth = getAuth();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false); // Stop loading once the auth state is determined
-    });
-
-    return () => unsubscribe();
-  }, [auth]);
-
-  if (loading) {
-    return <div>Loading...</div>; // Show loading screen while checking auth state
-  }
-
-  return user ? children : <Navigate to="/signin" />;
-};
-
-
-
 
 export default App;

@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const PersonalityQuiz = () => {
   return (
@@ -14,12 +15,12 @@ const PersonalityQuiz = () => {
           We match you to your ideal partner based <br />
           on our highly comprehensive personality indicator.
         </div>
-        <div
-          className="font-poppins self-center px-5 py-5 mt-6 ml-3.5 max-w-full font-semibold bg-lime-300 rounded-[30px] shadow-[0px_5px_4px_rgba(0,0,0,0.25)] w-[587px] max-md:pr-5 max-md:max-w-full"
-          data-name="Take the Personality Indicator"
+        <Link
+          to="/personalityquizpage/1" // Navigates to the first question of the quiz
+          className="font-poppins self-center px-5 py-5 mt-6 ml-3.5 max-w-full font-semibold bg-lime-300 rounded-[30px] shadow-[0px_5px_4px_rgba(0,0,0,0.25)] w-[587px] max-md:pr-5 max-md:max-w-full text-center cursor-pointer hover:bg-lime-400 transition"
         >
           Take the Personality Indicator
-        </div>
+        </Link>
       </div>
     </div>
   );
