@@ -59,7 +59,7 @@ const InputGroup = styled.div`
 const Label = styled.label`
   display: block;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: #000;
 `;
 
 const Input = styled.input`
@@ -90,7 +90,7 @@ const Button = styled.button`
 const ForgotPassword = styled.a`
   display: block;
   text-align: right;
-  color: #333;
+  color: #000;
   text-decoration: none;
   font-size: 0.9rem;
   margin: -1rem 0 1.5rem;
@@ -115,7 +115,7 @@ const PatternContainer = styled.div`
 
 const ShapeImage = styled.img`
   position: absolute;
-  opacity: 0.8;
+  opacity: 0.7;
   user-select: none;
 `;
 
