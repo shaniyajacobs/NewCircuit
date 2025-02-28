@@ -29,9 +29,9 @@ const Home = () => {
             </div>
             <Pricing/>
             <Dashboard/>
+            <FAQSection/>
             <Footer />
         </>
-
     )
 }
 
