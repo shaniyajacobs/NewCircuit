@@ -28,6 +28,7 @@ const Home = () => {
                 <AboutSection />
             </div>
             <Pricing/>
+            <FAQSection/>
             <Footer />
         </>
 
