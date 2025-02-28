@@ -49,7 +49,7 @@ const InputGroup = styled.div`
 const Label = styled.label`
   display: block;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: #000;
 `;
 
 const Input = styled.input`
