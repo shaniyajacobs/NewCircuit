@@ -200,7 +200,7 @@ const CreateAccount = () => {
           <Button 
             type="button" 
             secondary 
-            onClick={() => navigate('/signin')}
+            onClick={() => navigate('/login')}
             disabled={loading}
           >
             Back to Sign In
