@@ -10,7 +10,7 @@ const FAQItem = ({ question, answer }) => {
       style={{backgroundColor: isOpen ? '#dee5fb' : 'white'}}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex flex-wrap gap-5 justify-between items-center w-full text-xl font-medium max-md:text-lg max-sm:gap-4 max-sm:text-base"
+          className="flex gap-5 justify-between items-center w-full text-xl font-medium max-md:text-lg max-sm:gap-4 max-sm:text-base"
           aria-expanded={isOpen}
           aria-controls={`faq-answer-${question.replace(/\s+/g, "-").toLowerCase()}`}
         >
