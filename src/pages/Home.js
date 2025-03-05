@@ -10,7 +10,7 @@ import {HowItWorks} from '../components/CircuitHowItWorks';
 import {AboutSection} from '../components/About'
 import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 import MapPage from '../components/MapPage/MapPage'
-import Dashboard from './Dashboard';
+
 
 const Home = () => {
     return (
