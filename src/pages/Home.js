@@ -15,6 +15,7 @@ import { MyConnectionsPage } from '../components/Dashboard/My Connections.js';
 import { ChatWindow } from '../components/Dashboard/messages.js';
 import { SettingsPage } from '../components/Dashboard/settings.js';
 import { ChangePassword } from '../components/Dashboard/changePassword.js'
+import Dashboard from './Dashboard';
 
 const Home = () => {
     return (
@@ -41,7 +42,6 @@ const Home = () => {
             <FAQSection/>
             <Footer />
         </>
-
     )
 }
 
