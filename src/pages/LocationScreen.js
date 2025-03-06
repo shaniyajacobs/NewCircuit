@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HeaderBar from '../components/HeaderBar';
-import blackLogo from '../images/black.svg';
+import whiteLogo from '../images/logomark_white.png';
 
 // Import all images at the top
 import atlantaImg from '../images/atlanta.jpeg';
@@ -77,12 +77,12 @@ const LocationScreen = () => {
         <div className="min-h-screen">
             <HeaderBar 
                 title="Location" 
-                logo={blackLogo}
-                logoHeight="h-32"
-                titleSize="text-6xl"
+                logo={whiteLogo}
+                logoHeight="h-20"
+                titleSize="text-4xl"
             />
 
-            <div className="bg-[#85A2F2] p-8">
+            <div className="bg-white p-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
                         <h2 className="text-[#151D48] text-3xl font-semibold mb-2">Select City</h2>
