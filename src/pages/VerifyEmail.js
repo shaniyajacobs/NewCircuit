@@ -48,7 +48,8 @@ const VerifyEmail = () => {
                 birthDate: new Date(userData.birthDate),
                 phoneNumber: userData.phoneNumber,
                 emailVerified: false,
-                createdAt: new Date()
+                createdAt: new Date(),
+                image: userData.image
             });
 
             setEmailSent(true);
