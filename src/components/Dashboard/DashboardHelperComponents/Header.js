@@ -1,6 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getAuth } from "firebase/auth";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from '../../../pages/firebaseConfig';
+
 
 const Header = (props) => {
+
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const [userData, setUserData] = useState();
+
+  useEffect(() => {
+    async function getUserData() {
+      const userTable = collection(db, "users");
+      const userQuery = query(userTable, where("email", "==", user.email));
+      const loggedInUserQuery = await getDocs(userQuery);
+      const loggedInUserData = loggedInUserQuery;
+      setUserData(loggedInUserData.docs.at(0))
+      console.log(loggedInUserData.docs.at(0).get("image"))
+    }
+    getUserData();
+    console.log(userData);
+  }, [user.email])
+
+
   const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "My Connections", 
     "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/dashMyCoupons": "My Coupons", 
     "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashSignOut": "Sign Out"}
@@ -15,13 +38,13 @@ const Header = (props) => {
           <i className="ti ti-bell text-2xl text-slate-500" />
         </div>
         <img
-          src="https://via.placeholder.com/60x60"
+          src={userData ? (userData.get("image") ? userData.get("image") : "https://via.placeholder.com/60x60") : "https://via.placeholder.com/60x60"}
           alt="User"
           className="object-cover rounded-2xl h-[60px] w-[60px]"
         />
         <div className="flex flex-col gap-1">
-          <div className="text-base font-medium text-indigo-950">Musfiq</div>
-          <div className="text-sm text-slate-500">Admin</div>
+          <div className="text-base font-medium text-indigo-950"> {userData ? userData.get("firstName") : ""} {userData ? userData.get("lastName"): ""} </div>
+          <div className="text-sm text-slate-500"> {userData ? userData.get("email") : ""} </div>
         </div>
       </div>
     </div>

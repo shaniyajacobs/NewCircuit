@@ -6,6 +6,7 @@ import { auth, db } from './firebaseConfig';
 import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import ImageUploading from 'react-images-uploading';
 
 
 const LoginContainer = styled.div`
@@ -96,6 +97,14 @@ const CreateAccount = () => {
   const [reenterPassword, setReenterPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [images, setImages] = React.useState([]);
+  const maxNumber = 1;
+
+  const onChange = (imageList, addUpdateIndex) => {
+    // data for submit
+    console.log(imageList, addUpdateIndex);
+    setImages(imageList);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -127,11 +136,17 @@ const CreateAccount = () => {
         throw new Error('Password should be at least 6 characters');
       }
 
+      console.log(images)
       // If all validations pass, proceed with navigation
+      console.log("WORKING")
+      console.log(images.at(0))
+      console.log(images.at(0).get('data_url'))
+      console.log(images.at(0)["data_url"])
       navigate('/profile', {
         state: {
           email: email,
-          password: createPassword
+          password: createPassword,
+          image: images.at(0)['data_url']
         }
       });
 
@@ -156,6 +171,45 @@ const CreateAccount = () => {
               {error}
             </div>
           )}
+          <ImageUploading
+            multiple
+            value={images}
+            onChange={onChange}
+            maxNumber={maxNumber}
+            dataURLKey="data_url"
+          >
+            {({
+              imageList,
+              onImageUpload,
+              onImageRemoveAll,
+              onImageUpdate,
+              onImageRemove,
+              isDragging,
+              dragProps,
+            }) => (
+              // write your building UI
+              <div className="upload__image-wrapper">
+                <button
+                  style={isDragging ? { color: 'red' } : undefined}
+                  onClick={onImageUpload}
+                  {...dragProps}
+                >
+                  Click or Drop here
+                </button>
+                &nbsp;
+                <button onClick={onImageRemoveAll}>Remove all images</button>
+                {imageList.map((image, index) => (
+                  <div key={index} className="image-item">
+                    <img src={image['data_url']} alt="" width="100" />
+                    <div className="image-item__btn-wrapper">
+                      <button onClick={() => onImageUpdate(index)}>Update</button>
+                      <button onClick={() => onImageRemove(index)}>Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ImageUploading>
           
           <InputGroup>
             <Label htmlFor="email">Email</Label>
