@@ -1,32 +1,21 @@
 import React, { useState } from 'react';
 
 const DashMyCoupons = () => {
-  const [date1Photos, setDate1Photos] = useState({
-    user: null,
-    partner: null
-  });
-  const [date2Photos, setDate2Photos] = useState({
-    user: null,
-    partner: null
+  const [photos, setPhotos] = useState({
+    date1: null,
+    date2: null
   });
   const [error, setError] = useState('');
 
-  const handlePhotoUpload = (dateNum, person, event) => {
+  const handlePhotoUpload = (dateNum, event) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (dateNum === 1) {
-          setDate1Photos(prev => ({
-            ...prev,
-            [person]: e.target.result
-          }));
-        } else {
-          setDate2Photos(prev => ({
-            ...prev,
-            [person]: e.target.result
-          }));
-        }
+        setPhotos(prev => ({
+          ...prev,
+          [`date${dateNum}`]: e.target.result
+        }));
       };
       reader.readAsDataURL(file);
     }
@@ -35,14 +24,13 @@ const DashMyCoupons = () => {
   const handleSubmit = () => {
     setError('');
     
-    if (!date1Photos.user || !date1Photos.partner || !date2Photos.user || !date2Photos.partner) {
-      setError('Please upload all required photos before submitting');
+    if (!photos.date1 || !photos.date2) {
+      setError('Please upload photos from both dates before submitting');
       return;
     }
 
     // Handle successful submission here
     console.log('All photos uploaded, proceeding with submission');
-    // Add your submission logic here
   };
 
   return (
@@ -60,7 +48,7 @@ const DashMyCoupons = () => {
             1
           </div>
           <p className="text-[#151D48] font-medium">
-            Upload pictures of you and your match for 2 dates
+            Upload a photo from each of your dates
           </p>
         </div>
 
@@ -74,98 +62,55 @@ const DashMyCoupons = () => {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
-          <h3 className="text-lg font-semibold text-[#151D48] mb-3">Date 1:</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
+          <h3 className="text-lg font-semibold text-[#151D48] mb-4">Upload Your Date Photos:</h3>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Date 1 Photo Upload */}
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <h4 className="text-[#151D48] font-medium mb-3">Date 1</h4>
+              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg h-64 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handlePhotoUpload(1, 'user', e)}
+                  onChange={(e) => handlePhotoUpload(1, e)}
                   className="hidden"
-                  id="date1-user"
+                  id="date1-photo"
                 />
-                <label htmlFor="date1-user" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                  {date1Photos.user ? (
-                    <img src={date1Photos.user} alt="Your photo" className="w-full h-full object-cover rounded-lg" />
+                <label htmlFor="date1-photo" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
+                  {photos.date1 ? (
+                    <img src={photos.date1} alt="Date 1 photo" className="w-full h-full object-cover rounded-lg" />
                   ) : (
-                    <>
+                    <div className="flex flex-col items-center">
                       <div className="text-4xl mb-2 text-[#85A2F2]">+</div>
-                      <p className="text-[#151D48]">Your photo</p>
-                    </>
+                      <p className="text-[#151D48] font-medium">Upload Photo</p>
+                      <p className="text-sm text-gray-500 mt-1">Click to browse</p>
+                    </div>
                   )}
                 </label>
               </div>
             </div>
 
-            <div>
-              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
+            {/* Date 2 Photo Upload */}
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <h4 className="text-[#151D48] font-medium mb-3">Date 2</h4>
+              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg h-64 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handlePhotoUpload(1, 'partner', e)}
+                  onChange={(e) => handlePhotoUpload(2, e)}
                   className="hidden"
-                  id="date1-partner"
+                  id="date2-photo"
                 />
-                <label htmlFor="date1-partner" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                  {date1Photos.partner ? (
-                    <img src={date1Photos.partner} alt="Partner's photo" className="w-full h-full object-cover rounded-lg" />
+                <label htmlFor="date2-photo" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
+                  {photos.date2 ? (
+                    <img src={photos.date2} alt="Date 2 photo" className="w-full h-full object-cover rounded-lg" />
                   ) : (
-                    <>
+                    <div className="flex flex-col items-center">
                       <div className="text-4xl mb-2 text-[#85A2F2]">+</div>
-                      <p className="text-[#151D48]">Your partner's photo</p>
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-lg font-semibold text-[#151D48] mb-3">Date 2:</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhotoUpload(2, 'user', e)}
-                  className="hidden"
-                  id="date2-user"
-                />
-                <label htmlFor="date2-user" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                  {date2Photos.user ? (
-                    <img src={date2Photos.user} alt="Your photo" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <>
-                      <div className="text-4xl mb-2 text-[#85A2F2]">+</div>
-                      <p className="text-[#151D48]">Your photo</p>
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhotoUpload(2, 'partner', e)}
-                  className="hidden"
-                  id="date2-partner"
-                />
-                <label htmlFor="date2-partner" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                  {date2Photos.partner ? (
-                    <img src={date2Photos.partner} alt="Partner's photo" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <>
-                      <div className="text-4xl mb-2 text-[#85A2F2]">+</div>
-                      <p className="text-[#151D48]">Your partner's photo</p>
-                    </>
+                      <p className="text-[#151D48] font-medium">Upload Photo</p>
+                      <p className="text-sm text-gray-500 mt-1">Click to browse</p>
+                    </div>
                   )}
                 </label>
               </div>
@@ -174,14 +119,14 @@ const DashMyCoupons = () => {
         </div>
 
         {error && (
-          <div className="text-red-500 text-center font-medium mt-4 bg-red-50 p-3 rounded-lg">
+          <div className="text-red-500 text-center font-medium bg-red-50 p-3 rounded-lg">
             {error}
           </div>
         )}
 
         <button
           onClick={handleSubmit}
-          className="w-full py-4 bg-[#85A2F2] text-[#151D48] font-semibold rounded-lg hover:bg-[#7491e0] transition-all mt-6 flex items-center justify-center space-x-2"
+          className="w-full py-4 bg-[#85A2F2] text-[#151D48] font-semibold rounded-lg hover:bg-[#7491e0] transition-all flex items-center justify-center space-x-2"
         >
           <span>Submit Photos</span>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
