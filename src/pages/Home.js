@@ -32,7 +32,6 @@ const Home = () => {
             <Pricing/>
             <FAQSection/>
             <Footer />
-            <SignOut />
         </>
     )
 }
