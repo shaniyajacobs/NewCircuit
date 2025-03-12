@@ -56,61 +56,67 @@ const DashDeleteAccount = () => {
   };
 
   return (
-    <div className="p-10 rounded-lg shadow-md w-3/4 min-h-[500px] bg-white">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Delete Account</h1>
-        <p className="text-gray-700 mb-6">
-          Warning: This action cannot be undone. All your data will be permanently deleted.
-        </p>
-      </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-100 text-red-600 rounded-md">
-          {error}
+    <div className="p-8 rounded-lg shadow-md w-full min-h-[calc(100vh-100px)] bg-white">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-12">
+          <h1 className="text-3xl font-bold text-[#0043F1] mb-6">Delete Account</h1>
+          <div className="p-8 bg-[#0043F1]/5 rounded-lg border border-[#0043F1]/20 mb-8">
+            <h2 className="text-2xl font-bold mb-6 text-[#0043F1]">Before You Delete</h2>
+            <ul className="list-disc list-inside text-gray-700 space-y-4 text-lg">
+              <li>All your profile information will be permanently deleted</li>
+              <li>Your matches and connections will be removed</li>
+              <li>Your account cannot be recovered once deleted</li>
+              <li>Any active coupons or rewards will be forfeited</li>
+            </ul>
+          </div>
+          
+          <div className="p-6 bg-red-50 rounded-lg border border-red-200 mb-8">
+            <p className="text-red-600 font-medium text-lg">
+              Warning: This action cannot be undone. All your data will be permanently deleted.
+            </p>
+          </div>
         </div>
-      )}
 
-      <div className="mb-8">
-        <label className="block text-gray-700 text-lg font-semibold mb-2">
-          Enter your password to confirm:
-        </label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-4 border rounded-md text-lg"
-          placeholder="Enter your password"
-        />
-      </div>
+        {error && (
+          <div className="mb-8 p-6 bg-red-50 text-red-600 rounded-lg border border-red-200 text-lg">
+            {error}
+          </div>
+        )}
 
-      <div className="space-y-4">
-        <button
-          onClick={handleDeleteAccount}
-          disabled={loading || !password}
-          className={`w-full py-4 ${
-            password ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-300'
-          } text-white rounded-md text-xl font-semibold transition-colors`}
-        >
-          {loading ? 'Deleting Account...' : 'Delete My Account'}
-        </button>
+        <div className="mt-12">
+          <div className="mb-8">
+            <label className="block text-gray-700 text-xl font-semibold mb-3">
+              Enter your password to confirm deletion:
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-5 border rounded-lg text-lg focus:border-[#0043F1] focus:ring-1 focus:ring-[#0043F1] outline-none"
+              placeholder="Enter your password"
+            />
+          </div>
 
-        <button
-          onClick={() => navigate('/dashboard/dashSettings')}
-          disabled={loading}
-          className="w-full py-4 bg-gray-100 text-gray-700 rounded-md text-xl font-semibold hover:bg-gray-200 transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
+          <div className="space-y-5">
+            <button
+              onClick={handleDeleteAccount}
+              disabled={loading || !password}
+              className={`w-full py-5 ${
+                password ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-300'
+              } text-white rounded-lg text-xl font-semibold transition-colors`}
+            >
+              {loading ? 'Deleting Account...' : 'Delete My Account'}
+            </button>
 
-      <div className="mt-8 p-4 bg-gray-50 rounded-md">
-        <h2 className="text-xl font-bold mb-2">Before You Delete</h2>
-        <ul className="list-disc list-inside text-gray-700 space-y-2">
-          <li>All your profile information will be permanently deleted</li>
-          <li>Your matches and connections will be removed</li>
-          <li>Your account cannot be recovered once deleted</li>
-          <li>Any active coupons or rewards will be forfeited</li>
-        </ul>
+            <button
+              onClick={() => navigate('/dashboard/dashSettings')}
+              disabled={loading}
+              className="w-full py-5 bg-[#0043F1]/5 text-[#0043F1] rounded-lg text-xl font-semibold hover:bg-[#0043F1]/10 transition-colors border border-[#0043F1]/20"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
