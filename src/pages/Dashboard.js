@@ -8,6 +8,7 @@ import DashDateCalendar from "../components/Dashboard/DashboardPages/DashDateCal
 import DashMyCoupons from "../components/Dashboard/DashboardPages/DashMyCoupons";
 import DashSettings from "../components/Dashboard/DashboardPages/DashSettings";
 import DashChangePassword from "../components/Dashboard/DashboardPages/DashChangePassword";
+import DashDeleteAccount from "../components/Dashboard/DashboardPages/DashDeleteAccount";
 
 import { useState } from "react";
 
@@ -36,6 +37,7 @@ const Dashboard = () => {
             <Route path="dashMyCoupons" element={<DashMyCoupons />} />
             <Route path="dashSettings" element={<DashSettings />} /> 
             <Route path="dashChangePassword" element={<DashChangePassword />} />
+            <Route path="dashDeleteAccount" element={<DashDeleteAccount />} />
           </Routes>
       </div>
     </div> 
