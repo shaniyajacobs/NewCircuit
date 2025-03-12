@@ -5,7 +5,7 @@ const PersonalityQuiz = () => {
   const navigate = useNavigate(); 
   return (
     <div
-      className="flex flex-col items-center px-20 pt-8 pb-14 text-4xl text-center text-blue-700 bg-zinc-100 max-md:px-5"
+      className="flex flex-col items-center px-20 pt-8 pb-14 text-4xl text-center text-blue-700 bg-[#F3F3F3] max-md:px-5"
       data-name="Section"
     >
       <div className="flex flex-col max-w-full w-[948px]">
