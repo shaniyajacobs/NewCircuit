@@ -17,10 +17,8 @@ const Header = (props) => {
       const loggedInUserQuery = await getDocs(userQuery);
       const loggedInUserData = loggedInUserQuery;
       setUserData(loggedInUserData.docs.at(0))
-      console.log(loggedInUserData.docs.at(0).get("image"))
     }
     getUserData();
-    console.log(userData);
   }, [user.email])
 
 
