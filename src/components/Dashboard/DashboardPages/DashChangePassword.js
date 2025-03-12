@@ -8,7 +8,7 @@ const DashChangePassword = () => {
   const navigate = useNavigate(); 
 
   return (
-    <div className="p-10 rounded-lg shadow-md w-3/4 min-h-[500px]">
+    <div className="p-10 w-full min-h-screen bg-white relative">
         {/* Password Fields */}
         <div className="mb-8 flex items-center justify-between">
             <label className="text-xl font-semibold w-1/3">New Password</label>
@@ -55,29 +55,31 @@ const DashChangePassword = () => {
         </div>
 
         {/* Submit Button */}
-        <button className="w-full bg-blue-600 text-white py-4 rounded-md text-xl font-semibold hover:bg-blue-700">
-            Change Password
-        </button>
+        <div className="flex justify-start">
+            <button className="bg-blue-600 text-white py-4 px-6 rounded-md text-xl font-semibold hover:bg-blue-700">
+                Change Password
+            </button>
+        </div>
 
-        {/* Security Notice (Now inside the gray box) */}
+        {/* Security Notice */}
         <div className="mt-6">
             <h2 className="text-xl font-bold">Security</h2>
-            <p className="text-gray-700">
-            Note: If you suspect your account has been compromised, please consider changing your password first.{" "}
+            <p className="text-lg text-#211F20">
+            Note: If you suspect your account has been compromised, please consider changing your password first. {" "}
             <a href="#" className="font-bold underline">Instructions for changing your password can be found on our support site.</a>
             </p>
         </div>
 
-        {/* Back Button (Outside the gray box) */}
+        {/* Back Button under Security Note */}
         <div className="mt-6 flex justify-start">
             <button 
                 className="bg-blue-600 text-white py-2 px-6 rounded-md text-lg font-semibold hover:bg-blue-700"
                 onClick={() => navigate('/dashboard/dashSettings')}
             >
-            Back
+                Back
             </button>
         </div>
-        </div>
+    </div>
   );
 }
 
