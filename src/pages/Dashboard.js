@@ -10,6 +10,7 @@ import DashSettings from "../components/Dashboard/DashboardPages/DashSettings";
 import DashChangePassword from "../components/Dashboard/DashboardPages/DashChangePassword";
 
 import { useState } from "react";
+import { DashMessages } from "../components/Dashboard/DashboardPages/DashMessages";
 
 const Dashboard = () => {
   const [currPath, setCurrPath] = useState("/");
@@ -31,7 +32,7 @@ const Dashboard = () => {
         <Header path={currPath} />
           <Routes>
             <Route path="/" element={<DashHome />}/> 
-            <Route path="dashMyConnections" element={<DashMyConnections />} /> 
+            <Route path="dashMyConnections" element={<DashMyConnections />}/> 
             <Route path="dashDateCalendar" element={<DashDateCalendar />} /> 
             <Route path="dashMyCoupons" element={<DashMyCoupons />} />
             <Route path="dashSettings" element={<DashSettings />} /> 

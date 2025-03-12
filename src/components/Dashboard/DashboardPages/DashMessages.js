@@ -1,4 +1,6 @@
 import React from "react";
+import { IoChevronBackCircleOutline } from "react-icons/io5";
+import { useNavigate } from "react-router-dom";
 
 const messages = [
   { sender: "user", text: "Salutations M'Lady." },
@@ -6,19 +8,19 @@ const messages = [
   { sender: "user", text: "Let's go on a date? 🙏🏻" },
 ];
 
-export function ChatWindow() {
+export function DashMessages(props) {
+    const { connection } = props;
+    console.log(connection.name);
   return (
     <div className="flex flex-col h-screen pb-2.5 mt-2.5 mr-5 ml-5 text-4xl font-semibold leading-snug bg-white rounded-3xl border border-gray-50 border-solid shadow-[0px_4px_20px_rgba(238,238,238,0.502)] max-md:pr-5 max-md:mr-2.5 max-md:max-w-full">
       <div className="flex z-10 flex-col flex-grow overflow-y-auto pt-6 pb-12 mt-0 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0px_4px_20px_rgba(238,238,238,0.502)] max-md:max-w-full">
         <div className="flex flex-col flex-grow overflow-y-auto px-11 w-full max-md:px-5 max-md:max-w-full">
           <div className="flex flex-wrap gap-9 self-start text-black">
-            <img
-              loading="lazy"
-              src="https://cdn.builder.io/api/v1/image/assets/168bce1fe76648e59dec4f13ce710a03/f34a2e364ccc9f6cc357d505c3567f4237019d6ae163106ca882a84efa091642?apiKey=168bce1fe76648e59dec4f13ce710a03&"
-              className="object-contain shrink-0 aspect-square w-[60px]"
-              alt=""
-            />
-            <div className="flex-auto self-start max-md:max-w-full">Send a Message to Taylor Swift</div>
+            <button>
+              <IoChevronBackCircleOutline size={50} />
+            </button>
+
+            <div className="flex-auto self-start max-md:max-w-full"> {connection.name} </div>
           </div>
           {messages.map((message, index) => (
             <div
