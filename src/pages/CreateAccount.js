@@ -103,7 +103,6 @@ const CreateAccount = () => {
 
   const onChange = (imageList, addUpdateIndex) => {
     // data for submit
-    console.log(imageList, addUpdateIndex);
     setImages(imageList);
   };
 
@@ -137,10 +136,7 @@ const CreateAccount = () => {
         throw new Error('Password should be at least 6 characters');
       }
 
-      console.log(images)
       // If all validations pass, proceed with navigation
-      console.log("WORKING")
-      console.log(images)
       navigate('/profile', {
         state: {
           email: email,
