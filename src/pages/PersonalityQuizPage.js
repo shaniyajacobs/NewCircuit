@@ -40,6 +40,8 @@ const PersonalityQuizPage = () => {
   const handleAnswerClick = () => {
     if (currentStep < TOTAL_STEPS) {
       navigate(`/personalityquizpage/${currentStep + 1}`);
+    } else {
+      navigate('/finalQuizPage'); //navigate to the final quiz page
     }
   };
 
