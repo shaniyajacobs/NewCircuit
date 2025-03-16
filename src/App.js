@@ -30,6 +30,7 @@ import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
 import Dashboard from './pages/Dashboard';
 import NavBar from './components/Navbar/NavBar';
+import FinalQuizPage from './pages/finalQuizPage';
 
 // Preload function
 const preloadImages = () => {
@@ -109,6 +110,7 @@ function App() {
                 <Dashboard />
               </PrivateRoute>
             } />
+            <Route path ="/finalQuizPage" element={<FinalQuizPage/>}/>
             <Route path="/contact" element={<Contact />} />
             <Route path="/get-demo" element={<DemoProduct />} />
             <Route path="/login" element={<Login />} />
