@@ -22,6 +22,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import LocationScreen from './pages/LocationScreen';
 import QuizStartScreen from './pages/QuizStartScreen';
 import PersonalityQuizPage from './pages/PersonalityQuizPage';
+import Reactivate from './pages/Reactivate';
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ProfileProvider } from './contexts/ProfileContext';
@@ -29,6 +30,7 @@ import {useDocTitle} from './components/CustomHook';
 import ScrollToTop from './components/ScrollToTop';
 import Dashboard from './pages/Dashboard';
 import NavBar from './components/Navbar/NavBar';
+import FinalQuizPage from './pages/finalQuizPage';
 
 // Preload function
 const preloadImages = () => {
@@ -108,6 +110,7 @@ function App() {
                 <Dashboard />
               </PrivateRoute>
             } />
+            <Route path ="/finalQuizPage" element={<FinalQuizPage/>}/>
             <Route path="/contact" element={<Contact />} />
             <Route path="/get-demo" element={<DemoProduct />} />
             <Route path="/login" element={<Login />} />
@@ -120,6 +123,7 @@ function App() {
             <Route path="/locations" element={<LocationScreen />} />
             <Route path="/quiz-start" element={<QuizStartScreen />} />
             <Route path="/personalityquizpage/:step" element={<PersonalityQuizPage/>} />
+            <Route path="/reactivate" element={<Reactivate />} />
           </Routes>
         </ScrollToTop>
       </Router>

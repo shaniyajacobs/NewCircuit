@@ -50,6 +50,7 @@ const VerifyEmail = () => {
                 emailVerified: false,
                 createdAt: new Date(),
                 image: userData.image
+                isActive: true
             });
 
             setEmailSent(true);
