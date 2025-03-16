@@ -21,9 +21,7 @@ const Dashboard = () => {
     const path = location.pathname;
     if (path !== currPath) {
       setCurrPath(path);
-      console.log("Changed path");
     }
-    console.log("Called function");
   }, [location, currPath]);
 
   return (
