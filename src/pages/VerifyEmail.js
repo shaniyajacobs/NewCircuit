@@ -49,6 +49,7 @@ const VerifyEmail = () => {
                 phoneNumber: userData.phoneNumber,
                 emailVerified: false,
                 createdAt: new Date(),
+                image: userData.image,
                 isActive: true
             });
 
