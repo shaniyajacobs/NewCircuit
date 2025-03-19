@@ -11,22 +11,23 @@ import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 const Profile = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { email, password } = location.state || {};
+  const { email, password, image } = location.state || {};
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     birthDate: '',
-    phoneNumber: ''
+    phoneNumber: '',
+    image: null
   });
 
   useEffect(() => {
-    if (!email || !password) {
+    if (!email || !password || !image) {
       navigate('/create-account');
     }
     setLoading(false);
-  }, [email, password]);
+  }, [email, password, image]);
 
   // Fetch user data on component mount
   useEffect(() => {
@@ -39,7 +40,8 @@ const Profile = () => {
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
             birthDate: userData.birthDate ? new Date(userData.birthDate.seconds * 1000).toISOString().split('T')[0] : '',
-            phoneNumber: userData.phoneNumber || ''
+            phoneNumber: userData.phoneNumber || '',
+            image: userData.image || null
           });
         }
         setLoading(false);
@@ -68,7 +70,8 @@ const Profile = () => {
             firstName: formData.firstName,
             lastName: formData.lastName,
             birthDate: formData.birthDate,
-            phoneNumber: formData.phoneNumber
+            phoneNumber: formData.phoneNumber,
+            image: formData.image
           }
         }
       });
