@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ladyImage from '../images/lady.png'; // Import the lady image
+import coupleImage from '../images/landingpg_happycouple.png';
 
 
 const Hero = () => {
@@ -13,8 +14,8 @@ const Hero = () => {
                             <div className="space-y-8">
                                 <h4 className="text-[#E2FF65] font-semibold text-xl">Our Mission</h4>
                                 <h1 className="text-6xl font-bold leading-tight text-white">
-                                    Creating Sparks<br />
-                                    that last a lifetime
+                                    Spark Your Connection,<br />
+                                    Third Date On Us
                                 </h1>
                                 <p className="text-xl text-white/90">
                                     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse
@@ -31,9 +32,9 @@ const Hero = () => {
                         {/* Added image container */}
                         <div className="flex-shrink-0">
                             <img 
-                                src={ladyImage} 
-                                alt="Happy woman" 
-                                className="rounded-3xl w-[500px] h-auto"
+                                src={coupleImage} 
+                                alt="Happy couple" 
+                                className="rounded-3xl w-[460px] h-auto"
                             />
                         </div>
                     </div>
