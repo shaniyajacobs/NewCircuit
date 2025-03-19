@@ -17,12 +17,13 @@ const Home = () => {
             <Navbar />
             <Hero />
             <HowItWorks />
-            <MapPage />
-            <ClientTestimonials />
-            <PersonalityQuiz />
             <div id="partnerships">
                 <RestaurantPartnerships/>
             </div>
+            <MapPage />
+            <ClientTestimonials />
+            <PersonalityQuiz />
+            
             <div id="about">
                 <AboutSection />
             </div>
