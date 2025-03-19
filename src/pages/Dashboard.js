@@ -8,6 +8,8 @@ import DashDateCalendar from "../components/Dashboard/DashboardPages/DashDateCal
 import DashMyCoupons from "../components/Dashboard/DashboardPages/DashMyCoupons";
 import DashSettings from "../components/Dashboard/DashboardPages/DashSettings";
 import DashChangePassword from "../components/Dashboard/DashboardPages/DashChangePassword";
+import DashDeleteAccount from "../components/Dashboard/DashboardPages/DashDeleteAccount";
+import DashDeactivateAccount from "../components/Dashboard/DashboardPages/DashDeactivateAccount";
 
 import { useState } from "react";
 
@@ -19,9 +21,7 @@ const Dashboard = () => {
     const path = location.pathname;
     if (path !== currPath) {
       setCurrPath(path);
-      console.log("Changed path");
     }
-    console.log("Called function");
   }, [location, currPath]);
 
   return (
@@ -36,6 +36,8 @@ const Dashboard = () => {
             <Route path="dashMyCoupons" element={<DashMyCoupons />} />
             <Route path="dashSettings" element={<DashSettings />} /> 
             <Route path="dashChangePassword" element={<DashChangePassword />} />
+            <Route path="dashDeleteAccount" element={<DashDeleteAccount />} />
+            <Route path="dashDeactivateAccount" element={<DashDeactivateAccount />} />
           </Routes>
       </div>
     </div> 

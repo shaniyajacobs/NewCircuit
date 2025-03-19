@@ -6,6 +6,8 @@ import { auth, db } from './firebaseConfig';
 import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import ImageUploading from 'react-images-uploading';
+import { IoPersonCircle } from 'react-icons/io5';
 
 
 const LoginContainer = styled.div`
@@ -96,6 +98,13 @@ const CreateAccount = () => {
   const [reenterPassword, setReenterPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [images, setImages] = React.useState([]);
+  const maxNumber = 1;
+
+  const onChange = (imageList, addUpdateIndex) => {
+    // data for submit
+    setImages(imageList);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -131,7 +140,8 @@ const CreateAccount = () => {
       navigate('/profile', {
         state: {
           email: email,
-          password: createPassword
+          password: createPassword,
+          image: images
         }
       });
 
@@ -156,6 +166,58 @@ const CreateAccount = () => {
               {error}
             </div>
           )}
+          <ImageUploading
+            multiple
+            value={images}
+            onChange={onChange}
+            maxNumber={maxNumber}
+            dataURLKey="data_url"
+          >
+            {({
+              imageList,
+              onImageUpload,
+              onImageRemoveAll,
+              onImageUpdate,
+              onImageRemove,
+              isDragging,
+              dragProps,
+            }) => (
+              // write your building UI
+              <div className="upload__image-wrapper">
+                <div style={{flex: 1, flexDirection: 'column', justifyItems: 'center'}}>
+                  
+                  { imageList.length < maxNumber ? 
+                  <button
+                    style={isDragging ? { color: 'red' } : undefined}
+                    onClick={onImageUpload}
+                    {...dragProps}
+                  >
+                    Click or Drop here
+                  </button> : <div/>
+                  }
+                
+                  {imageList.length ? 
+                  imageList.map((image, index) => (
+                    <div key={index} className="image-item">
+                      {/* <img
+                        src={image['data_url']}
+                        alt=""
+                        resizeMode='fit'
+                      /> */}
+                      <img src={image['data_url']} alt="" width='100'/>
+                    </div>
+                  )) : 
+                  <div
+                    onClick={onImageUpload}
+                  >
+                    <IoPersonCircle style={{width: '100px', height: '100px'}}/>
+                  </div>
+                  }
+                  <button onClick={onImageRemoveAll}>Remove image</button>
+                </div>
+              </div>
+            )}
+          </ImageUploading>
           
           <InputGroup>
             <Label htmlFor="email">Email</Label>

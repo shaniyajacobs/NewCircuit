@@ -234,43 +234,46 @@ const Login = () => {
     setError('');
 
     try {
+      // Sign in user
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      if (!user.emailVerified) {
+      
+      // Check if email is verified
+      if (!userCredential.user.emailVerified) {
+        await signOut(auth);
         setError('Please verify your email before logging in.');
-        await sendEmailVerification(user);
         setLoading(false);
         return;
       }
 
-      const userDoc = await getDoc(doc(db, "users", user.uid));
+      // Get user data from Firestore
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
       
       if (userDoc.exists()) {
-        console.log("Login successful");
-        navigate("/dashboard"); // Changed from /locations to /dashboard
+        const userData = userDoc.data();
+        
+        // Check if account is deactivated
+        if (userData.isActive === false) {
+          // Keep the user signed in for reactivation
+          navigate('/reactivate', { 
+            state: { 
+              userData,
+              uid: userCredential.user.uid 
+            },
+            replace: true 
+          });
+          return;
+        }
+        
+        // Continue with normal login flow
+        navigate('/dashboard', { replace: true });
       } else {
         setError('User profile not found');
         await signOut(auth);
       }
+
     } catch (error) {
-      console.error("Login failed:", error);
-      switch (error.code) {
-        case 'auth/user-not-found':
-          setError('No account found with this email');
-          break;
-        case 'auth/wrong-password':
-          setError('Incorrect password');
-          break;
-        case 'auth/invalid-email':
-          setError('Invalid email address');
-          break;
-        case 'auth/too-many-requests':
-          setError('Too many failed attempts. Please try again later');
-          break;
-        default:
-          setError('Login failed. Please try again');
-      }
+      console.error('Error signing in:', error);
+      setError('Failed to log in. Please check your credentials.');
     } finally {
       setLoading(false);
     }
