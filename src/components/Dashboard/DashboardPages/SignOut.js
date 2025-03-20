@@ -20,7 +20,7 @@ function SignOut() {
   };
 
   const handleCancel = () => {
-    console.log("Cancel button clicked"); // Debug log
+    console.log("Cancel button clicked "); // Debug log
     navigate(-1);
   };
 
