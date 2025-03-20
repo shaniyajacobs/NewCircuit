@@ -38,10 +38,13 @@ import {
   };
   
   export const logoutUser = async () => {
+  
     try {
       await signOut(auth);
+      console.log('Sign out successful');
       return { success: true };
     } catch (error) {
+      console.log('Error during sign out', error.message);
       return { success: false, error: error.message };
     }
   };

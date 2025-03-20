@@ -1,6 +1,9 @@
 import React from 'react';
+import { useEffect } from 'react';
 
 function SignOut() {
+
+
   return (
     <div className="flex items-center justify-center h-[20vw] bg-gray-100">
       {/* Modal container */}

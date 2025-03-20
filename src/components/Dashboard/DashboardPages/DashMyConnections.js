@@ -22,8 +22,10 @@ const DashMyConnections = () => {
 
 // ConnectionList Component
 const ConnectionList = () => {
+
+
   const connections = [
-    { id: 1, name: "Alice Johnson", compatibility: 85, img: "https://randomuser.me/api/portraits/women/1.jpg" },
+    { id: 1, name: "Alice johnson", compatibility: 85, img: "https://randomuser.me/api/portraits/women/1.jpg" },
     { id: 2, name: "Michael Smith", compatibility: 72, img: "https://randomuser.me/api/portraits/men/2.jpg" },
     { id: 3, name: "Sophia Martinez", compatibility: 50, img: "https://randomuser.me/api/portraits/women/3.jpg" },
   ];
