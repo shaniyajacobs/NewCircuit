@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 import HeaderBar from "../components/HeaderBar.js";
 import newLogo from "../images/logomark_white.png";
+import { db, auth } from "../pages/firebaseConfig"; 
+import { doc, setDoc, collection } from "firebase/firestore"; 
 
 const TOTAL_STEPS = 15; // Set total quiz steps
 
@@ -28,6 +30,7 @@ const PersonalityQuizPage = () => {
   const navigate = useNavigate();
   const currentStep = parseInt(step);
   const [progress, setProgress] = useState(0);
+  const [answers, setAnswers] = useState({});
 
   useEffect(() => {
     if (currentStep === 1) {
@@ -37,11 +40,36 @@ const PersonalityQuizPage = () => {
     }
   }, [currentStep]);
 
-  const handleAnswerClick = () => {
+  const handleAnswerClick = (answer) => {
+    const updatedAnswers = {
+      ...answers,
+      [`Question ${currentStep}`]: answer,
+    };
+  
+    setAnswers(updatedAnswers);
+
     if (currentStep < TOTAL_STEPS) {
       navigate(`/personalityquizpage/${currentStep + 1}`);
     } else {
-      navigate('/finalQuizPage'); //navigate to the final quiz page
+      handleQuizSubmit(updatedAnswers); 
+    }
+  };
+
+  const handleQuizSubmit = async (updatedAnswers) => {
+    const user = auth.currentUser;
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      const quizResponseRef = collection(userDocRef, "quizResponses");
+      const latestDocRef = doc(quizResponseRef, "latest");
+      try {
+        await setDoc(latestDocRef, { answers: updatedAnswers, timestamp: new Date() }, { merge: true });
+        console.log("Quiz answers saved successfully!");
+        navigate("/finalQuizPage");
+      } catch (error) {
+        console.error("Error saving quiz answers:", error);
+      }
+    } else {
+      console.warn("User is not authenticated!");
     }
   };
 
@@ -87,7 +115,7 @@ const PersonalityQuizPage = () => {
             {RESPONSES[currentStep - 1]?.map((option, index) => (
               <button
               key={index}
-              onClick={handleAnswerClick}
+              onClick={() => handleAnswerClick(option)}
               className="w-[400px] h-auto min-h-[70px] bg-[#F3F3F3] text-black font-poppins font-semibold text-[28px] leading-[130%] text-center rounded-[12px] shadow-md hover:bg-gray-300 transition mx-auto px-4 py-2 break-words text-wrap"
             >
               {option}
