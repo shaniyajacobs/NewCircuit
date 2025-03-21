@@ -10,7 +10,6 @@ import DashSettings from "../components/Dashboard/DashboardPages/DashSettings";
 import DashChangePassword from "../components/Dashboard/DashboardPages/DashChangePassword";
 
 import { useState } from "react";
-import { DashMessages } from "../components/Dashboard/DashboardPages/DashMessages";
 
 const Dashboard = () => {
   const [currPath, setCurrPath] = useState("/");
