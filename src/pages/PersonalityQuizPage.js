@@ -21,7 +21,7 @@ const RESPONSES = [
 "I focus on what I can control most of the time"], ["Logical", "Emotional", "Practical", "I just appreciate someone who's open to learning and growing"], 
    ["I'm an open book", "Depends on how much I trust the person", "I tend to keep my emotions to myself", "It's rare for me to share my emotions"], ["I would love to get married right now", "I'm not quite ready yet", "I'm ready to settle down but not to get married", "I don't believe in marriage"], ["Very important", "Somewhat important", "Not very important", "Not important at all"], ["Words of affirmation", "Acts of service", "Quality time", "Physical touch", "Receiving gifts"],
    ["Constant communication every day", "Periodic meaningful check-ins", "I appreciate thoughtful texts", "I express myself deeply when it matters"], 
-   ["Partners who are best friends", "A romantic spark with passion", "A relationship build on independence and trust", "A calm connection with emotional stability"],
+   ["Partners who are best friends", "A romantic spark with passion", "A relationship built on independence and trust", "A calm connection with emotional stability"],
     ["Talk it out immediately", "Take some time to cool down and discuss", "Write a thoughtful message about your feelings", "Avoid confrontation and wait for things to settle"], ["Reassurance and affection", "Space to cool off", "Someone to listen without trying to fix things", "A distraction"]
 ]
 const PersonalityQuizPage = () => {
