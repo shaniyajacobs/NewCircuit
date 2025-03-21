@@ -6,20 +6,24 @@ import newLogo from "../images/logomark_white.png";
 import { db, auth } from "../pages/firebaseConfig"; 
 import { doc, setDoc, collection } from "firebase/firestore"; 
 
-const TOTAL_STEPS = 10; // Set total quiz steps
+const TOTAL_STEPS = 15; // Set total quiz steps
 
 // question bank
 const QUESTIONS = [
   "What is your current employment status?", "Which best describes your political views?", "Are you a morning person or night owl?", "Would you date someone who has kids?", 
   "Which romantic setting sounds more appealing to you?", "Do you often worry about things beyond your control?", "Which type of intelligence do you value the most?", 
-  "How open are you with your emotions?", "Are you ready to get married right now and settle down?", "How important is religion or belief in your life?"
+  "How open are you with your emotions?", "Are you ready to get married right now and settle down?", "How important is religion or belief in your life?", "What’s your love language?",
+  "What's your communication style in a relationship?", "Which relationship dynamic do you prefer?", "How do you handle conflict in a relationship?", "When you're upset, what do you need most from your partner?"
 ]
 
 // response bank
 const RESPONSES = [
   ["Full-time", "Part-time", "Student", "Unemployed"], ["Liberal/Left Leaning", "Conservative/Right Leaning", "Centrist", "Other/Choose Not To Disclose"], ["Morning person", "Night Owl"], ["Yes", "No"],
    ["Watching the sunset on the beach", "Stargazing in the middle of nowhere", "Exploring a new city together"], ["Yes", "No"], ["Logical", "Emotional", "Practical"], 
-   ["Always", "Usually", "Sometimes", "Never"], ["Yes", "No", "I'm ready to settle down but not to get married"], ["Very important", "Somewhat important", "Not very important", "Not important at all"]
+   ["Always", "Usually", "Sometimes", "Never"], ["Yes", "No", "I'm ready to settle down but not to get married"], ["Very important", "Somewhat important", "Not very important", "Not important at all"], ["Words of affirmation", "Acts of service", "Quality time", "Physical touch"],
+   ["Constant communication every day", "Periodic meaningful check-ins", "I appreciate thoughtful texts", "I express myself deeply when it matters"], 
+   ["Partners who are best friends", "A romantic spark with passion", "A relationship build on independence and trust", "A calm connection with emotional stability"],
+    ["Talk it out immediately", "Take some time to cool down and discuss", "Write a thoughtful message about your feelings", "Avoid confrontation and wait for things to settle"], ["Reassurance and affection", "Space to cool off", "Someone to listen without trying to fix things", "A distraction"]
 ]
 const PersonalityQuizPage = () => {
   const { step } = useParams();
@@ -60,7 +64,7 @@ const PersonalityQuizPage = () => {
       try {
         await setDoc(latestDocRef, { answers: updatedAnswers, timestamp: new Date() }, { merge: true });
         console.log("Quiz answers saved successfully!");
-        navigate("/dashboard");
+        navigate("/finalQuizPage");
       } catch (error) {
         console.error("Error saving quiz answers:", error);
       }
