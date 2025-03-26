@@ -74,7 +74,7 @@ const VerifyEmail = () => {
                 }, { merge: true });
 
                 // Navigate to locations screen
-                navigate('/locations');
+                navigate('/preferencePage');
             } else {
                 setError('Please verify your email before continuing');
             }
