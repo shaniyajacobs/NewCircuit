@@ -5,6 +5,7 @@ import DashHome from "../components/Dashboard/DashboardPages/DashHome";
 import { Route, Routes, useLocation } from "react-router-dom";
 import DashMyConnections from "../components/Dashboard/DashboardPages/DashMyConnections";
 import DashDateCalendar from "../components/Dashboard/DashboardPages/DashDateCalendar";
+import DashCheckout from "../components/Dashboard/DashboardPages/DashCheckout";
 
 import { useState } from "react";
 
@@ -30,6 +31,7 @@ const Dashboard = () => {
             <Route path="/" element={<DashHome />}/> 
             <Route path="dashMyConnections" element={<DashMyConnections />} /> 
             <Route path="dashDateCalendar" element={<DashDateCalendar />} /> 
+            <Route path="dashCheckout" element={<DashCheckout />} />
           </Routes>
       </div>
     </div> 

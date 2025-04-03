@@ -12,10 +12,12 @@ import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 import MapPage from '../components/MapPage/MapPage'
 import Dashboard from './Dashboard';
 
+
 const Home = () => {
     return (
         <>            
             <Navbar />
+            <Dashboard />
             <Hero />
             <HowItWorks />
             <MapPage />

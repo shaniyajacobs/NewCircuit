@@ -2,7 +2,7 @@ import React from "react";
 
 const Header = (props) => {
   const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "My Connections", 
-    "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/dashMyCoupons": "My Coupons", 
+    "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
     "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashSignOut": "Sign Out"}
   const { path } = props;
   return (
