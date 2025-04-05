@@ -1,15 +1,13 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+// Import Firebase modules
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { getFirestore } from "firebase/firestore"; 
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase configuration
 const firebaseConfig = {
+  //  storageBucket: "circuit-eb73c.appspot.com", // FIXED: storageBucket domain
   apiKey: "AIzaSyA8UBk7or93z6u1NeXV1jmuHOmyusJ-rwE",
   authDomain: "circuit-eb73c.firebaseapp.com",
   databaseURL: "https://circuit-eb73c-default-rtdb.firebaseio.com",
@@ -19,10 +17,24 @@ const firebaseConfig = {
   appId: "1:997074025294:web:3a3faac9dab0155eeb7c1f",
   measurementId: "G-Q9G5S9JKJG"
 };
+
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
+// Initialize Firebase services
 const auth = getAuth(app);
 const db = getFirestore(app);
 const analytics = getAnalytics(app);
 
-export { auth, db};
+
+// Set authentication persistence
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log("Firebase Auth Persistence Set to Local");
+  })
+  .catch((error) => {
+    console.error("Error setting Firebase persistence:", error);
+  });
+
+// Export Firebase services
+export { app, auth, db };

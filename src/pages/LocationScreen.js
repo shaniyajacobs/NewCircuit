@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { auth, db } from './firebaseConfig';
+import app from '../firebaseConfig'; 
 import HeaderBar from '../components/HeaderBar';
 import whiteLogo from '../images/logomark_white.png';
 
@@ -59,9 +62,24 @@ const LocationScreen = () => {
         setShowModal(true);
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         setShowModal(false);
-        navigate('/quiz-start');
+
+        const user = auth.currentUser;
+        if (user) {
+            try {
+                await setDoc(doc(db, "users", user.uid), {
+                    location: selectedCity
+                }, { merge: true }); // Merge prevents overwriting other user data
+
+                console.log("Location saved successfully!");
+                navigate('/quiz-start');
+            } catch (error) {
+                console.error("Error saving location:", error);
+            }
+        } else {
+            console.error("No user logged in");
+        }
     };
 
     // Show loading state while images are loading

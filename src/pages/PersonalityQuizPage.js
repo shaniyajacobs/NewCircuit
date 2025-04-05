@@ -2,13 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 import HeaderBar from "../components/HeaderBar.js";
-<<<<<<< Updated upstream
-import newLogo from "../images/logomark_white.png";
-=======
 import newLogo from "../images/logomark_mixed.png";
 import { saveQuizAnswers } from "../pages/QuizAnswer";
 import { auth } from "../pages/firebaseConfig"; 
->>>>>>> Stashed changes
 
 const TOTAL_STEPS = 15; // Set total quiz steps
 
