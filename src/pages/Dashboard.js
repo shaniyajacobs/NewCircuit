@@ -12,6 +12,7 @@ import DashDeleteAccount from "../components/Dashboard/DashboardPages/DashDelete
 import DashDeactivateAccount from "../components/Dashboard/DashboardPages/DashDeactivateAccount";
 
 import { useState } from "react";
+import SignOut from "../components/Dashboard/DashboardPages/SignOut";
 
 const Dashboard = () => {
   const [currPath, setCurrPath] = useState("/");
@@ -38,6 +39,7 @@ const Dashboard = () => {
             <Route path="dashChangePassword" element={<DashChangePassword />} />
             <Route path="dashDeleteAccount" element={<DashDeleteAccount />} />
             <Route path="dashDeactivateAccount" element={<DashDeactivateAccount />} />
+            <Route path="dashSignOut" element={<SignOut />} />
           </Routes>
       </div>
     </div> 
