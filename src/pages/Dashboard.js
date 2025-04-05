@@ -6,6 +6,7 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import DashMyConnections from "../components/Dashboard/DashboardPages/DashMyConnections";
 import DashDateCalendar from "../components/Dashboard/DashboardPages/DashDateCalendar";
 import DashMyCoupons from "../components/Dashboard/DashboardPages/DashMyCoupons";
+import DashMyProfile from "../components/Dashboard/DashboardPages/DashMyProfile";
 import DashSettings from "../components/Dashboard/DashboardPages/DashSettings";
 import DashChangePassword from "../components/Dashboard/DashboardPages/DashChangePassword";
 import DashDeleteAccount from "../components/Dashboard/DashboardPages/DashDeleteAccount";
@@ -29,18 +30,22 @@ const Dashboard = () => {
       <Sidebar />
       <div className="flex flex-col flex-1 gap-8">
         <Header path={currPath} />
-          <Routes>
-            <Route path="/" element={<DashHome />}/> 
-            <Route path="dashMyConnections" element={<DashMyConnections />} /> 
-            <Route path="dashDateCalendar" element={<DashDateCalendar />} /> 
-            <Route path="dashMyCoupons" element={<DashMyCoupons />} />
-            <Route path="dashSettings" element={<DashSettings />} /> 
-            <Route path="dashChangePassword" element={<DashChangePassword />} />
-            <Route path="dashDeleteAccount" element={<DashDeleteAccount />} />
-            <Route path="dashDeactivateAccount" element={<DashDeactivateAccount />} />
-          </Routes>
+        <Routes>
+          <Route path="/" element={<DashHome />} />
+          <Route path="dashMyConnections" element={<DashMyConnections />} />
+          <Route path="dashDateCalendar" element={<DashDateCalendar />} />
+          <Route path="dashMyCoupons" element={<DashMyCoupons />} />
+          <Route path="dashMyProfile" element={<DashMyProfile />} />
+          <Route path="dashSettings" element={<DashSettings />} />
+          <Route path="dashChangePassword" element={<DashChangePassword />} />
+          <Route path="dashDeleteAccount" element={<DashDeleteAccount />} />
+          <Route
+            path="dashDeactivateAccount"
+            element={<DashDeactivateAccount />}
+          />
+        </Routes>
       </div>
-    </div> 
+    </div>
   );
 };
 
