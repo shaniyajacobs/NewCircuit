@@ -1,25 +1,93 @@
 import React, { useState, useEffect } from "react";
+import { getAuth } from "firebase/auth";
+import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { db } from "../../../firebaseConfig";
+
+// Utility function to format a JavaScript Date to MM/DD/YYYY
+const formatDate = (date) => {
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
+};
 
 const DashMyProfile = () => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  // State for form values (firstName, lastName, etc.)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     dateOfBirth: "",
     location: "",
   });
+  // Store the document id to update Firestore later
+  const [docId, setDocId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      async function getUserData() {
+        try {
+          const usersRef = collection(db, "users");
+          const q = query(usersRef, where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            // Assuming one document matches the authenticated user's email
+            const docSnapshot = querySnapshot.docs[0];
+            const userDoc = docSnapshot.data();
+
+            // Convert the birthDate field from Firestore timestamp (or raw) into formatted string
+            let formattedDate = "";
+            if (userDoc.birthDate && typeof userDoc.birthDate.toDate === "function") {
+              const jsDate = userDoc.birthDate.toDate();
+              formattedDate = formatDate(jsDate);
+            } else if (userDoc.birthDate) {
+              const jsDate = new Date(Number(userDoc.birthDate));
+              formattedDate = formatDate(jsDate);
+            }
+            
+            // Update state with fetched data and store the doc id
+            setFormData({
+              firstName: userDoc.firstName || "",
+              lastName: userDoc.lastName || "",
+              dateOfBirth: formattedDate,
+              location: userDoc.location || "",
+            });
+            setDocId(docSnapshot.id);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
+      getUserData();
+    }
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    alert("Profile updated successfully!");
+  // This function updates the user's name in Firestore
+  const handleSave = async () => {
+    if (!docId) return;
+    try {
+      const userDocRef = doc(db, "users", docId);
+      await updateDoc(userDocRef, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        // You can update additional fields if desired.
+      });
+      setIsEditing(false);
+      alert("Profile updated successfully!");
+    } catch (error) {
+      console.error("Error updating user data:", error);
+      alert("Error updating profile. Please try again.");
+    }
   };
 
   const inputClassName =
@@ -52,7 +120,9 @@ const DashMyProfile = () => {
 
         {/* First Name */}
         <div className="flex items-center gap-10 mt-14 max-w-full w-[976px] max-md:mt-10">
-          <label className="text-3xl font-bold text-black w-[250px]">First name</label>
+          <label className="text-3xl font-bold text-black w-[250px]">
+            First name
+          </label>
           <input
             type="text"
             name="firstName"
@@ -65,7 +135,9 @@ const DashMyProfile = () => {
 
         {/* Last Name */}
         <div className="flex items-center gap-10 mt-11 max-w-full w-[976px] max-md:mt-10">
-          <label className="text-3xl font-bold text-black w-[250px]">Last name</label>
+          <label className="text-3xl font-bold text-black w-[250px]">
+            Last name
+          </label>
           <input
             type="text"
             name="lastName"
@@ -78,7 +150,9 @@ const DashMyProfile = () => {
 
         {/* Date of Birth */}
         <div className="flex items-center gap-10 mt-10 max-w-full w-[976px]">
-          <label className="text-3xl font-bold text-black w-[250px]">Date of birth</label>
+          <label className="text-3xl font-bold text-black w-[250px]">
+            Date of birth
+          </label>
           <input
             type="text"
             name="dateOfBirth"
@@ -92,7 +166,9 @@ const DashMyProfile = () => {
 
         {/* Location */}
         <div className="flex items-center gap-10 mt-10 max-w-full w-[976px]">
-          <label className="text-3xl font-bold text-black w-[250px]">Location</label>
+          <label className="text-3xl font-bold text-black w-[250px]">
+            Location
+          </label>
           <input
             type="text"
             name="location"
@@ -103,7 +179,7 @@ const DashMyProfile = () => {
           />
         </div>
 
-        {/* Buttons */}
+        {/* Edit / Save Button */}
         {isEditing ? (
           <button
             onClick={handleSave}
