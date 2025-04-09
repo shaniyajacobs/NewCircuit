@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 
@@ -86,6 +86,7 @@ const DashHome = () => {
     navigate('dashMyConnections');
   };
 
+
   return (
     <div>
       <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
@@ -128,9 +129,12 @@ const DashHome = () => {
                 <EventCard key={index} event={event} type="signup" />
               ))}
             </div>
-            <div className="mt-5 text-xs text-center text-blue-500 cursor-pointer">
+            <Link 
+              to="dashDateCalendar"
+              className="mt-5 text-xs text-center text-blue-500 cursor-pointer block"
+            >
               Purchase More Dates
-            </div>
+            </Link>
           </div><div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
             <div className="mb-6 text-xl font-semibold text-indigo-950">
               Current Connections
