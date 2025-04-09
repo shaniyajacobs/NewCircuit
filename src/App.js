@@ -31,6 +31,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Dashboard from './pages/Dashboard';
 import NavBar from './components/Navbar/NavBar';
 import FinalQuizPage from './pages/finalQuizPage';
+import PreferencePage from './pages/preferencePage';
 
 // Preload function
 const preloadImages = () => {
@@ -110,6 +111,7 @@ function App() {
                 <Dashboard />
               </PrivateRoute>
             } />
+            <Route path = "/preferencePage" element={<PreferencePage/>}/>
             <Route path ="/finalQuizPage" element={<FinalQuizPage/>}/>
             <Route path="/contact" element={<Contact />} />
             <Route path="/get-demo" element={<DemoProduct />} />
