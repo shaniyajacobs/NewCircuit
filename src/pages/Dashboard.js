@@ -14,6 +14,7 @@ import MyMatches from "../components/Dashboard/DashboardPages/MyMatches";
 import SeeAllMatches from "../components/Dashboard/DashboardPages/SeeAllMatches";
 
 import { useState } from "react";
+import SignOut from "../components/Dashboard/DashboardPages/SignOut";
 
 const Dashboard = () => {
   const [currPath, setCurrPath] = useState("/");
@@ -33,7 +34,7 @@ const Dashboard = () => {
         <Header path={currPath} />
           <Routes>
             <Route path="/" element={<DashHome />}/> 
-            <Route path="dashMyConnections" element={<DashMyConnections />} /> 
+            <Route path="dashMyConnections" element={<DashMyConnections />}/> 
             <Route path="dashDateCalendar" element={<DashDateCalendar />} /> 
             <Route path="dashMyCoupons" element={<DashMyCoupons />} />
             <Route path="dashSettings" element={<DashSettings />} /> 
@@ -43,6 +44,7 @@ const Dashboard = () => {
             <Route path="myMatches" element={<MyMatches />} />
             <Route path="myMatches/seeAllMatches" element={<SeeAllMatches />} />
             <Route path="seeAllMatches" element={<SeeAllMatches />} />
+            <Route path="dashSignOut" element={<SignOut />} />
           </Routes>
       </div>
     </div> 
