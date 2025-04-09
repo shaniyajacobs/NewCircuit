@@ -13,6 +13,7 @@ import DashDeleteAccount from "../components/Dashboard/DashboardPages/DashDelete
 import DashDeactivateAccount from "../components/Dashboard/DashboardPages/DashDeactivateAccount";
 import MyMatches from "../components/Dashboard/DashboardPages/MyMatches";
 import SeeAllMatches from "../components/Dashboard/DashboardPages/SeeAllMatches";
+import DashPaymentHistory from "../components/Dashboard/DashboardPages/DashPaymentHistory";
 
 import { useState } from "react";
 import SignOut from "../components/Dashboard/DashboardPages/SignOut";
@@ -47,6 +48,7 @@ const Dashboard = () => {
             <Route path="myMatches/seeAllMatches" element={<SeeAllMatches />} />
             <Route path="seeAllMatches" element={<SeeAllMatches />} />
             <Route path="dashSignOut" element={<SignOut />} />
+            <Route path="dashPaymentHistory" element={<DashPaymentHistory />} />
           </Routes>
       </div>
     </div>
