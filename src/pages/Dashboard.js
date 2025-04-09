@@ -10,6 +10,8 @@ import DashSettings from "../components/Dashboard/DashboardPages/DashSettings";
 import DashChangePassword from "../components/Dashboard/DashboardPages/DashChangePassword";
 import DashDeleteAccount from "../components/Dashboard/DashboardPages/DashDeleteAccount";
 import DashDeactivateAccount from "../components/Dashboard/DashboardPages/DashDeactivateAccount";
+import MyMatches from "../components/Dashboard/DashboardPages/MyMatches";
+import SeeAllMatches from "../components/Dashboard/DashboardPages/SeeAllMatches";
 
 import { useState } from "react";
 import SignOut from "../components/Dashboard/DashboardPages/SignOut";
@@ -39,6 +41,9 @@ const Dashboard = () => {
             <Route path="dashChangePassword" element={<DashChangePassword />} />
             <Route path="dashDeleteAccount" element={<DashDeleteAccount />} />
             <Route path="dashDeactivateAccount" element={<DashDeactivateAccount />} />
+            <Route path="myMatches" element={<MyMatches />} />
+            <Route path="myMatches/seeAllMatches" element={<SeeAllMatches />} />
+            <Route path="seeAllMatches" element={<SeeAllMatches />} />
             <Route path="dashSignOut" element={<SignOut />} />
           </Routes>
       </div>
