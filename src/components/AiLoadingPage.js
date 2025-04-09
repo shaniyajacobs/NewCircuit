@@ -65,7 +65,7 @@ const AiLoadingPage = () => {
           scores.push(curr_score);
       }
       
-      // Normalize the scores
+      // Normalize the scores - possibly include a benchmark for a '100%' match other than all 1s on synergy
       const max_val = Math.max(...scores);
       scores = scores.map(score => score / max_val);
       
