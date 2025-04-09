@@ -13,6 +13,7 @@ import DashDeleteAccount from "../components/Dashboard/DashboardPages/DashDelete
 import DashDeactivateAccount from "../components/Dashboard/DashboardPages/DashDeactivateAccount";
 
 import { useState } from "react";
+import SignOut from "../components/Dashboard/DashboardPages/SignOut";
 
 const Dashboard = () => {
   const [currPath, setCurrPath] = useState("/");
@@ -30,20 +31,17 @@ const Dashboard = () => {
       <Sidebar />
       <div className="flex flex-col flex-1 gap-8">
         <Header path={currPath} />
-        <Routes>
-          <Route path="/" element={<DashHome />} />
-          <Route path="dashMyConnections" element={<DashMyConnections />} />
-          <Route path="dashDateCalendar" element={<DashDateCalendar />} />
-          <Route path="dashMyCoupons" element={<DashMyCoupons />} />
-          <Route path="dashMyProfile" element={<DashMyProfile />} />
-          <Route path="dashSettings" element={<DashSettings />} />
-          <Route path="dashChangePassword" element={<DashChangePassword />} />
-          <Route path="dashDeleteAccount" element={<DashDeleteAccount />} />
-          <Route
-            path="dashDeactivateAccount"
-            element={<DashDeactivateAccount />}
-          />
-        </Routes>
+          <Routes>
+            <Route path="/" element={<DashHome />}/> 
+            <Route path="dashMyConnections" element={<DashMyConnections />}/> 
+            <Route path="dashDateCalendar" element={<DashDateCalendar />} /> 
+            <Route path="dashMyCoupons" element={<DashMyCoupons />} />
+            <Route path="dashSettings" element={<DashSettings />} /> 
+            <Route path="dashChangePassword" element={<DashChangePassword />} />
+            <Route path="dashDeleteAccount" element={<DashDeleteAccount />} />
+            <Route path="dashDeactivateAccount" element={<DashDeactivateAccount />} />
+            <Route path="dashSignOut" element={<SignOut />} />
+          </Routes>
       </div>
     </div>
   );
