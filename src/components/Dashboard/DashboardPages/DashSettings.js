@@ -5,7 +5,7 @@ const DashSettings = () => {
     return (
       <div className="space-y-4 w-1/2"> 
         <SettingItem title="Change password" path="/dashboard/dashChangePassword" clickable={true} />
-        <SettingItem title="Payment history" clickable={false} />
+        <SettingItem title="Payment history" path="/dashboard/dashPaymentHistory" clickable={true} />
         <SettingItem title="Deactivate account" path="/dashboard/dashDeactivateAccount" clickable={true} />
         <SettingItem title="Delete account" path="/dashboard/dashDeleteAccount" clickable={true} />
       </div>
