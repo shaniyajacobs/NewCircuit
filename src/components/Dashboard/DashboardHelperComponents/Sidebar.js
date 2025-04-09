@@ -47,7 +47,7 @@ const Sidebar = () => {
   },
   {
     title: "My Profile",
-    path: "/dashboard/dashMyProfile",
+    path: "/dashboard/DashMyProfile",
     icon: <FaIcons.FaUser />,
     cName: "nav-text",
   },
