@@ -155,11 +155,11 @@ const DashMyConnections = () => {
         </div>
           : 
           <div>
-            <div className='flex flex-row'>
+            <div className="flex items-center gap-4 pl-2">
               <button onClick={() => setSelectedConnection(null)}>
-                <IoChevronBackCircleOutline size={50} />
+                <IoChevronBackCircleOutline size={50} className="text-indigo-900 hover:text-indigo-700" />
               </button>
-              <div className="mr-5 ml-5 text-4xl font-semibold">
+              <div className="text-4xl font-semibold">
                 {selectedConnection.name}
               </div>
             </div>
