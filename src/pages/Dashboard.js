@@ -6,6 +6,7 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import DashMyConnections from "../components/Dashboard/DashboardPages/DashMyConnections";
 import DashDateCalendar from "../components/Dashboard/DashboardPages/DashDateCalendar";
 import DashMyCoupons from "../components/Dashboard/DashboardPages/DashMyCoupons";
+import DashMyProfile from "../components/Dashboard/DashboardPages/DashMyProfile";
 import DashSettings from "../components/Dashboard/DashboardPages/DashSettings";
 import DashChangePassword from "../components/Dashboard/DashboardPages/DashChangePassword";
 import DashDeleteAccount from "../components/Dashboard/DashboardPages/DashDeleteAccount";
@@ -47,7 +48,7 @@ const Dashboard = () => {
             <Route path="dashSignOut" element={<SignOut />} />
           </Routes>
       </div>
-    </div> 
+    </div>
   );
 };
 
