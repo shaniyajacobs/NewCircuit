@@ -10,6 +10,7 @@ const PreferencePage = () => {
   const location = useLocation();
   const { userData } = location.state || {};
   
+  
   const [formData, setFormData] = useState({
     gender: '',
     sexualPreference: ''
@@ -17,6 +18,7 @@ const PreferencePage = () => {
   
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log(userData.userId)
     navigate('/locations', {
       state: {
         userData: { 
