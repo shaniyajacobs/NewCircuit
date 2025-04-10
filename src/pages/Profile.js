@@ -19,7 +19,8 @@ const Profile = () => {
     lastName: '',
     birthDate: '',
     phoneNumber: '',
-    image: null
+    image: null,
+    location: ''
   });
 
   useEffect(() => {
@@ -41,7 +42,8 @@ const Profile = () => {
             lastName: userData.lastName || '',
             birthDate: userData.birthDate ? new Date(userData.birthDate.seconds * 1000).toISOString().split('T')[0] : '',
             phoneNumber: userData.phoneNumber || '',
-            image: userData.image || null
+            image: userData.image || null,
+            location: userData.location || '',
           });
         }
         setLoading(false);
@@ -71,7 +73,9 @@ const Profile = () => {
             lastName: formData.lastName,
             birthDate: formData.birthDate,
             phoneNumber: formData.phoneNumber,
-            image: formData.image
+            image: formData.image,
+            location: formData.location
+
           }
         }
       });

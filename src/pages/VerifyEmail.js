@@ -50,8 +50,11 @@ const VerifyEmail = () => {
                 emailVerified: false,
                 createdAt: new Date(),
                 image: userData.image,
-                isActive: true
+                isActive: true,
+                location: userData.location
             });
+
+            
 
             setEmailSent(true);
             console.log('Verification email sent');
@@ -75,8 +78,11 @@ const VerifyEmail = () => {
                     emailVerified: true
                 }, { merge: true });
 
-                // Navigate to locations screen
-                navigate('/preferencePage');
+                // Navigate to locations screen     AND PASS DATA
+                navigate('/preferencePage', { state: { userData: { 
+                    ...userData, 
+                    userId: auth.currentUser.uid 
+                  }  } });
             } else {
                 setError('Please verify your email before continuing');
             }
