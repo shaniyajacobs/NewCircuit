@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import HeaderBar from '../components/HeaderBar';
 import whiteLogo from '../images/logomark_white.png';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 
 // Import all images at the top
 import atlantaImg from '../images/atlanta.jpeg';
@@ -34,6 +36,11 @@ const cities = [
 
 const LocationScreen = () => {
     const navigate = useNavigate();
+     // Access the location state
+    const location = useLocation();
+    // Destructure userData, and provide a fallback if it's undefined
+    const initialUserData = location.state?.userData || {};
+    const [userData, setUserData] = useState(initialUserData || {});
     const [selectedCity, setSelectedCity] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -54,8 +61,23 @@ const LocationScreen = () => {
         .catch(err => console.log("Error loading images", err));
     }, []);
 
-    const handleCityClick = (cityName) => {
+    const handleCityClick = async (cityName) => {
+        console.log("City click handler started for:", cityName);
         setSelectedCity(cityName);
+      
+        try {
+          // Assumes that userData contains a unique user identifier (e.g., userData.userId)
+          // that was created during VerifyEmail (the uid from Firebase Authentication)
+          console.log('in try block');
+          console.log('User Data:', userData);
+          await updateDoc(doc(db, "users", userData.userId), {
+            location: cityName
+          });
+          console.log(`User location updated to ${cityName}`);
+        } catch (error) {
+          console.error("Error updating user location:", error);
+          // Optionally, set error state if you want to notify the user
+        }
         setShowModal(true);
     };
 

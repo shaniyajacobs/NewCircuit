@@ -174,7 +174,7 @@ const DashMyProfile = () => {
             name="location"
             value={formData.location}
             onChange={handleInputChange}
-            readOnly={!isEditing}
+            readOnly={isEditing} // for now, can't change location
             className={inputClassName}
           />
         </div>
