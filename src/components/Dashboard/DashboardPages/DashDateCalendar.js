@@ -78,7 +78,7 @@ const DashDateCalendar = () => {
 
   const handleBuyNow = (plan) => {
     setCart((prevCart) => [...prevCart, plan]); 
-    setIsCartOpen(true); // Open cart when an item is added
+    setIsCartOpen(true); 
   };
 
   const removeFromCart = (title, venue, packageType) => {
@@ -146,14 +146,13 @@ const DashDateCalendar = () => {
           setCartLoaded(true);
         }
       } else {
-        setCartLoaded(true); // Still mark as loaded even if no user
+        setCartLoaded(true); 
       }
     });
   
     return () => unsubscribe();
   }, []);
-  
-  
+   
   useEffect(() => {
     const saveCartToFirestore = async (newCart) => {
       if (!user) return;
@@ -170,8 +169,6 @@ const DashDateCalendar = () => {
   }, [cart, user, cartLoaded]);
   
 
-  
-
   return (
     <div className="p-7 bg-white rounded-3xl border border-gray-50 shadow-[0_4px_20px_rgba(238,238,238,0.502)]">
       <div className="flex flex-col ml-10 max-w-full text-3xl w-[90%]">
@@ -180,11 +177,11 @@ const DashDateCalendar = () => {
             Individual Date
           </h2>
           <button
-            onClick={() => setIsCartOpen(true)} // Opens cart drawer
+            onClick={() => setIsCartOpen(true)} 
             className="flex items-center gap-2 bg-[#0043F1] text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition"
           >
             <FaShoppingCart className="text-2xl" />
-            <span className="text-lg font-semibold"> {cartLoaded ? cart.length : "-"} </span>
+            <span className="text-lg font-semibold"> {cartLoaded ? cart.length : "\u00A0"} </span>
           </button>
         </div>
 
@@ -210,7 +207,7 @@ const DashDateCalendar = () => {
           ))}
         </div>
 
-        {/* Cart Drawer (Sliding Cart) */}
+        {/* Cart */}
         <ConfirmationModal
           isOpen={isCartOpen}
           onClose={() => setIsCartOpen(false)}
