@@ -100,7 +100,7 @@ const DashMyConnections = () => {
                 alt={connection.name}
                 className="w-12 h-12 rounded-full border border-gray-300"
               />
-              <div className="text-lg font-semibold">{connection.name}</div>
+              <div className="text-base font-semibold">{connection.name}</div>
             </div>
 
             {/* Compatibility Bar */}
@@ -159,7 +159,7 @@ const DashMyConnections = () => {
               <button onClick={() => setSelectedConnection(null)}>
                 <IoChevronBackCircleOutline size={50} className="text-indigo-900 hover:text-indigo-700" />
               </button>
-              <div className="text-4xl font-semibold">
+              <div className="text-2xl font-semibold">
                 {selectedConnection.name}
               </div>
             </div>
