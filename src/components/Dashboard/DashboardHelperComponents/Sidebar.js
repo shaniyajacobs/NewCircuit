@@ -66,7 +66,7 @@ const Sidebar = () => {
 ];
 
   return (
-    <div className="flex flex-col gap-12 px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full">
+    <div className="flex flex-col gap-3 px-3 py-5 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full h-[calc(100vh - 2rem)] overflow-y-auto">
       <img
           loading="lazy"
           src={secondaryLogo}
