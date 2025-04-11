@@ -1,7 +1,7 @@
 // Import Firebase
 import { initializeApp } from "firebase/app";
-import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth"; // Import the correct functions
-import { getFirestore } from "firebase/firestore"; // Add this
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth"; 
+import { getFirestore } from "firebase/firestore"; 
 
 // Your Firebase configuration from Firebase Console
 const firebaseConfig = {
@@ -17,9 +17,8 @@ const firebaseConfig = {
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db = getFirestore(app); // Add this
+  const db = getFirestore(app); 
   
-  // Set persistent login session
   setPersistence(auth, browserLocalPersistence)
     .then(() => {
       console.log("Firebase Auth Persistence Set to Local");

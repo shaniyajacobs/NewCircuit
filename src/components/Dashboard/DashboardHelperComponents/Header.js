@@ -7,25 +7,55 @@ import { db } from '../../../pages/firebaseConfig';
 const Header = (props) => {
 
   const auth = getAuth();
-  const user = auth.currentUser;
-  const [userData, setUserData] = useState();
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userData, setUserData] = useState(() => {
+    const cached = localStorage.getItem("userData");
+    return cached ? JSON.parse(cached) : null;
+  });
+  
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function getUserData() {
+      if (!user) return;
       const userTable = collection(db, "users");
       const userQuery = query(userTable, where("email", "==", user.email));
       const loggedInUserQuery = await getDocs(userQuery);
       const loggedInUserData = loggedInUserQuery;
       setUserData(loggedInUserData.docs.at(0))
+      localStorage.setItem("userData", JSON.stringify(loggedInUserData));
+      setIsLoading(false);
     }
     getUserData();
-  }, [user.email])
+  }, [user]);
 
 
   const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "My Connections", 
     "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
     "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashSignOut": "Sign Out"}
   const { path } = props;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-between items-center px-10 py-7 bg-white rounded-xl">
+        <div className="text-4xl font-semibold text-indigo-950">Loading...</div>
+        <div className="flex gap-5 items-center animate-pulse">
+          <div className="h-[60px] w-[60px] bg-gray-200 rounded-2xl" />
+          <div className="flex flex-col gap-2">
+            <div className="h-4 w-24 bg-gray-200 rounded" />
+            <div className="h-3 w-32 bg-gray-100 rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="flex justify-between items-center px-10 py-7 bg-white rounded-xl max-sm:flex-col max-sm:gap-5 max-sm:p-5">
       <div className="text-4xl font-semibold text-indigo-950 max-sm:text-2xl">
