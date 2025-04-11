@@ -92,31 +92,37 @@ const DashHome = () => {
       <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <div className="flex flex-col gap-2">
-              <button 
-                onClick={handleMatchesClick}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
-              >
-                You just went on a date! Here are your ai rec matches! 
-              </button>
-              <button 
-                onClick={handleConnectionsClick}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#85A2F2] rounded-lg hover:opacity-90 transition-colors"
-              >
-                See your new connections
-              </button>
-            </div>
-            <div className="text-xl font-semibold text-indigo-950 mt-4">
-              Upcoming Events
-            </div>
+          <div className="flex flex-wrap gap-3">
+  <button 
+    onClick={handleMatchesClick}
+    className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors shadow-lg hover:shadow-xl border border-[#0034BD] hover:border-[#00259A]"
+  >
+    Here are your AI rec matches! 
+  </button>
+  <button 
+    onClick={handleConnectionsClick}
+    className="px-4 py-2 text-sm font-medium text-white bg-[#85A2F2] rounded-lg hover:opacity-90 transition-colors shadow-lg hover:shadow-xl border border-[#0034BD] hover:border-[#00259A]"
+  >
+    See your new connections
+  </button>
+</div>
+
+
+          
           </div>
         </div>
         
-        <div className="flex bg-white rounded-xl">
-          {upcomingEvents.map((event, index) => (
-            <EventCard key={index} event={event} type="upcoming" />
-          ))}
-        </div>
+        <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
+  <div className="mb-6 text-xl font-semibold text-indigo-950">
+    Upcoming Events
+  </div>
+  <div className="flex bg-white rounded-xl">
+    {upcomingEvents.map((event, index) => (
+      <EventCard key={index} event={event} type="upcoming" />
+    ))}
+  </div>
+</div>
+
         <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
             <div className="flex justify-between">
               <div className="mb-6 text-xl font-semibold text-[#05004E]">
