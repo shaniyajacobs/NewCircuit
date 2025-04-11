@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmationModal from "../DashboardHelperComponents/ConfirmationModal";
 import { FaShoppingCart, FaCheck } from "react-icons/fa";
+import { auth, db } from "../../../firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const DatePlan = ({ title, time, price, venue, onBuyNow }) => {
   return (
-    <div className="flex flex-col items-center pb-8 mx-auto w-full text-black rounded-3xl bg-zinc-100 shadow-lg max-md:mt-10 min-h-[400px] max-h-[400px]">
+    <div className="flex flex-col items-center pb-8 mx-auto w-full text-black rounded-3xl bg-zinc-100 shadow-lg max-md:mt-10 h-[350px]">
       <div className="self-stretch px-5 py-2 rounded-t-xl bg-zinc-100 shadow-lg text-2xl text-center">
         {title}
       </div>
@@ -37,7 +40,7 @@ const DatePlan = ({ title, time, price, venue, onBuyNow }) => {
 
 const BundlePlan = ({ title, features, dates, price, venue, onBuyNow }) => {
   return (
-    <div className="flex flex-col items-center pb-8 mx-auto w-full text-black rounded-3xl bg-zinc-100 shadow-lg max-md:mt-10 min-h-[400px] max-h-[400px]">
+    <div className="flex flex-col items-center pb-8 mx-auto w-full text-black rounded-3xl bg-zinc-100 shadow-lg max-md:mt-10 h-[450px]">
       <div className="self-stretch px-5 py-2 rounded-t-xl bg-zinc-100 shadow-lg text-2xl text-center">
         {title}
       </div>
@@ -69,7 +72,9 @@ const BundlePlan = ({ title, features, dates, price, venue, onBuyNow }) => {
 const DashDateCalendar = () => {
   const navigate = useNavigate();
   const [cart, setCart] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false); // Now controls sliding cart
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [cartLoaded, setCartLoaded] = useState(false);
 
   const handleBuyNow = (plan) => {
     setCart((prevCart) => [...prevCart, plan]); 
@@ -125,6 +130,48 @@ const DashDateCalendar = () => {
     },
   ];
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        try {
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          const savedCart = userDoc.data()?.cart;
+          if (savedCart) {
+            setCart(savedCart);
+          }
+        } catch (err) {
+          console.error("Failed to load cart:", err);
+        } finally {
+          setCartLoaded(true);
+        }
+      } else {
+        setCartLoaded(true); // Still mark as loaded even if no user
+      }
+    });
+  
+    return () => unsubscribe();
+  }, []);
+  
+  
+  useEffect(() => {
+    const saveCartToFirestore = async (newCart) => {
+      if (!user) return;
+      try {
+        await setDoc(doc(db, "users", user.uid), { cart: newCart }, { merge: true });
+      } catch (err) {
+        console.error("Failed to save cart:", err);
+      }
+    };
+  
+    if (user && cartLoaded) {
+      saveCartToFirestore(cart);
+    }
+  }, [cart, user, cartLoaded]);
+  
+
+  
+
   return (
     <div className="p-7 bg-white rounded-3xl border border-gray-50 shadow-[0_4px_20px_rgba(238,238,238,0.502)]">
       <div className="flex flex-col ml-10 max-w-full text-3xl w-[90%]">
@@ -137,7 +184,7 @@ const DashDateCalendar = () => {
             className="flex items-center gap-2 bg-[#0043F1] text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition"
           >
             <FaShoppingCart className="text-2xl" />
-            <span className="text-lg font-semibold">{cart.length}</span>
+            <span className="text-lg font-semibold"> {cartLoaded ? cart.length : "-"} </span>
           </button>
         </div>
 
