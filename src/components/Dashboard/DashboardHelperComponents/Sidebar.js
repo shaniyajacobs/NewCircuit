@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import secondaryLogo from "../../../images/Cir_Secondary_RGB_Mixed Black.svg";
 import * as FaIcons from "react-icons/fa";
 import * as AiIcons from "react-icons/ai";
@@ -8,6 +8,7 @@ import * as RiIcons from "react-icons/ri";
 
 
 const Sidebar = () => {
+  const location = useLocation();
 
   const navItems = [
     { icon: "ti ti-home", text: "Home", active: true },
@@ -46,7 +47,7 @@ const Sidebar = () => {
   },
   {
     title: "My Profile",
-    path: "/dashboard/dashMyProfile",
+    path: "/dashboard/DashMyProfile",
     icon: <FaIcons.FaUser />,
     cName: "nav-text",
   },
@@ -73,23 +74,12 @@ const Sidebar = () => {
           className="object-contain"
         />
 
-      {/* {navItems.map((item, index) => (
-        <div
-          key={index}
-          className={`flex gap-6 items-center px-6 py-5 text-lg rounded-2xl transition-all cursor-pointer duration-[0.2s] text-slate-500 ${
-            item.active ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"
-          }`}
-        >
-          <i className={item.icon + " text-2xl"} />
-          <span>{item.text}</span>
-        </div>
-      ))} */}
       {SidebarData.map((item, index) => (
-        <Link to={item.path}>
+        <Link to={item.path} key = {index}> 
           <div
             key={index}
             className={`flex gap-6 items-center px-6 py-5 text-lg rounded-2xl transition-all cursor-pointer duration-[0.2s] text-slate-500 ${
-              item.active ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"
+              location.pathname === item.path ? "bg-[#0043F1] text-white" : "hover:bg-gray-50"
             }`}
           >
             {/* GET DIV WITH FLEX SPACING HORIZ */}

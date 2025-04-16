@@ -79,6 +79,7 @@ const PersonalityQuizPage = () => {
       navigate(`/personalityquizpage/${currentStep - 1}`);
     }
   };
+  
 
   return (
     <div className="min-h-screen">
@@ -138,5 +139,10 @@ const PersonalityQuizPage = () => {
     </div>
   );
 };
+
+
+
+
+
 
 export default PersonalityQuizPage;
