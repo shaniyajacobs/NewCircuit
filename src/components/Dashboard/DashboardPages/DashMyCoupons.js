@@ -60,7 +60,7 @@ const DashMyCoupons = () => {
             1
           </div>
           <p className="text-[#151D48] font-medium">
-            Upload pictures of you and your match for 2 dates
+            Upload your pictures for 2 dates
           </p>
         </div>
 
