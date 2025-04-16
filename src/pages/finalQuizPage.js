@@ -116,7 +116,7 @@ const FinalQuizPage = () => {
                 className="w-full flex justify-center items-center text-center relative"
             />
             <div className="bg-[#8F3F3F3] flex-grow flex flex-col items-center justify-center px-8 relative">
-                <div className="absolute top-12 w-3/4 h-4 bg-[#1E40AF] rounded-full"></div>
+                {/* <div className="absolute top-12 w-3/4 h-4 bg-[#1E40AF] rounded-full"></div> */}
                 <div className="flex-grow flex flex-col justify-center items-center mb-4">
                     <h1 className="text-black text-4xl font-bold text-center mb-6">
                          <span className="text-[#1E40AF]">You’re all set!</span>
