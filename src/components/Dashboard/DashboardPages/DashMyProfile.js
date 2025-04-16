@@ -80,6 +80,8 @@ const DashMyProfile = () => {
       await updateDoc(userDocRef, {
         firstName: formData.firstName,
         lastName: formData.lastName,
+        birthDate: formData.dateOfBirth
+
         // You can update additional fields if desired.
       });
       setIsEditing(false);
@@ -174,7 +176,7 @@ const DashMyProfile = () => {
             name="location"
             value={formData.location}
             onChange={handleInputChange}
-            readOnly={isEditing} // for now, can't change location
+            readOnly={true} // for now, can't change location
             className={inputClassName}
           />
         </div>
