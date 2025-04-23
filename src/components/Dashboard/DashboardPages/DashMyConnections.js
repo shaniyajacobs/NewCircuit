@@ -138,7 +138,7 @@ const DashMyConnections = () => {
   };
 
   return (
-    <div className="flex flex-col pt-10 pb-20 mt-0 mr-5 ml-5/9 bg-white rounded-3xl max-md:pb-24 max-md:mr-2.5 max-md:max-w-full">
+    <div className="flex flex-col pt-10 pb-20 mt-5 mr-5 ml-5 bg-white rounded-3xl border border-gray-200 shadow-lg max-md:pb-24 max-md:mr-2.5 max-md:max-w-full">
         {selectedConnection == null ? 
         <div>
           <div className="flex flex-col ml-10 max-w-full text-3xl w-[90%]">
@@ -155,18 +155,15 @@ const DashMyConnections = () => {
         </div>
           : 
           <div>
-            <div className="flex items-center gap-5 pl-5">
+            <div className="flex items-center gap-4 pl-2">
               <button onClick={() => setSelectedConnection(null)}>
-                <IoChevronBackCircleOutline size={35} className="text-indigo-900 hover:text-indigo-700" />
+                <IoChevronBackCircleOutline size={50} className="text-indigo-900 hover:text-indigo-700" />
               </button>
               <div className="text-2xl font-semibold">
                 {selectedConnection.name}
               </div>
-              <div className="flex-grow"></div>
-            </div>  
-            <div className="-mt-10">
-            <DashMessages connection={selectedConnection}/>
             </div>
+            <DashMessages connection={selectedConnection}/>
           </div>
         }
     </div>
