@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Pricing = () => {
   const [isBundle, setIsBundle] = useState(true);
+  const navigate = useNavigate();
 
   return (
     <div
@@ -76,7 +78,9 @@ const Pricing = () => {
               <div className="mt-4 text-5xl leading-none max-md:text-4xl">
               {isBundle ? "$78" : "$28" }
               </div>
-              <button className="px-16 py-3 mt-9 max-w-full text-base tracking-tight leading-loose text-center text-blue-700 rounded-lg bg-zinc-100 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
+              <button 
+              onClick={() => navigate('/login')}
+              className="px-16 py-3 mt-9 max-w-full text-base tracking-tight leading-loose text-center text-blue-700 rounded-lg bg-zinc-100 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
                 Sign up now
               </button>
             </div>
@@ -115,7 +119,9 @@ const Pricing = () => {
               <div className="mt-6 text-5xl leading-none max-md:text-4xl">
               {isBundle ? "$144" : "$28" }
               </div>
-              <button className="px-16 py-3 mt-9 max-w-full text-base tracking-tight leading-loose text-center rounded-lg bg-zinc-100 text-neutral-800 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
+              <button
+              onClick={() => navigate('/login')}
+               className="px-16 py-3 mt-9 max-w-full text-base tracking-tight leading-loose text-center rounded-lg bg-zinc-100 text-neutral-800 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
                 Sign up now
               </button>
             </div>
@@ -152,7 +158,9 @@ const Pricing = () => {
               <div className="mt-6 text-5xl leading-none max-md:text-4xl">
               {isBundle ? "$220" : "#38" }
               </div>
-              <button className="px-16 py-3 mt-9 ml-2.5 max-w-full text-base tracking-tight leading-loose text-center text-blue-700 rounded-lg bg-zinc-100 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
+              <button
+              onClick={() => navigate('/login')}
+              className="px-16 py-3 mt-9 ml-2.5 max-w-full text-base tracking-tight leading-loose text-center text-blue-700 rounded-lg bg-zinc-100 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
                 Sign up now
               </button>
             </div>

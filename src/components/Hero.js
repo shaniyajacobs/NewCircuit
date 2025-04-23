@@ -20,7 +20,7 @@ const Hero = () => {
                                     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse
                                     mattis metus neque, ac hendrerit risus pharetra ac.
                                 </p>
-                                <Link to="/signup" className="inline-block">
+                                <Link to="/login" className="inline-block">
                                     <button className="bg-[#E2FF65] text-[#0E49E8] px-8 py-3 rounded-full font-semibold hover:bg-yellow-300 transition-colors">
                                         Spark Your Connection
                                     </button>
