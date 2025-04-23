@@ -8,7 +8,6 @@ import * as AiIcons from "react-icons/ai";
 import * as IoIcons from "react-icons/io";
 import * as RiIcons from "react-icons/ri";
 
-
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -95,15 +94,17 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-12 px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full">
-      <Link to="/dashboard">
-      <img
-        loading="lazy"
-        src={secondaryLogo}
-        alt="SecondaryLogo"
-        className="object-contain cursor-pointer"
-      />
-    </Link>
+    <>
+      <div className="flex flex-col gap-12 px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full">  
+        <Link to="/dashboard">
+        <img
+          loading="lazy"
+          src={secondaryLogo}
+          alt="SecondaryLogo"
+          className="object-contain"
+        />
+        </Link>
+
         {SidebarData.map((item, index) => (
           <div key={index}>
             {item.hasDropdown ? (
