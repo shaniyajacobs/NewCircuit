@@ -100,7 +100,7 @@ const DashMyConnections = () => {
                 alt={connection.name}
                 className="w-12 h-12 rounded-full border border-gray-300"
               />
-              <div className="text-base font-semibold">{connection.name}</div>
+              <div className="text-lg font-semibold">{connection.name}</div>
             </div>
 
             {/* Compatibility Bar */}
@@ -138,7 +138,7 @@ const DashMyConnections = () => {
   };
 
   return (
-    <div className="flex flex-col pt-10 pb-20 mt-0 mr-5 ml-5/9 bg-white rounded-3xl max-md:pb-24 max-md:mr-2.5 max-md:max-w-full">
+    <div className="flex flex-col pt-10 pb-20 mt-5 mr-5 ml-5 bg-white rounded-3xl border border-gray-200 shadow-lg max-md:pb-24 max-md:mr-2.5 max-md:max-w-full">
         {selectedConnection == null ? 
         <div>
           <div className="flex flex-col ml-10 max-w-full text-3xl w-[90%]">
@@ -155,18 +155,15 @@ const DashMyConnections = () => {
         </div>
           : 
           <div>
-            <div className="flex items-center gap-5 pl-5">
+            <div className='flex flex-row'>
               <button onClick={() => setSelectedConnection(null)}>
-                <IoChevronBackCircleOutline size={35} className="text-indigo-900 hover:text-indigo-700" />
+                <IoChevronBackCircleOutline size={50} />
               </button>
-              <div className="text-2xl font-semibold">
+              <div className="mr-5 ml-5 text-4xl font-semibold">
                 {selectedConnection.name}
               </div>
-              <div className="flex-grow"></div>
-            </div>  
-            <div className="-mt-10">
-            <DashMessages connection={selectedConnection}/>
             </div>
+            <DashMessages connection={selectedConnection}/>
           </div>
         }
     </div>
