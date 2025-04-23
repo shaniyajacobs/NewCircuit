@@ -7,6 +7,7 @@ import * as IoIcons from "react-icons/io";
 import * as RiIcons from "react-icons/ri";
 
 
+
 const Sidebar = () => {
   const location = useLocation();
 
@@ -67,12 +68,14 @@ const Sidebar = () => {
 
   return (
     <div className="flex flex-col gap-12 px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full">
+      <Link to="/dashboard">
       <img
-          loading="lazy"
-          src={secondaryLogo}
-          alt="SecondaryLogo"
-          className="object-contain"
-        />
+        loading="lazy"
+        src={secondaryLogo}
+        alt="SecondaryLogo"
+        className="object-contain cursor-pointer"
+      />
+    </Link>
 
       {SidebarData.map((item, index) => (
         <Link to={item.path} key = {index}> 
