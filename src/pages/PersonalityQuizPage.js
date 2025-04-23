@@ -92,13 +92,12 @@ const PersonalityQuizPage = () => {
       <div className="relative min-h-screen bg-white flex flex-col items-center justify-center text-center">
         {/* Progress Bar */}
         <div className="absolute top-[100px] left-0 w-full py-2 px-6">
-          <div className="w-[90%] bg-[#F3F3F3] mx-auto rounded-full">
+          <div className="w-full bg-[#F3F3F3] rounded-full">
             <div
-
               className="bg-[#0043F1] h-5 rounded-full transition-all"
               style={{ width: `${progress}%` }}
             ></div>
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-black">{Math.round(progress)}%</span>
+            <span className="absolute inset-0 flex items-center justify-center font-bold text-black">{Math.round(progress)}%</span>
           </div>
         </div>
 
