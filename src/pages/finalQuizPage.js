@@ -116,15 +116,14 @@ const FinalQuizPage = () => {
                 className="w-full flex justify-center items-center text-center relative"
             />
             <div className="bg-[#8F3F3F3] flex-grow flex flex-col items-center justify-center px-8 relative">
-                <div className="absolute top-12 w-3/4 h-4 bg-[#1E40AF] rounded-full"></div>
+                {/* <div className="absolute top-12 w-3/4 h-4 bg-[#1E40AF] rounded-full"></div> */}
                 <div className="flex-grow flex flex-col justify-center items-center mb-4">
-                    <h1 className="text-black text-4xl font-bold text-center mb-4">
-                        What a <span className="text-[#1E40AF]">winning</span> personality
+                    <h1 className="text-black text-4xl font-bold text-center mb-6">
+                         <span className="text-[#1E40AF]">You’re all set!</span>
                     </h1>
-                    <textarea 
-                        placeholder="Tell us a summary of who you are"
-                        className="w-3/4 h-32 p-4 border-2 border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E40AF] mb-6"
-                    />
+                    <p className="text-xl text-center text-gray-700 max-w-2xl mb-12">
+                    We’ll use your personality insights to help spark the best connections during your speed dates
+                    </p>
                 </div>
                 <button 
                     onClick={() => navigate('/dashboard')}
