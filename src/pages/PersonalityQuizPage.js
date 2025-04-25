@@ -6,25 +6,53 @@ import newLogo from "../images/logomark_white.png";
 import { db, auth } from "../pages/firebaseConfig"; 
 import { doc, setDoc, collection } from "firebase/firestore"; 
 
-const TOTAL_STEPS = 15; // Set total quiz steps
+const TOTAL_STEPS = 17; // Set total quiz steps
 
 // question bank
 const QUESTIONS = [
-  "What is your current employment status?", "Which best describes your political views?", "Are you a morning person or night owl?", "Would you date someone who has kids?", 
-  "Which romantic setting sounds more appealing to you?", "Do you often worry about things beyond your control?", "Which type of intelligence do you value the most?", 
-  "How open are you with your emotions?", "Are you ready to get married right now and settle down?", "How important is religion or belief in your life?", "What’s your love language?",
-  "What's your communication style in a relationship?", "Which relationship dynamic do you prefer?", "How do you handle conflict in a relationship?", "When you're upset, what do you need most from your partner?"
-]
+  "What is your current employment status?", 
+  "Which best describes your political views?", 
+  "Are you a morning person or night owl?", 
+  "Would you date someone who has kids?", 
+  "Which romantic setting sounds more appealing to you?", 
+  "Do you often worry about things out of your control?", 
+  "Which type of intelligence do you value the most?", 
+  "How open are you with your emotions", 
+  "What kind of connection are you hoping to find?", 
+  "What is your religion", 
+  "How important is religion or belief in your life?",
+  "What's your love language?", 
+  "What's your communication style in a relationship?", 
+  "Which relationship dynamic do you prefer?", 
+  "How do you handle conflict in a relationship?", 
+  "When you're upset, what do you need most from your partner?", 
+  "Rank the following traits in order of importance to you in a partner (drag and rank)"
+];
 
 // response bank
 const RESPONSES = [
-  ["Full-time", "Part-time", "Student", "Unemployed"], ["Liberal/Left Leaning", "Conservative/Right Leaning", "Centrist", "Other/Choose Not To Disclose"], ["Morning person", "Night Owl"], ["Yes", "No"],
-   ["Watching the sunset on the beach", "Stargazing in the middle of nowhere", "Exploring a new city together"], ["Yes", "No"], ["Logical", "Emotional", "Practical"], 
-   ["Always", "Usually", "Sometimes", "Never"], ["Yes", "No", "I'm ready to settle down but not to get married"], ["Very important", "Somewhat important", "Not very important", "Not important at all"], ["Words of affirmation", "Acts of service", "Quality time", "Physical touch"],
-   ["Constant communication every day", "Periodic meaningful check-ins", "I appreciate thoughtful texts", "I express myself deeply when it matters"], 
-   ["Partners who are best friends", "A romantic spark with passion", "A relationship build on independence and trust", "A calm connection with emotional stability"],
-    ["Talk it out immediately", "Take some time to cool down and discuss", "Write a thoughtful message about your feelings", "Avoid confrontation and wait for things to settle"], ["Reassurance and affection", "Space to cool off", "Someone to listen without trying to fix things", "A distraction"]
-]
+  ["Full-time", "Part-time", "Student", "Unemployed"],
+  ["Liberal/left leaning", "Conservative / right leaning", "Moderate", "other/choose not to disclose"],
+  ["I'm an early bird", "Definitely a night owl", "Depends on my schedule or mood that week", "I adapt to whatever life throws at me"],
+  ["Yes, I love kids!", "I'm open to it, but i'd like to take things slow", "Id prefer not to, but never say never", "I'm not comfortable dating someone with kids"],
+  ["Watching the sunset on the beach", "Stargazing in the middle of nowhere", "Exploring a new city together"],
+  ["I worry about those things more than I'd like to admit", "Only if it directly affects people I care about", "I try not to, but it depends on how big the situation feels", "I focus on what i can control most of the time"],
+  ["Logical", "Emotional", "Practical", "I just appreciate someone who's open to learning and growing"],
+  ["I'm an open book", "Depends on how much I trust the person", "I tend to keep my emotions to myself", "It's rare for me to share my emotions"],
+  ["Life partner", "Long-term relationship", "Short-term relationship", "Long-term, open to short", "Short term open to long"],
+  ["Agnostic", "Atheist", "Buddhist", "Catholic", "Christian", "Hindu", "Jewish", "Muslim", "Sikh", "Spiritual", "Other", "Prefer not to say"],
+  ["Very important", "Somewhat important", "Not very important", "Not important at all"],
+  ["Words of affirmation", "Acts of service", "Quality time", "Physical touch", "Receiving gifts"],
+  ["Constant communication every day", "Periodic meaningful check-ins", "I appreciate thoughtful texts", "I express myself deeply when it matters"],
+  ["Partners who are best friends", "A romantic spark with passion", "A relationship built on independence and trust", "A calm connection with emotional stability"],
+  ["Talk it out immediately", "Take some time to cool down and discuss", "Write a thoughtful message about your feelings", "Avoid confrontation and wait for things to settle"],
+  ["Reassurance and affection", "Space to cool off", "Someone to listen without trying to fix things", "A distraction"],
+  ["Loyalty", "Communication", "Ambition", "Empathy", "Humor"]
+];
+
+
+
+
 const PersonalityQuizPage = () => {
   const { step } = useParams();
   const navigate = useNavigate();
@@ -34,7 +62,7 @@ const PersonalityQuizPage = () => {
 
   useEffect(() => {
     if (currentStep === 1) {
-      setProgress(10);
+      setProgress(0);
     } else {
       setProgress(((currentStep)/ TOTAL_STEPS) * 100);
     }
@@ -62,7 +90,7 @@ const PersonalityQuizPage = () => {
       const quizResponseRef = collection(userDocRef, "quizResponses");
       const latestDocRef = doc(quizResponseRef, "latest");
       try {
-        await setDoc(latestDocRef, { answers: updatedAnswers, timestamp: new Date() }, { merge: true });
+        await setDoc(latestDocRef, { answers: updatedAnswers, id: "latest", timestamp: new Date() }, { merge: true });
         console.log("Quiz answers saved successfully!");
         navigate("/finalQuizPage");
       } catch (error) {
