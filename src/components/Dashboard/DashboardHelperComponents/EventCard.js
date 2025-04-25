@@ -16,31 +16,30 @@ const EventCard = ({ event, type }) => {
         <span>{event.time}</span>
       </div>
 
-      {type === "upcoming" ? (
+      {/* Show men and women spots for both upcoming and signup events */}
+      <div className="text-base text-slate-600">
+        <span>Open Spots for Men: {event.menSpots}</span>
+        <br />
+        <span>Open Spots for Women: {event.womenSpots}</span>
+      </div>
+
+      {type === "upcoming" && event.action && (
+        <div className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl">
+          {event.action}
+        </div>
+      )}
+
+      {type === "signup" && (
         <>
-          <div className="text-base text-slate-600">{event.status}</div>
-          {event.action && (
-            <div className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl">
-              {event.action}
-            </div>
-          )}
-        </>
-      ) : (
-        <>
-          <div className="text-base text-slate-600">
-            <span>Open Spots for Men: {event.menSpots}</span>
-            <br />
-            <span>Open Spots for Women: {event.womenSpots}</span>
-          </div>
           {event.isActive && (
             <div className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl">
               Sign Up
-              </div>
+            </div>
           )}
           {!event.isActive && (
             <div className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl">
-                Join Wait List
-              </div>
+              Join Wait List
+            </div>
           )}
         </>
       )}
