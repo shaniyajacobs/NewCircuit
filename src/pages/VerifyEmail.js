@@ -40,6 +40,7 @@ const VerifyEmail = () => {
             await sendEmailVerification(userCredential.user);
 
             // Create user profile in Firestore
+            console.log('Image URL in verify email:', userData.image);
             await setDoc(doc(db, "users", userCredential.user.uid), {
                 userId: userCredential.user.uid,
                 email: userData.email,
@@ -50,7 +51,8 @@ const VerifyEmail = () => {
                 emailVerified: false,
                 createdAt: new Date(),
                 image: userData.image,
-                isActive: true
+                isActive: true,
+                location: userData.location
             });
 
             setEmailSent(true);
@@ -75,8 +77,11 @@ const VerifyEmail = () => {
                     emailVerified: true
                 }, { merge: true });
 
-                // Navigate to locations screen
-                navigate('/locations');
+                // Navigate to locations screen     AND PASS DATA
+                navigate('/preferencePage', { state: { userData: { 
+                    ...userData, 
+                    userId: auth.currentUser.uid 
+                  }  } });
             } else {
                 setError('Please verify your email before continuing');
             }
