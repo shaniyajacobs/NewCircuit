@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
@@ -59,6 +60,23 @@ const DashHome = () => {
         const sortByDate = (a, b) => new Date(a.date) - new Date(b.date);
         setUpcomingEvents(userEvents.sort(sortByDate));
         setSignUpEvents(availableEvents.sort(sortByDate));
+ 
+
+  const handleEventSignUp = (event) => {
+    // Remove the event from signUpEvents
+    setSignUpEvents(signUpEvents.filter(e => 
+      e.title !== event.title || e.date !== event.date || e.time !== event.time
+    ));
+
+    // Add the event to upcomingEvents with updated status
+    const newUpcomingEvent = {
+      ...event,
+      status: "1/10 sign ups",
+      action: "Join Now",
+      isActive: false
+    };
+    setUpcomingEvents([...upcomingEvents, newUpcomingEvent]);
+  };
 
       } catch (error) {
         console.error("Error fetching events:", error);
@@ -120,19 +138,44 @@ const DashHome = () => {
           </div>
         </div>
         
-        <div className="flex bg-white rounded-xl">
-          {upcomingEvents.map((event) => (
-            <EventCard key={event.id} event={event} type="upcoming" />
-          ))}
+        <div className="overflow-x-auto">
+          <div className="flex bg-white rounded-xl min-w-max">
+            {upcomingEvents.map((event, index) => (
+              <EventCard key={index} event={event} type="upcoming" />
+            ))}
+          </div>
         </div>
 
-        <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
-          <div className="flex justify-between">
-            <div className="mb-6 text-xl font-semibold text-[#05004E]">
-              Sign-Up for Dates
+        <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mt-6">
+            <div className="flex justify-between">
+              <div className="mb-6 text-xl font-semibold text-[#05004E]">
+                Sign-Up for Dates
+              </div>
+              <div className="text-right font-semibold text-[#05004E]">Dates Remaining: 3</div>
             </div>
-            <div className="text-right font-semibold text-[#05004E]">
-              Dates Remaining: 3
+            <div className="overflow-x-auto">
+              <div className="flex bg-white rounded-xl min-w-max">
+                {signUpEvents.map((event, index) => (
+                  <EventCard 
+                    key={index} 
+                    event={event} 
+                    type="signup" 
+                    onSignUp={handleEventSignUp}
+                  />
+                ))}
+              </div>
+            </div>
+            <Link 
+              to="dashDateCalendar"
+              className="mt-5 text-xs text-center text-blue-500 cursor-pointer block"
+            >
+              Purchase More Dates
+            </Link>
+          </div>
+
+          <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mt-6">
+            <div className="mb-6 text-xl font-semibold text-indigo-950">
+              Current Connections
             </div>
           </div>
           <div className="flex bg-white rounded-xl">
