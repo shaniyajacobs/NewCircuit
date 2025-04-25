@@ -60,24 +60,6 @@ const DashHome = () => {
         const sortByDate = (a, b) => new Date(a.date) - new Date(b.date);
         setUpcomingEvents(userEvents.sort(sortByDate));
         setSignUpEvents(availableEvents.sort(sortByDate));
- 
-
-  const handleEventSignUp = (event) => {
-    // Remove the event from signUpEvents
-    setSignUpEvents(signUpEvents.filter(e => 
-      e.title !== event.title || e.date !== event.date || e.time !== event.time
-    ));
-
-    // Add the event to upcomingEvents with updated status
-    const newUpcomingEvent = {
-      ...event,
-      status: "1/10 sign ups",
-      action: "Join Now",
-      isActive: false
-    };
-    setUpcomingEvents([...upcomingEvents, newUpcomingEvent]);
-  };
-
       } catch (error) {
         console.error("Error fetching events:", error);
       }
@@ -86,7 +68,20 @@ const DashHome = () => {
     fetchEvents();
   }, [user.uid]);
 
-  // Dummy connections data (moved outside useEffect)
+  const handleEventSignUp = (event) => {
+    // Remove the event from signUpEvents
+    setSignUpEvents(prevEvents => prevEvents.filter(e => e.id !== event.id));
+
+    // Add the event to upcomingEvents with updated status
+    const newUpcomingEvent = {
+      ...event,
+      status: "1/10 sign ups",
+      action: "Join Now",
+      isActive: false
+    };
+    setUpcomingEvents(prevEvents => [...prevEvents, newUpcomingEvent]);
+  };
+
   const connections = [
     {
       id: "01",
@@ -132,56 +127,52 @@ const DashHome = () => {
                 See your new connections
               </button>
             </div>
-            <div className="text-xl font-semibold text-indigo-950 mt-4">
-              Upcoming Events
-            </div>
           </div>
         </div>
         
-        <div className="overflow-x-auto">
-          <div className="flex bg-white rounded-xl min-w-max">
-            {upcomingEvents.map((event, index) => (
-              <EventCard key={index} event={event} type="upcoming" />
-            ))}
+        <div className="p-7 bg-white rounded-3xl border-2 border-gray-200 shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
+          <div className="mb-6 text-xl font-semibold text-indigo-950">
+            Upcoming Events
+          </div>
+          <div className="overflow-x-auto border-2 border-gray-200 rounded-xl p-4">
+            <div className="flex bg-white rounded-xl min-w-max min-h-[300px] items-start">
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((event) => (
+                  <EventCard key={event.id} event={event} type="upcoming" />
+                ))
+              ) : (
+                <div className="flex items-center justify-center w-full h-[300px]">
+                  <div className="text-gray-500 text-lg">No upcoming events</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mt-6">
-            <div className="flex justify-between">
-              <div className="mb-6 text-xl font-semibold text-[#05004E]">
-                Sign-Up for Dates
-              </div>
-              <div className="text-right font-semibold text-[#05004E]">Dates Remaining: 3</div>
+        <div className="p-7 bg-white rounded-3xl border-2 border-gray-200 shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mt-8">
+          <div className="flex justify-between mb-6">
+            <div className="text-xl font-semibold text-[#05004E]">
+              Sign-Up for Dates
             </div>
-            <div className="overflow-x-auto">
-              <div className="flex bg-white rounded-xl min-w-max">
-                {signUpEvents.map((event, index) => (
+            <div className="text-right font-semibold text-[#05004E]">Dates Remaining: 3</div>
+          </div>
+          <div className="overflow-x-auto">
+            <div className="flex bg-white rounded-xl min-w-max min-h-[300px] items-start">
+              {signUpEvents.length > 0 ? (
+                signUpEvents.map((event) => (
                   <EventCard 
-                    key={index} 
+                    key={event.id} 
                     event={event} 
                     type="signup" 
                     onSignUp={handleEventSignUp}
                   />
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center w-full h-[300px]">
+                  <div className="text-gray-500 text-lg">No events available for sign-up</div>
+                </div>
+              )}
             </div>
-            <Link 
-              to="dashDateCalendar"
-              className="mt-5 text-xs text-center text-blue-500 cursor-pointer block"
-            >
-              Purchase More Dates
-            </Link>
-          </div>
-
-          <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mt-6">
-            <div className="mb-6 text-xl font-semibold text-indigo-950">
-              Current Connections
-            </div>
-          </div>
-          <div className="flex bg-white rounded-xl">
-            {signUpEvents.map((event) => (
-              <EventCard key={event.id} event={event} type="signup" />
-            ))}
           </div>
           <Link 
             to="dashDateCalendar"
@@ -191,7 +182,7 @@ const DashHome = () => {
           </Link>
         </div>
 
-        <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
+        <div className="p-7 bg-white rounded-3xl border-2 border-gray-200 shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mt-8">
           <div className="mb-6 text-xl font-semibold text-indigo-950">
             Current Connections
           </div>
