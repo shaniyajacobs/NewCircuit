@@ -1,64 +1,66 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
 import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
+import { collection, query, getDocs, Timestamp } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { db } from '../../../firebaseConfig';
 
 const DashHome = () => {
   const navigate = useNavigate();
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [signUpEvents, setSignUpEvents] = useState([]);
 
-  const [upcomingEvents, setUpcomingEvents] = useState([
-    {
-      title: "25-34 yrs old SF",
-      date: "01/24/25",
-      time: "5:00pm",
-      status: "10/10 sign ups",
-      action: "Join Now",
-      isActive: false,
-    },
-    {
-      title: "35-44 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      status: "10/10 sign ups",
-      action: "Join in 24 hours",
-      isActive: true,
-    },
-    {
-      title: "45-55 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      status: "10/10 sign ups",
-      action: "Join in 24 hours",
-      isActive: false,
-    },
-  ]);
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const eventsRef = collection(db, "events");
+        const querySnapshot = await getDocs(eventsRef);
+        const currentTime = Timestamp.now();
+        
+        const userEvents = [];
+        const availableEvents = [];
 
-  const [signUpEvents, setSignUpEvents] = useState([
-    {
-      title: "25-34 yrs old SF",
-      date: "01/24/25",
-      time: "5:00pm",
-      menSpots: "5/10",
-      womenSpots: "7/10",
-      isActive: true,
-    },
-    {
-      title: "35-44 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      menSpots: "10/10",
-      womenSpots: "10/10",
-      isActive: false,
-    },
-    {
-      title: "45-55 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      menSpots: "4/10",
-      womenSpots: "9/10",
-      isActive: true,
-    },
-  ]);
+        querySnapshot.forEach((doc) => {
+          const eventData = doc.data();
+          const eventDate = eventData.date;
+          
+          // Format the event for display
+          const formattedEvent = {
+            id: doc.id,
+            title: eventData.title,
+            date: eventDate.toDate().toLocaleDateString(),
+            time: eventDate.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            menSpots: `${eventData.men ? eventData.men.length : 0}/10`,
+            womenSpots: `${eventData.women ? eventData.women.length : 0}/10`,
+            isActive: eventDate > currentTime,
+          };
+
+          // Check if user is registered
+          const isUserRegistered = 
+            (eventData.men && eventData.men.includes(user.uid)) || 
+            (eventData.women && eventData.women.includes(user.uid));
+
+          if (isUserRegistered) {
+            userEvents.push({
+              ...formattedEvent,
+              action: eventDate > currentTime ? "Join Now" : "Event Passed"
+            });
+          } else {
+            availableEvents.push({
+              ...formattedEvent
+            });
+          }
+        });
+
+        // Sort events by date
+        const sortByDate = (a, b) => new Date(a.date) - new Date(b.date);
+        setUpcomingEvents(userEvents.sort(sortByDate));
+        setSignUpEvents(availableEvents.sort(sortByDate));
+ 
 
   const handleEventSignUp = (event) => {
     // Remove the event from signUpEvents
@@ -76,6 +78,15 @@ const DashHome = () => {
     setUpcomingEvents([...upcomingEvents, newUpcomingEvent]);
   };
 
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    };
+
+    fetchEvents();
+  }, [user.uid]);
+
+  // Dummy connections data (moved outside useEffect)
   const connections = [
     {
       id: "01",
@@ -166,10 +177,28 @@ const DashHome = () => {
             <div className="mb-6 text-xl font-semibold text-indigo-950">
               Current Connections
             </div>
-            <ConnectionsTable connections={connections} />
           </div>
+          <div className="flex bg-white rounded-xl">
+            {signUpEvents.map((event) => (
+              <EventCard key={event.id} event={event} type="signup" />
+            ))}
+          </div>
+          <Link 
+            to="dashDateCalendar"
+            className="mt-5 text-xs text-center text-blue-500 cursor-pointer block"
+          >
+            Purchase More Dates
+          </Link>
+        </div>
+
+        <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
+          <div className="mb-6 text-xl font-semibold text-indigo-950">
+            Current Connections
+          </div>
+          <ConnectionsTable connections={connections} />
         </div>
       </div>
+    </div>
   );
 };
 
