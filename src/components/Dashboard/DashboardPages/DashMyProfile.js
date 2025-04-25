@@ -8,7 +8,10 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../../../firebaseConfig";
+import { db, storage } from "../../../firebaseConfig";
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import ImageUploading from 'react-images-uploading';
+import { IoPersonCircle } from 'react-icons/io5';
 
 // Utility function to format a JavaScript Date to MM/DD/YYYY
 const formatDate = (date) => {
@@ -21,6 +24,8 @@ const formatDate = (date) => {
 const DashMyProfile = () => {
   const auth = getAuth();
   const user = auth.currentUser;
+  const [images, setImages] = useState([]);
+  const maxNumber = 1;
 
   // State for form values (firstName, lastName, etc.)
   const [formData, setFormData] = useState({
@@ -28,9 +33,10 @@ const DashMyProfile = () => {
     lastName: "",
     dateOfBirth: "",
     location: "",
+    profilePicture: ""
   });
 
-  // This holds the “committed” profile data used in the header
+  // This holds the "committed" profile data used in the header
   const [savedData, setSaveData] = useState({
     firstName: "",
     lastName: "",
@@ -38,10 +44,10 @@ const DashMyProfile = () => {
 
   // Firestore document ID for updates
   const [docId, setDocId] = useState(null);
-  // Are we in “edit” mode?
+  // Are we in "edit" mode?
   const [isEditing, setIsEditing] = useState(false);
 
-  // On mount, fetch the user’s profile and initialize both formData and savedData
+  // On mount, fetch the user's profile and initialize both formData and savedData
   useEffect(() => {
     if (!user) return;
 
@@ -55,7 +61,7 @@ const DashMyProfile = () => {
           const docSnapshot = querySnapshot.docs[0];
           const userDoc = docSnapshot.data();
 
-          // Format birthDate if it’s a Firestore Timestamp or a raw numeric string
+          // Format birthDate if it's a Firestore Timestamp or a raw numeric string
           let formattedDate = "";
           if (userDoc.birthDate && typeof userDoc.birthDate.toDate === "function") {
             formattedDate = formatDate(userDoc.birthDate.toDate());
@@ -69,9 +75,10 @@ const DashMyProfile = () => {
             lastName:   userDoc.lastName   || "",
             dateOfBirth: formattedDate,
             location:    userDoc.location  || "",
+            profilePicture: userDoc.image || ""
           });
 
-          // Initialize the “saved” header data from Firestore values
+          // Initialize the "saved" header data from Firestore values
           setSaveData({
             firstName: userDoc.firstName || "",
             lastName:  userDoc.lastName  || "",
@@ -95,6 +102,34 @@ const DashMyProfile = () => {
     }));
   };
 
+  const handleImageChange = async (imageList) => {
+    setImages(imageList);
+    
+    if (imageList.length > 0) {
+      try {
+        const timestamp = new Date().getTime();
+        const filename = `${timestamp}_${user.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const storageRef = ref(storage, `profilePictures/${filename}`);
+        
+        // Convert base64 to blob
+        const response = await fetch(imageList[0].data_url);
+        const blob = await response.blob();
+        
+        // Upload to Firebase Storage
+        const uploadResult = await uploadBytes(storageRef, blob);
+        const downloadURL = await getDownloadURL(uploadResult.ref);
+        
+        setFormData(prev => ({
+          ...prev,
+          profilePicture: downloadURL
+        }));
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        alert('Failed to upload profile picture. Please try again.');
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!docId) return;
 
@@ -104,6 +139,7 @@ const DashMyProfile = () => {
         firstName: formData.firstName,
         lastName:  formData.lastName,
         birthDate: formData.dateOfBirth,
+        image: formData.profilePicture
       });
 
       // Exit edit mode
@@ -131,11 +167,55 @@ const DashMyProfile = () => {
         <div className="max-w-full w-[469px]">
           <div className="flex gap-5 max-md:flex-col">
             <div className="w-[42%] max-md:w-full">
-              <img
-                src="https://via.placeholder.com/179"
-                alt="Profile"
-                className="object-contain rounded-3xl aspect-[0.94] w-[179px] max-md:mt-10"
-              />
+              {isEditing ? (
+                <ImageUploading
+                  multiple={false}
+                  value={images}
+                  onChange={handleImageChange}
+                  maxNumber={maxNumber}
+                  dataURLKey="data_url"
+                >
+                  {({
+                    imageList,
+                    onImageUpload,
+                    onImageRemove,
+                    isDragging,
+                    dragProps,
+                  }) => (
+                    <div className="upload__image-wrapper">
+                      {imageList.length > 0 ? (
+                        <img
+                          src={imageList[0].data_url}
+                          alt="Profile"
+                          className="object-cover rounded-3xl w-[179px] h-[179px]"
+                          onClick={onImageUpload}
+                        />
+                      ) : formData.profilePicture ? (
+                        <img
+                          src={formData.profilePicture}
+                          alt="Profile"
+                          className="object-cover rounded-3xl w-[179px] h-[179px]"
+                          onClick={onImageUpload}
+                        />
+                      ) : (
+                        <div
+                          onClick={onImageUpload}
+                          {...dragProps}
+                          className="flex items-center justify-center w-[179px] h-[179px] rounded-3xl border-2 border-dashed border-gray-300 cursor-pointer"
+                        >
+                          <IoPersonCircle className="w-20 h-20 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </ImageUploading>
+              ) : (
+                <img
+                  src={formData.profilePicture || "https://via.placeholder.com/179"}
+                  alt="Profile"
+                  className="object-cover rounded-3xl w-[179px] h-[179px]"
+                />
+              )}
             </div>
             <div className="ml-5 w-[58%] max-md:ml-0 max-md:w-full">
               <div className="flex flex-col self-stretch my-auto text-black max-md:mt-10">
