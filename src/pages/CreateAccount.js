@@ -2,12 +2,13 @@ import styled from 'styled-components';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState, useEffect, useMemo } from 'react';
 import { FooterShapes } from './Login';
-import { auth, db } from './firebaseConfig';
+import { auth, db, storage } from './firebaseConfig';
 import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import ImageUploading from 'react-images-uploading';
 import { IoPersonCircle } from 'react-icons/io5';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
 const LoginContainer = styled.div`
@@ -112,15 +113,13 @@ const CreateAccount = () => {
     setLoading(true);
 
     try {
-      // Email format validation
+      // Email validation
       if (!email || !/\S+@\S+\.\S+/.test(email)) {
         throw new Error('Please enter a valid email address');
       }
 
-      // Check if email exists in Firebase Auth
+      // Check if email exists
       const methods = await fetchSignInMethodsForEmail(auth, email);
-      console.log("Sign in methods found:", methods); // Debug log
-      
       if (methods && methods.length > 0) {
         setLoading(false);
         setError('This email is already registered. Please sign in or use a different email.');
@@ -136,12 +135,40 @@ const CreateAccount = () => {
         throw new Error('Password should be at least 6 characters');
       }
 
-      // If all validations pass, proceed with navigation
+      let uploadedImages = null; // Start with null
+
+      // Handle image upload if an image was selected
+      if (images.length > 0) {
+        try {
+          // Create unique filename
+          const timestamp = new Date().getTime();
+          const filename = `${timestamp}_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+          const storageRef = ref(storage, `profilePictures/${filename}`);
+
+          // Upload the file directly from the image data
+          const imageData = images[0].data_url;
+          const uploadTask = await uploadBytes(storageRef, dataURItoBlob(imageData));
+          
+          // Get the URL of the uploaded file
+          const imageUrl = await getDownloadURL(uploadTask.ref);
+          console.log('Image uploaded successfully. URL:', imageUrl);
+          
+          // Set the uploaded image URL
+          uploadedImages = imageUrl;
+
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error('Failed to upload profile picture. Please try again.');
+        }
+      }
+
+      // Navigate to profile and log the image URL
+      console.log('Image URL in create account:', uploadedImages);
       navigate('/profile', {
         state: {
           email: email,
           password: createPassword,
-          image: images
+          image: uploadedImages // This will be either null or the image URL
         }
       });
 
@@ -151,6 +178,20 @@ const CreateAccount = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to convert data URI to Blob
+  const dataURItoBlob = (dataURI) => {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    
+    return new Blob([ab], { type: mimeString });
   };
 
   return (

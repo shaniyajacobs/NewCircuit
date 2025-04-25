@@ -11,6 +11,7 @@ import {AboutSection} from '../components/About'
 import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 import MapPage from '../components/MapPage/MapPage'
 
+
 const Home = () => {
     return (
         <>            

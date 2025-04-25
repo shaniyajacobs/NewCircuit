@@ -60,7 +60,7 @@ const DashMyCoupons = () => {
             1
           </div>
           <p className="text-[#151D48] font-medium">
-            Upload pictures of you and your match for 2 dates
+            Upload your pictures for 2 dates
           </p>
         </div>
 
@@ -101,7 +101,7 @@ const DashMyCoupons = () => {
             </div>
 
             <div>
-              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
+              <div className="border-2  border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center">
                 <input
                   type="file"
                   accept="image/*"
@@ -109,13 +109,11 @@ const DashMyCoupons = () => {
                   className="hidden"
                   id="date1-partner"
                 />
-                <label htmlFor="date1-partner" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                  {date1Photos.partner ? (
-                    <img src={date1Photos.partner} alt="Partner's photo" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
+                <label  className="w-full h-full flex flex-col items-center justify-center">
+                  {(
                     <>
-                      <div className="text-4xl mb-2 text-[#85A2F2]">+</div>
-                      <p className="text-[#151D48]">Your partner's photo</p>
+                     
+                      <p className="text-[#151D48]"> My match's photo </p>
                     </>
                   )}
                 </label>
@@ -150,7 +148,7 @@ const DashMyCoupons = () => {
             </div>
 
             <div>
-              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
+              <div className="border-2  border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center">
                 <input
                   type="file"
                   accept="image/*"
@@ -158,13 +156,11 @@ const DashMyCoupons = () => {
                   className="hidden"
                   id="date2-partner"
                 />
-                <label htmlFor="date2-partner" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                  {date2Photos.partner ? (
-                    <img src={date2Photos.partner} alt="Partner's photo" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
+                <label className="w-full h-full flex flex-col items-center justify-center">
+                  { (
                     <>
-                      <div className="text-4xl mb-2 text-[#85A2F2]">+</div>
-                      <p className="text-[#151D48]">Your partner's photo</p>
+          
+                      <p className="text-[#151D48]"> My match's photo</p>
                     </>
                   )}
                 </label>
