@@ -2,37 +2,38 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import ladyImage from '../images/lady.png'; // Import the lady image
 
+
 const Hero = () => {
     return (
-        <div className="w-full h-[1000px] overflow-hidden pt-16"> {/* Reduced height and padding */}
-            <div className="w-full bg-[#0E49E8] h-[600px] flex items-center relative">
+        <div className="w-full h-[1200px] overflow-hidden pt-20">
+            <div className="w-full bg-[#0E49E8] h-[700px] flex items-center relative">
                 <div className="container mx-auto">
                     <div className="flex justify-between items-center">
                         <div className="max-w-2xl -ml-4">
-                            <div className="space-y-4"> {/* Reduced space-y */}
-                                <h4 className="text-[#E2FF65] font-semibold text-lg">Our Mission</h4> {/* Reduced text size */}
-                                <h1 className="text-4xl font-bold leading-tight text-white"> {/* Reduced text size */}
+                            <div className="space-y-8">
+                                <h4 className="text-[#E2FF65] font-semibold text-xl">Our Mission</h4>
+                                <h1 className="text-6xl font-bold leading-tight text-white">
                                     Creating Sparks<br />
                                     that last a lifetime
                                 </h1>
-                                <p className="text-base text-white/90"> {/* Reduced text size */}
+                                <p className="text-xl text-white/90">
                                     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse
                                     mattis metus neque, ac hendrerit risus pharetra ac.
                                 </p>
                                 <Link to="/signup" className="inline-block">
-                                    <button className="bg-[#E2FF65] text-[#0E49E8] px-6 py-2 rounded-full font-semibold hover:bg-yellow-300 transition-colors"> {/* Reduced padding */}
+                                    <button className="bg-[#E2FF65] text-[#0E49E8] px-8 py-3 rounded-full font-semibold hover:bg-yellow-300 transition-colors">
                                         Spark Your Connection
                                     </button>
                                 </Link>
                             </div>
                         </div>
                         
-                        {/* Image Container */}
+                        {/* Added image container */}
                         <div className="flex-shrink-0">
                             <img 
                                 src={ladyImage} 
                                 alt="Happy woman" 
-                                className="rounded-3xl w-[400px] h-auto" 
+                                className="rounded-3xl w-[500px] h-auto"
                             />
                         </div>
                     </div>
@@ -40,15 +41,15 @@ const Hero = () => {
             </div>
 
             {/* Testimonials Section */}
-            <div className="bg-white h-[80vh] py-12"> {/* Reduced height and padding */}
+            <div className="bg-white h-[500px] py-16">
                 <div className="container mx-auto">
                     <div className="-ml-4">
-                        <h2 className="text-[#0E49E8] text-xl font-bold mb-6">What are they saying?</h2> {/* Reduced text size and margin */}
+                        <h2 className="text-[#0E49E8] text-2xl font-bold mb-8">What are they saying?</h2>
                         
-                        <div className="grid md:grid-cols-2 gap-8"> {/* Reduced gap */}
+                        <div className="grid md:grid-cols-2 gap-12">
                             {/* First Testimonial */}
-                            <div className="space-y-3"> {/* Reduced space-y */}
-                                <p className="text-lg"> {/* Reduced text size */}
+                            <div className="space-y-4">
+                                <p className="text-xl">
                                     I was hesitant to try speed dating online, but Circuit made 
                                     the experience seamless and exciting. The events are 
                                     well-organized, and the platform is so easy to use. What 
@@ -61,8 +62,8 @@ const Hero = () => {
                             </div>
 
                             {/* Second Testimonial */}
-                            <div className="space-y-3"> {/* Reduced space-y */}
-                                <p className="text-lg"> {/* Reduced text size */}
+                            <div className="space-y-4">
+                                <p className="text-xl">
                                     Circuit is unlike anything I've tried before. The virtual speed 
                                     dating events are lively and engaging, and the focus on 
                                     real-life connections is so refreshing. I loved how easy it 
