@@ -96,7 +96,7 @@ const DashDateCalendar = () => {
   ];
 
   return (
-    <div className="flex flex-col justify-center items-center px-20 py-11 mt-3 mr-9 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0px_4px_20px_rgba(238,238,238,0.502)] max-md:px-5 max-md:mr-2.5 max-md:max-w-full">
+    <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-md:p-5">
       <div className="flex flex-col max-w-full w-[1014px]">
         <h2 className="self-start text-4xl font-semibold leading-snug text-black">
           Individual Date
