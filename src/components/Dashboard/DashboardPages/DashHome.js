@@ -90,7 +90,7 @@ const DashHome = () => {
   return (
     <div>
       <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex bg-white justify-between items-center mb-6">
           <div>
             <div className="flex flex-col gap-2">
               <button 
