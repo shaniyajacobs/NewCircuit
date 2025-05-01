@@ -6,11 +6,11 @@ const FAQItem = ({ question, answer }) => {
   return (
       
     <div className="flex flex-col mx-auto my-0 w-full max-w-[1263px] text-neutral-800">
-      <div className="flex flex-col pt-4 pr-14 pb-9 pl-6 w-full rounded-md bg-indigo-400 bg-opacity-30 shadow-[0px_4px_4px_rgba(0,0,0,0.25)] max-md:pt-4 max-md:pr-8 max-md:pb-9 max-md:pl-5 max-sm:px-5 max-sm:pt-4 max-sm:pb-8"
+      <div className="flex flex-col pt-2 pr-14 pb-2 pl-6 w-full rounded-md bg-indigo-400 bg-opacity-30 shadow-[0px_4px_4px_rgba(0,0,0,0.25)] max-md:pt-4 max-md:pr-8 max-md:pb-9 max-md:pl-5 max-sm:px-5 max-sm:pt-4 max-sm:pb-8"
       style={{backgroundColor: isOpen ? '#dee5fb' : 'white'}}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex gap-5 justify-between items-center w-full text-xl font-medium max-md:text-lg max-sm:gap-4 max-sm:text-base"
+          className="flex gap-5 justify-between items-center w-full text-lg font-medium max-md:text-lg max-sm:gap-4 max-sm:text-base"
           aria-expanded={isOpen}
           aria-controls={`faq-answer-${question.replace(/\s+/g, "-").toLowerCase()}`}
         >
