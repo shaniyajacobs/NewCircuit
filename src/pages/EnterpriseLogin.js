@@ -3,7 +3,7 @@ import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FooterShapes } from './Login';
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth, db } from "./firebaseConfig";
 import { getDoc, doc } from 'firebase/firestore';
 
@@ -102,7 +102,53 @@ const EnterpriseLogin = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    // Enterprise login logic here
+
+    try {
+      // Sign in with email and password
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Check if the user is a business account
+      const businessRef = doc(db, "businesses", userCredential.user.uid);
+      const businessDoc = await getDoc(businessRef);
+      
+      if (!businessDoc.exists()) {
+        // If no business document exists, sign out and show error
+        await signOut(auth);
+        throw new Error('This account is not registered as a business account');
+      }
+
+      // Check if email is verified
+      if (!userCredential.user.emailVerified) {
+        await signOut(auth);
+        throw new Error('Please verify your email before logging in');
+      }
+
+      // Check if business account is active
+      const businessData = businessDoc.data();
+      if (!businessData.isActive) {
+        await signOut(auth);
+        throw new Error('This business account has been deactivated');
+      }
+
+      // If all checks pass, navigate to dashboard
+      navigate('/enterprise-dash');
+    } catch (error) {
+      console.error('Error:', error);
+      // Convert Firebase error codes to user-friendly messages
+      if (error.code === 'auth/invalid-credential') {
+        setError('Invalid email or password. Please try again.');
+      } else if (error.code === 'auth/user-not-found') {
+        setError('No account found with this email. Please check your email or create a new account.');
+      } else if (error.code === 'auth/wrong-password') {
+        setError('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/too-many-requests') {
+        setError('Too many failed login attempts. Please try again later.');
+      } else {
+        setError(error.message || 'Failed to log in. Please check your credentials and try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

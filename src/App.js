@@ -137,7 +137,7 @@ function App() {
             <Route path="/enterprise-profile" element={<EnterpriseProfile />} />
             <Route path="/enterprise-user-profile" element={<EnterpriseUserProfile />} />
             <Route path="/enterprise-verify-email" element={<EnterpriseVerifyEmail />} />
-            <Route path="/enterprise-dash" element={<EnterpriseDash />} />
+            <Route path="/enterprise-dash/*" element={<EnterpriseDash />} />
           </Routes>
         </ScrollToTop>
       </Router>
