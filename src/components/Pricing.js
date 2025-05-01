@@ -4,159 +4,117 @@ const Pricing = () => {
   const [isBundle, setIsBundle] = useState(true);
 
   return (
-    <div
-      className="flex flex-col items-center px-14 pt-28 pb-40 max-md:px-5 max-md:py-24"
-      //data-aos="fade-up"
-    >
-      <h2 className="ml-8 text-7xl font-bold text-[80px] leading-none text-center text-blue-700 max-md:max-w-full max-md:text-4xl">
+    <div className="flex flex-col items-center px-6 pt-16 pb-16 max-md:px-4">
+      <h2 className="text-5xl font-bold leading-tight text-center text-blue-700 max-md:text-3xl">
         Pricing Options
       </h2>
 
-      <div className="flex gap-6 items-center mt-28 max-w-full w-[378px] max-md:mt-10">
+      <div className="flex gap-4 items-center mt-12 max-w-full w-[320px] max-md:mt-8">
         <span
-          className={`grow self-stretch my-auto text-2xl font-semibold ${
+          className={`text-xl font-semibold ${
             isBundle ? "text-blue-700" : "text-black"
           }`}
         >
           Bundles
         </span>
-  
+
         <button
           onClick={() => setIsBundle(!isBundle)}
-          className="flex flex-col justify-center items-start self-stretch px-5 py-1 bg-blue-700 rounded-[36px]"
-          aria-label={`Switch to ${
-            isBundle ? "Individual" : "Bundles"
-          } pricing`}
+          className="flex items-center px-4 py-1 bg-blue-700 rounded-full"
+          aria-label={`Switch to ${isBundle ? "Individual" : "Bundles"} pricing`}
         >
-        <div
-            className={`flex shrink-0 bg-zinc-100 h-[43px] rounded-[36px] w-[43px] transition-all duration-300 transform ${
-              isBundle ? "-translate-x-5" : "translate-x-5"
+          <div
+            className={`bg-zinc-100 h-[32px] w-[32px] rounded-full transition-transform duration-300 ${
+              isBundle ? "-translate-x-4" : "translate-x-4"
             }`}
-        />
+          />
         </button>
+
         <span
-          className={`grow shrink self-stretch my-auto text-2xl font-semibold text-[25px] ${
+          className={`text-xl font-semibold ${
             !isBundle ? "text-blue-700" : "text-black"
-          } w-[109px]`}
+          }`}
         >
           Individual
         </span>
       </div>
 
-      <div className="self-stretch mt-16 max-md:mt-10 max-md:max-w-full">
-        <div className="flex gap-5 max-md:flex-col">
-          <div
-            className="w-[33%] max-md:ml-0 max-md:w-full"
-            //data-aos="fade-up"
-            //data-aos-delay="100"
-          > 
-            <div className="flex flex-col items-center px-9 pt-7 pb-20 mx-auto mt-9 w-full bg-blue-700 rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.25)] text-zinc-100 max-md:px-5 max-md:mt-10">
-     
-              <h3 className="self-stretch text-4xl leading-none text-center" >
-                {isBundle ? "The Introduction" : "Brunch" }
-              </h3>
-              
-              <div className="flex gap-5 self-start mt-6 text-lg leading-[50px] max-md:ml-2">
-                <div className="flex shrink-0 my-auto w-6 h-[115px]" />
-                {isBundle ?
-                  <ul className="list-disc">
-                    <li>All eligible venues</li>
-                    <li>Basic Matching Algorithm</li>
-                    <li>1 Dinner</li>
-                  </ul> :
-                  <ul className="list-disc">
-                    <li>12:30pm - 2:00 pm</li>
-                    <li>Advanced Matching Algorithm</li>
-                </ul> 
-                }
+      <div className="w-full mt-12 max-md:mt-8">
+        <div className="flex flex-wrap justify-center items-stretch gap-6 max-w-screen-xl mx-auto max-md:flex-col">
+          {[
+            {
+              title: isBundle ? "The Introduction" : "Brunch",
+              features: isBundle
+                ? ["All eligible venues", "Basic Matching Algorithm", "1 Dinner"]
+                : ["12:30pm - 2:00 pm", "Advanced Matching Algorithm"],
+              subheading: isBundle ? "3 Dates" : "",
+              price: isBundle ? "$78" : "$28",
+              bg: "bg-blue-700",
+              text: "text-zinc-100",
+              btnText: "text-blue-700",
+            },
+            {
+              title: isBundle ? "The Connection" : "Happy Hour",
+              features: isBundle
+                ? ["All eligible venues", "Advanced Matching Algorithm", "2 Dinners"]
+                : ["3:00pm - 4:30pm", "Advanced Matching Algorithm"],
+              subheading: isBundle ? "6 Dates" : "",
+              price: isBundle ? "$144" : "$28",
+              bg: "bg-neutral-800",
+              text: "text-zinc-100",
+              btnText: "text-neutral-800",
+              tag: "Popular",
+            },
+            {
+              title: isBundle ? "The Adventure" : "Dinner",
+              features: isBundle
+                ? [
+                    "All eligible venues",
+                    "Advanced Matching Algorithm",
+                    "Boosted Visibility and Matching",
+                    "3 Dinners",
+                  ]
+                : ["6:00pm - 7:30pm", "Advanced Matching Algorithm"],
+              subheading: isBundle ? "10 Dates" : "",
+              price: isBundle ? "$220" : "$38",
+              bg: "bg-blue-700",
+              text: "text-zinc-100",
+              btnText: "text-blue-700",
+            },
+          ].map((card, index) => (
+            <div className="relative w-[26%] max-md:w-full" key={index}>
+              {card.tag && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-8 py-2 text-sm bg-blue-700 rounded-full text-white font-semibold shadow-md z-10">
+                  {card.tag}
+                </div>
+              )}
+              <div
+                className={`flex flex-col items-center px-4 pt-6 pb-8 rounded-3xl shadow-md ${card.bg} ${card.text}`}
+              >
+                <h3 className="mt-4 text-2xl font-semibold text-center">
+                  {card.title}
+                </h3>
+                <ul className="mt-4 text-base list-disc text-left pl-5 leading-relaxed">
+                  {card.features.map((f, i) => (
+                    //<li key={i}>{f}</li>
+                    <React.Fragment key={i}>
+                      <li>{f}</li>
+                      {isBundle && (card.title === "The Introduction" || card.title === "The Connection") && i === card.features.length - 1 && (
+                        <li className="list-none h-6" aria-hidden="true"></li>   // This adds vertical space without a bullet
+                      )}
+                    </React.Fragment>
+                  ))}
+                </ul>
+                <div className="mt-8 text-3xl font-bold">{card.subheading}</div>
+                <div className="mt-2 text-3xl font-bold">{card.price}</div>
+                <button
+                  className={`mt-6 px-6 py-2 text-sm rounded-md bg-zinc-100 ${card.btnText} hover:bg-zinc-200 transition-colors`}
+                >
+                  Sign up now
+                </button>
               </div>
-              <div className="mt-24 text-5xl leading-none max-md:mt-10 max-md:text-4xl">
-                {isBundle ? "3 Dates" : "" }
-              </div>
-              <div className="mt-4 text-5xl leading-none max-md:text-4xl">
-              {isBundle ? "$78" : "$28" }
-              </div>
-              <button className="px-16 py-3 mt-9 max-w-full text-base tracking-tight leading-loose text-center text-blue-700 rounded-lg bg-zinc-100 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
-                Sign up now
-              </button>
             </div>
-          </div>
-
-          <div
-            className="ml-5 w-[33%] max-md:ml-0 max-md:w-full"
-            //data-aos="fade-up"
-            //data-aos-delay="200"
-          >
-            <div className="flex flex-col items-center pb-24 mx-auto w-full rounded-3xl bg-neutral-800 shadow-[0px_4px_20px_rgba(0,0,0,0.25)] text-zinc-100 max-md:mt-10">
-              <div className="self-stretch px-4 pb-6 h-10 text-xl leading-3 whitespace-nowrap bg-blue-700 rounded-tl-3xl rounded-tr-3xl text-center pt-3">
-                Popular
-              </div>
-              <h3 className="mt-9 text-4xl leading-none text-center">
-                {isBundle ? "The Connection" : "Happy Hour" }
-              </h3>
-              <div className="flex gap-5 items-start mt-8 max-w-full text-lg leading-[50px] w-[296px]">
-        
-                {isBundle ?
-                  <ul className="flex-auto w-[254px] list-disc">
-                  <li>All eligible venues</li>
-                  <li>Advanced Matching Algorithm</li>
-                  <li>2 Dinners</li>
-                </ul> :
-                  <ul className="list-disc">
-                    <li>3:00pm - 4:30pm</li>
-                    <li>Advanced Matching Algorithm</li>
-                </ul> 
-                }
-                
-              </div>
-              <div className="mt-28 text-5xl leading-none max-md:mt-10 max-md:text-4xl">
-              {isBundle ? "6 Dates" : "" }
-              </div>
-              <div className="mt-6 text-5xl leading-none max-md:text-4xl">
-              {isBundle ? "$144" : "$28" }
-              </div>
-              <button className="px-16 py-3 mt-9 max-w-full text-base tracking-tight leading-loose text-center rounded-lg bg-zinc-100 text-neutral-800 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
-                Sign up now
-              </button>
-            </div>
-          </div>
-
-          <div
-            className="ml-5 w-[33%] max-md:ml-0 max-md:w-full"
-            //data-aos="fade-up"
-            //data-aos-delay="300"
-          >
-
-            <div className="flex flex-col items-center px-11 pt-7 pb-20 mx-auto mt-9 w-full bg-blue-700 rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.25)] text-zinc-100 max-md:px-5 max-md:mt-10">
-              <h3 className="self-stretch text-4xl leading-none max-md:mr-2.5 text-center" >
-                {isBundle ? "The Adventure" : "Dinner" }
-              </h3>
-              <div className="flex gap-5 items-start self-stretch mt-4 text-lg leading-[50px]">
-                {isBundle ?
-                  <ul className="flex-auto w-[259px] list-disc">
-                  <li>All eligible venues</li>
-                  <li>Advanced Matching Algorithm</li>
-                  <li>Boosted Visibility and Matching</li>
-                  <li>3 Dinners</li>
-                </ul> :
-                  <ul className="list-disc">
-                    <li>6:00pm - 7:30pm</li>
-                    <li>Advanced Matching Algorithm</li>
-                </ul> 
-                }
-                
-              </div>
-              <div className="mt-16 text-5xl leading-none max-md:mt-10 max-md:text-4xl">
-              {isBundle ? "10 Dates" : "" }
-              </div>
-              <div className="mt-6 text-5xl leading-none max-md:text-4xl">
-              {isBundle ? "$220" : "#38" }
-              </div>
-              <button className="px-16 py-3 mt-9 ml-2.5 max-w-full text-base tracking-tight leading-loose text-center text-blue-700 rounded-lg bg-zinc-100 w-[249px] max-md:px-5 hover:bg-zinc-200 transition-colors">
-                Sign up now
-              </button>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
