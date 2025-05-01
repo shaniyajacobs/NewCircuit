@@ -38,7 +38,7 @@ const MapPage = () => {
           justifyContent: "center",
           alignItems: "center",
           width: "100%",
-          height: "90px", // Reduced height
+          height: "115px",
           backgroundColor: "#85A2F2",
         }}
       >
@@ -47,9 +47,9 @@ const MapPage = () => {
             fontFamily: "'Poppins', sans-serif",
             fontWeight: "700",
             fontStyle: "normal",
-            fontSize: "36px", // Reduced font size
-            lineHeight: "40px", // Adjusted line height
-            letterSpacing: "-1.5px", // Reduced letter spacing
+            fontSize: "50px",
+            lineHeight: "60px",
+            letterSpacing: "-2.7px",
             color: "#ECECEC",
           }}
         >
@@ -62,7 +62,7 @@ const MapPage = () => {
       <div
         style={{
           position: "absolute",
-          top: "90px", // Adjusted position to match the new header height
+          top: "115px",
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 1000,
