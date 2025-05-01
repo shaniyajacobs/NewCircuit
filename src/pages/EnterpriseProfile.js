@@ -223,7 +223,6 @@ const EnterpriseProfile = () => {
               onChange={(e) => setFormData({...formData, websiteUrl: e.target.value})}
               placeholder="e.g., https://lockerroom.app"
               pattern="https?://.*"
-              required
             />
           </InputGroup>
 

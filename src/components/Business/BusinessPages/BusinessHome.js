@@ -26,7 +26,7 @@ const BusinessHome = () => {
       const couponsRef = collection(db, 'coupons');
       const q = query(couponsRef, where('businessId', '==', businessId));
       const querySnapshot = await getDocs(q);
-      
+
       let totalRedeemed = 0;
       let totalRevenue = 0;
       let activeCoupons = 0;
@@ -45,7 +45,7 @@ const BusinessHome = () => {
         activeCoupons,
         totalRedeemed,
         totalRevenue,
-        recentActivity: [] // This would be populated from a separate collection tracking activity
+        recentActivity: []
       });
     } catch (error) {
       console.error('Error fetching summary:', error);
@@ -78,8 +78,8 @@ const BusinessHome = () => {
   );
 
   return (
-    <div className="p-7 pt-3 min-h-screen">
-      <div className="bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] p-7">
+    <div>
+      <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mb-6">
         <h1 className="text-3xl font-semibold text-indigo-950 mb-8">Welcome Back!</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -102,9 +102,11 @@ const BusinessHome = () => {
             color="bg-purple-500"
           />
         </div>
+      </div>
 
+      <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mb-6">
         <h2 className="text-2xl font-semibold text-indigo-950 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <QuickActionCard
             icon={FaPlus}
             title="Create New Coupon"
@@ -127,30 +129,30 @@ const BusinessHome = () => {
             color="bg-purple-500"
           />
         </div>
+      </div>
 
-        <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-indigo-950 mb-4">Recent Activity</h2>
-          {summary.recentActivity.length > 0 ? (
-            <div className="space-y-4">
-              {summary.recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <FaChartLine className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-gray-800">{activity.description}</p>
-                    <p className="text-sm text-gray-500">{activity.time}</p>
-                  </div>
+      <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
+        <h2 className="text-xl font-semibold text-indigo-950 mb-4">Recent Activity</h2>
+        {summary.recentActivity.length > 0 ? (
+          <div className="space-y-4">
+            {summary.recentActivity.map((activity, index) => (
+              <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <FaChartLine className="w-5 h-5 text-blue-600" />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-4">No recent activity</p>
-          )}
-        </div>
+                <div>
+                  <p className="text-gray-800">{activity.description}</p>
+                  <p className="text-sm text-gray-500">{activity.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-4">No recent activity</p>
+        )}
       </div>
     </div>
   );
 };
 
-export default BusinessHome; 
+export default BusinessHome;
