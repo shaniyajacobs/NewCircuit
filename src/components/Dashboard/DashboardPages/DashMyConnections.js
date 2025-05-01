@@ -138,7 +138,7 @@ const DashMyConnections = () => {
   };
 
   return (
-    <div className="flex flex-col pt-10 pb-20 mt-5 mr-5 ml-5 bg-white rounded-3xl border border-gray-200 shadow-lg max-md:pb-24 max-md:mr-2.5 max-md:max-w-full">
+    <div className="flex flex-col pt-10 pb-10 mt-1 mr-5 ml-5 bg-white rounded-3xl border border-gray-200 shadow-lg max-md:pb-24 max-md:mr-2.5 max-md:max-w-full">
         {selectedConnection == null ? 
         <div>
           <div className="flex flex-col ml-10 max-w-full text-3xl w-[90%]">
