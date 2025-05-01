@@ -92,7 +92,7 @@ export function DashMessages(props) {
     }, [messageArray]);
 
     return (
-      <div className="flex flex-col h-[60vh] pb-1 mt-1 mx-3 mx-5 text-sm font-semibold leading-snug bg-white rounded-3xl border border-gray-50 shadow-[0px_4px_20px_rgba(238,238,238,0.502)] max-md:max-w-full">
+      <div className="flex flex-col h-[53vh] pb-1 mt-1 mx-3 mx-5 text-sm font-semibold leading-snug bg-white rounded-3xl border border-gray-50 shadow-[0px_4px_20px_rgba(238,238,238,0.502)] max-md:max-w-full">
     
         <div className="flex flex-col flex-grow overflow-hidden">
           <div className="flex flex-col flex-grow overflow-y-auto px-11 pt-6 pb-4">
@@ -118,7 +118,7 @@ export function DashMessages(props) {
               onChange={e => setNewMessageText(e.target.value)}
               onKeyDown={handleOnKeyDown}
               placeholder="Message"
-              className="flex-grow text-3xl outline-none bg-transparent"
+              className="flex-grow text-2xl outline-none bg-transparent"
             />
             <button onClick={submitNewMessage}>
               <FaPaperPlane className="text-indigo-600 text-4xl cursor-pointer hover:text-indigo-800" />
