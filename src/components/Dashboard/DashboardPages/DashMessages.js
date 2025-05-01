@@ -92,7 +92,7 @@ export function DashMessages(props) {
     }, [messageArray]);
 
     return (
-      <div className="flex flex-col h-[53vh] pb-1 mt-1 mx-3 mx-5 text-sm font-semibold leading-snug bg-white rounded-3xl border border-gray-50 shadow-[0px_4px_20px_rgba(238,238,238,0.502)] max-md:max-w-full">
+      <div className="flex flex-col h-[57vh] pb-1 mt-1 mx-3 mx-5 text-sm font-semibold leading-snug bg-white rounded-3xl border border-gray-50 shadow-[0px_4px_20px_rgba(238,238,238,0.502)] max-md:max-w-full">
     
         <div className="flex flex-col flex-grow overflow-hidden">
           <div className="flex flex-col flex-grow overflow-y-auto px-11 pt-6 pb-4">
