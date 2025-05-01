@@ -6,8 +6,7 @@ import { httpsCallable } from "firebase/functions";
 import { collection, doc, getDoc, addDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db, auth, functions } from "../../../firebaseConfig";
 
-const parsePrice = (priceStr) =>
-  parseFloat(priceStr?.replace("$", "")) || 0;
+const parsePrice = (priceStr) => parseFloat(priceStr?.replace("$", "")) || 0;
 
 const calculateTotal = (items, discount) => {
   const base = items.reduce((sum, plan) => sum + parsePrice(plan.price), 0);
@@ -27,6 +26,7 @@ const DashCheckout = () => {
   const elements = useElements();
 
   const [cart, setCart] = useState([]);
+  const [cartLoaded, setCartLoaded] = useState(false);
   const [purchasedCart, setPurchasedCart] = useState(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
@@ -42,9 +42,20 @@ const DashCheckout = () => {
         const storedCart = userDoc.data()?.cart;
         if (storedCart) setCart(storedCart);
       }
+      setCartLoaded(true);
     };
     fetchCart();
   }, []);
+
+  if (!cartLoaded && !paymentSuccess) return null;
+
+  if (cart.length === 0 && !paymentSuccess) {
+    return (
+      <p className="text-center text-xl mt-10">
+        No package selected. Please go back to the Date Calendar.
+      </p>
+    );
+  }
 
   if (cart.length === 0 && !paymentSuccess) {
     return (
@@ -67,8 +78,14 @@ const DashCheckout = () => {
     return acc;
   }, {});
 
-  const cartItems = paymentSuccess && purchasedCart ? purchasedCart : Object.values(groupedCart);
-  const baseTotal = cartItems.reduce((sum, plan) => sum + parsePrice(plan.price), 0);
+  const cartItems =
+    paymentSuccess && purchasedCart
+      ? purchasedCart
+      : Object.values(groupedCart);
+  const baseTotal = cartItems.reduce(
+    (sum, plan) => sum + parsePrice(plan.price),
+    0
+  );
   const totalPrice = calculateTotal(cartItems, appliedDiscount);
 
   const handleApplyDiscount = async () => {
@@ -91,13 +108,34 @@ const DashCheckout = () => {
     }
   };
 
-  const handleRemoveItem = (title, venue, packageType) => {
-    const updatedCart = [...cart].filter(
+  const handleRemoveItem = async (title, venue, packageType) => {
+    const indexToRemove = cart.findIndex(
       (plan) =>
-        !(plan.title === title &&plan.venue === venue && plan.packageType === packageType)
+        plan.title === title &&
+        plan.venue === venue &&
+        plan.packageType === packageType
     );
-    setCart(updatedCart);
-    navigate("/dashboard/DashCheckout", { state: { cart: updatedCart } });
+
+    if (indexToRemove !== -1) {
+      const updatedCart = [...cart];
+      updatedCart.splice(indexToRemove, 1);
+      setCart(updatedCart);
+
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          await setDoc(
+            doc(db, "users", user.uid),
+            { cart: updatedCart },
+            { merge: true }
+          );
+        } catch (err) {
+          console.error("❌ Failed to sync updated cart to Firestore:", err);
+        }
+      }
+
+      navigate("/dashboard/DashCheckout", { state: { cart: updatedCart } });
+    }
   };
 
   const handlePayment = async () => {
@@ -148,7 +186,11 @@ const DashCheckout = () => {
                 .map((item) => `${item.packageType} (${item.title})`)
                 .join(", "),
             });
-            await setDoc(doc(db, "users", user.uid), { cart: [] }, { merge: true });
+            await setDoc(
+              doc(db, "users", user.uid),
+              { cart: [] },
+              { merge: true }
+            );
           } catch (e) {
             console.error("Error saving payment to Firestore:", e);
           }
@@ -251,7 +293,7 @@ const DashCheckout = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="mb-8">
                   <label className="block text-[20px] text-gray-600">
                     Discount Code
