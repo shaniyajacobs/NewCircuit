@@ -185,7 +185,7 @@ const DashDateCalendar = () => {
           </button>
         </div>
 
-        {/* Individual Date Plans */}
+        {/* Individual Dates */}
         <div className="grid grid-cols-3 gap-8 max-md:grid-cols-1">
           {datePlans.map((plan, index) => (
             <div key={index} className="w-full max-w-[350px] mx-auto">
@@ -198,7 +198,7 @@ const DashDateCalendar = () => {
           Bundle Date Package
         </h2>
 
-        {/* Bundle Date Packages */}
+        {/* Bundle Dates */}
         <div className="grid grid-cols-3 gap-8 max-md:grid-cols-1">
           {bundlePlans.map((plan, index) => (
             <div key={index} className="w-full max-w-[350px] mx-auto">
