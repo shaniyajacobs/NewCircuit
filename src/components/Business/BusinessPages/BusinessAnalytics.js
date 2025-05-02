@@ -65,8 +65,9 @@ const BusinessAnalytics = () => {
   );
 
   return (
-    <div className="p-7 pt-3 min-h-screen">
-      <div className="bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] p-7">
+    <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
+      <h1 className="text-3xl font-semibold text-indigo-950 mb-8">Business Analytics</h1>
+      {/* ...rest of your content */}
         <h1 className="text-3xl font-semibold text-indigo-950 mb-8">Business Analytics</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -144,7 +145,6 @@ const BusinessAnalytics = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 
