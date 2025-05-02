@@ -28,60 +28,58 @@ const BusinessSettings = () => {
   );
 
   return (
-    <div className="p-7 pt-3 min-h-screen">
-      <div className="bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] p-7">
-        <h1 className="text-3xl font-semibold text-indigo-950 mb-8">Settings</h1>
+    <div className="bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 p-7 min-h-screen">
+      <h1 className="text-3xl font-semibold text-indigo-950 mb-8">Settings</h1>
 
-        <div className="space-y-4 max-w-2xl">
-          <SettingItem
-            icon={FaLock}
-            title="Change Password"
-            description="Update your account password"
-            path="/enterprise-dash/settings/change-password"
-          />
+      <div className="space-y-4 max-w-2xl">
+        <SettingItem
+          icon={FaLock}
+          title="Change Password"
+          description="Update your account password"
+          path="/enterprise-dash/settings/change-password"
+        />
+        
+        <SettingItem
+          icon={FaBell}
+          title="Notification Preferences"
+          description="Manage your notification settings"
+          path="/enterprise-dash/settings/notifications"
+        />
+        
+        <SettingItem
+          icon={FaCreditCard}
+          title="Payment Methods"
+          description="Manage your payment information"
+          path="/enterprise-dash/settings/payment"
+        />
+        
+        <SettingItem
+          icon={FaShieldAlt}
+          title="Privacy Settings"
+          description="Control your privacy preferences"
+          path="/enterprise-dash/settings/privacy"
+        />
+
+        <div className="pt-4 border-t border-gray-200">
+          <h2 className="text-xl font-semibold text-indigo-950 mb-4">Account Management</h2>
           
           <SettingItem
-            icon={FaBell}
-            title="Notification Preferences"
-            description="Manage your notification settings"
-            path="/enterprise-dash/settings/notifications"
-          />
-          
-          <SettingItem
-            icon={FaCreditCard}
-            title="Payment Methods"
-            description="Manage your payment information"
-            path="/enterprise-dash/settings/payment"
+            icon={FaShieldAlt}
+            title="Deactivate Account"
+            description="Temporarily disable your account"
+            path="/enterprise-dash/settings/deactivate"
           />
           
           <SettingItem
             icon={FaShieldAlt}
-            title="Privacy Settings"
-            description="Control your privacy preferences"
-            path="/enterprise-dash/settings/privacy"
+            title="Delete Account"
+            description="Permanently delete your account"
+            path="/enterprise-dash/settings/delete"
           />
-
-          <div className="pt-4 border-t border-gray-200">
-            <h2 className="text-xl font-semibold text-indigo-950 mb-4">Account Management</h2>
-            
-            <SettingItem
-              icon={FaShieldAlt}
-              title="Deactivate Account"
-              description="Temporarily disable your account"
-              path="/enterprise-dash/settings/deactivate"
-            />
-            
-            <SettingItem
-              icon={FaShieldAlt}
-              title="Delete Account"
-              description="Permanently delete your account"
-              path="/enterprise-dash/settings/delete"
-            />
-          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default BusinessSettings; 
+export default BusinessSettings;
