@@ -40,6 +40,7 @@ const VerifyEmail = () => {
             await sendEmailVerification(userCredential.user);
 
             // Create user profile in Firestore
+            console.log('Image URL in verify email:', userData.image);
             await setDoc(doc(db, "users", userCredential.user.uid), {
                 userId: userCredential.user.uid,
                 email: userData.email,
@@ -53,8 +54,6 @@ const VerifyEmail = () => {
                 isActive: true,
                 location: userData.location
             });
-
-            
 
             setEmailSent(true);
             console.log('Verification email sent');
