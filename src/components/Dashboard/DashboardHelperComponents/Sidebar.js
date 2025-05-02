@@ -95,7 +95,7 @@ const Sidebar = () => {
 
   return (
     <>
-      <div className="flex flex-col gap-12 px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full">  
+      <div className="flex flex-col gap-4 px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full">  
         <Link to="/dashboard">
         <img
           loading="lazy"
