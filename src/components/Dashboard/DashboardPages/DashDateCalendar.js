@@ -97,20 +97,22 @@ const DashDateCalendar = () => {
 
   return (
     <div className="flex flex-col justify-center items-center px-20 py-11 mt-3 mr-9 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0px_4px_20px_rgba(238,238,238,0.502)] max-md:px-5 max-md:mr-2.5 max-md:max-w-full">
-      <div className="flex flex-col max-w-full w-[1014px]">
-        <h2 className="self-start text-4xl font-semibold leading-snug text-black">
-          Individual Date
-        </h2>
-        <div className="mt-11 max-md:mt-10 max-md:mr-2.5 max-md:max-w-full">
-          <div className="flex gap-5 max-md:flex-col">
-            {datePlans.map((plan, index) => (
-              <DatePlan key={index} {...plan} />
-            ))}
-          </div>
+    <div className="flex flex-col max-w-full w-[1014px]">
+      <h2 className="text-4xl font-semibold leading-snug text-black text-center w-full">
+        Individual Date
+      </h2>
+
+      <div className="mt-11 max-md:mt-10 max-md:mr-2.5 max-md:max-w-full">
+        <div className="flex gap-5 max-md:flex-col">
+          {datePlans.map((plan, index) => (
+            <DatePlan key={index} {...plan} />
+          ))}
         </div>
-        <h2 className="self-start mt-20 text-4xl font-semibold leading-snug text-black max-md:mt-10">
-          Bundle Date Package
-        </h2>
+      </div>
+
+      <h2 className="mt-20 text-4xl font-semibold leading-snug text-black text-center w-full max-md:mt-10">
+        Bundle Date Package
+      </h2>
         <div className="mt-11 max-md:mt-10 max-md:max-w-full">
           <div className="flex gap-5 max-md:flex-col">
             {bundlePlans.map((plan, index) => (
