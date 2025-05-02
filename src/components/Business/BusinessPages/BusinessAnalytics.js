@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../pages/firebaseConfig';
 import { getAuth } from 'firebase/auth';
-import { FaUsers, FaChartLine, FaMoneyBillWave, FaTicketAlt } from 'react-icons/fa';
+import { FaUsers, FaChartLine, FaTicketAlt } from 'react-icons/fa';
 
 const BusinessAnalytics = () => {
   const [analytics, setAnalytics] = useState({
     totalCoupons: 0,
     totalRedeemed: 0,
-    totalRevenue: 0,
     activeCoupons: 0,
     recentRedemptions: []
   });
@@ -27,14 +26,12 @@ const BusinessAnalytics = () => {
       const querySnapshot = await getDocs(q);
       
       let totalRedeemed = 0;
-      let totalRevenue = 0;
       let activeCoupons = 0;
       const now = new Date();
 
       querySnapshot.docs.forEach(doc => {
         const coupon = doc.data();
         totalRedeemed += coupon.redeemedCount || 0;
-        totalRevenue += coupon.totalRevenue || 0;
         if (new Date(coupon.validUntil) > now) {
           activeCoupons++;
         }
@@ -43,7 +40,6 @@ const BusinessAnalytics = () => {
       setAnalytics({
         totalCoupons: querySnapshot.size,
         totalRedeemed,
-        totalRevenue,
         activeCoupons,
         recentRedemptions: [] // This would be populated from a separate collection tracking redemptions
       });
@@ -66,11 +62,9 @@ const BusinessAnalytics = () => {
 
   return (
     <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
-      <h1 className="text-3xl font-semibold text-indigo-950 mb-8">Business Analytics</h1>
-      {/* ...rest of your content */}
         <h1 className="text-3xl font-semibold text-indigo-950 mb-8">Business Analytics</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <StatCard
             icon={FaTicketAlt}
             title="Total Coupons"
@@ -84,12 +78,6 @@ const BusinessAnalytics = () => {
             color="bg-green-500"
           />
           <StatCard
-            icon={FaMoneyBillWave}
-            title="Total Revenue"
-            value={`$${analytics.totalRevenue}`}
-            color="bg-purple-500"
-          />
-          <StatCard
             icon={FaChartLine}
             title="Active Coupons"
             value={analytics.activeCoupons}
@@ -99,9 +87,9 @@ const BusinessAnalytics = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-indigo-950 mb-4">Revenue Overview</h2>
+            <h2 className="text-xl font-semibold text-indigo-950 mb-4">Coupon Performance</h2>
             <div className="h-64 flex items-center justify-center">
-              <p className="text-gray-500">Revenue chart will be implemented here</p>
+              <p className="text-gray-500">Coupon performance chart will be implemented here</p>
             </div>
           </div>
 
@@ -124,7 +112,6 @@ const BusinessAnalytics = () => {
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Date</th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Coupon</th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Customer</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Amount</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -133,7 +120,6 @@ const BusinessAnalytics = () => {
                         <td className="py-3 px-4 text-sm text-gray-600">{redemption.date}</td>
                         <td className="py-3 px-4 text-sm text-gray-600">{redemption.coupon}</td>
                         <td className="py-3 px-4 text-sm text-gray-600">{redemption.customer}</td>
-                        <td className="py-3 px-4 text-sm text-gray-600">${redemption.amount}</td>
                       </tr>
                     ))}
                   </tbody>

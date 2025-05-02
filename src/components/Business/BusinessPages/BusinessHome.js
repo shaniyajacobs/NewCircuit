@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../pages/firebaseConfig';
 import { getAuth } from 'firebase/auth';
-import { FaPlus, FaChartLine, FaUsers, FaMoneyBillWave } from 'react-icons/fa';
+import { FaPlus, FaChartLine, FaUsers } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const BusinessHome = () => {
   const [summary, setSummary] = useState({
     activeCoupons: 0,
     totalRedeemed: 0,
-    totalRevenue: 0,
     recentActivity: []
   });
 
@@ -28,14 +27,12 @@ const BusinessHome = () => {
       const querySnapshot = await getDocs(q);
 
       let totalRedeemed = 0;
-      let totalRevenue = 0;
       let activeCoupons = 0;
       const now = new Date();
 
       querySnapshot.docs.forEach(doc => {
         const coupon = doc.data();
         totalRedeemed += coupon.redeemedCount || 0;
-        totalRevenue += coupon.totalRevenue || 0;
         if (new Date(coupon.validUntil) > now) {
           activeCoupons++;
         }
@@ -44,7 +41,6 @@ const BusinessHome = () => {
       setSummary({
         activeCoupons,
         totalRedeemed,
-        totalRevenue,
         recentActivity: []
       });
     } catch (error) {
@@ -82,7 +78,7 @@ const BusinessHome = () => {
       <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mb-6">
         <h1 className="text-3xl font-semibold text-indigo-950 mb-8">Welcome Back!</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <StatCard
             icon={FaChartLine}
             title="Active Coupons"
@@ -94,12 +90,6 @@ const BusinessHome = () => {
             title="Total Redeemed"
             value={summary.totalRedeemed}
             color="bg-green-500"
-          />
-          <StatCard
-            icon={FaMoneyBillWave}
-            title="Total Revenue"
-            value={`$${summary.totalRevenue}`}
-            color="bg-purple-500"
           />
         </div>
       </div>
