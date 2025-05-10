@@ -11,43 +11,43 @@ import React, { useEffect, useState, useRef } from "react";
 import { auth, db } from "../../../pages/firebaseConfig";
 import { FaPaperPlane } from "react-icons/fa";
 
-// Dummy example messages for empty state
+// Dummy fallback messages
 const DUMMY_MESSAGES = [
   { senderId: "user", receiverId: "other", text: "Salutations M'Lady.", timeStamp: 0 },
   { senderId: "other", receiverId: "user", text: "I loved our chat!! 🥰", timeStamp: 0 },
   { senderId: "user", receiverId: "other", text: "Let's go on a date? 🙏🏻", timeStamp: 0 },
 ];
 
-export function DashMessages(props) {
-  const { connection } = props;
-
-  // 1️⃣ Auth state
+export function DashMessages({ connection }) {
+  // Auth state
   const [me, setMe] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   useEffect(() => {
-    const unsubAuth = auth.onAuthStateChanged(user => {
+    return auth.onAuthStateChanged(user => {
       setMe(user?.uid ?? null);
       setAuthLoading(false);
     });
-    return () => unsubAuth();
   }, []);
 
-  // 2️⃣ Conversation state
+  // Conversation data
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messageArray, setMessageArray] = useState([]);
   const [invites, setInvites] = useState([]);
   const [dates, setDates] = useState([]);
 
-  // 3️⃣ Invite modal state
+  // Invite modal form
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteDateTime, setInviteDateTime] = useState("");
   const [inviteLocation, setInviteLocation] = useState("");
 
-  // 4️⃣ Chat input
+  // Chat input + scroll
   const [newMessageText, setNewMessageText] = useState("");
   const messagesEndRef = useRef(null);
 
-  // Helper to form conversation ID
+  // Dates modal toggle
+  const [isDatesModalOpen, setDatesModalOpen] = useState(false);
+
+  // Build conversation ID
   const CONVERSATION_ID = () =>
     me && connection.id
       ? me < connection.id
@@ -55,17 +55,18 @@ export function DashMessages(props) {
         : `${connection.id}${me}`
       : "";
 
-  // 5️⃣ Firestore subscription
+  // Subscribe to Firestore
   useEffect(() => {
-    if (!me) return;                 // bail until we know who "me" is
+    if (!me) return;
     const convoId = CONVERSATION_ID();
     if (!convoId) return;
-    const convoRef = doc(db, "conversations", convoId);
+    const ref = doc(db, "conversations", convoId);
 
-    const initialize = async () => {
-      const snap = await getDoc(convoRef);
+    // initialize
+    (async () => {
+      const snap = await getDoc(ref);
       if (!snap.exists()) {
-        await setDoc(convoRef, {
+        await setDoc(ref, {
           conversationId: convoId,
           userIds: [me, connection.id],
           messages: [],
@@ -73,10 +74,9 @@ export function DashMessages(props) {
           dates: []
         });
       }
-    };
-    initialize();
+    })();
 
-    const unsub = onSnapshot(convoRef, snap => {
+    const unsub = onSnapshot(ref, snap => {
       if (!snap.exists()) return;
       const data = snap.data();
       setSelectedConversation(data);
@@ -87,13 +87,12 @@ export function DashMessages(props) {
     return () => unsub();
   }, [me, connection.id]);
 
-  // 6️⃣ Invite handlers
+  // Invite handlers
   const handleOpenInviteModal = () => setInviteModalOpen(true);
   const handleCloseInviteModal = () => setInviteModalOpen(false);
 
   const handleSendInvite = async () => {
-    const convoId = CONVERSATION_ID();
-    const convoRef = doc(db, "conversations", convoId);
+    const ref = doc(db, "conversations", CONVERSATION_ID());
     const newInvite = {
       id: `invite_${Date.now()}`,
       invitedBy: me,
@@ -105,18 +104,21 @@ export function DashMessages(props) {
         [connection.id]: { uploaded: false, url: "" }
       }
     };
-    await updateDoc(convoRef, { invites: arrayUnion(newInvite) });
+    await updateDoc(ref, { invites: arrayUnion(newInvite) });
     setInviteDateTime("");
     setInviteLocation("");
     setInviteModalOpen(false);
   };
 
   const handleRespond = async (inviteId, accepted) => {
-    const convoRef = doc(db, "conversations", CONVERSATION_ID());
+    const ref = doc(db, "conversations", CONVERSATION_ID());
     const remaining = invites.filter(i => i.id !== inviteId);
     const payload = { invites: remaining };
+
     if (accepted) {
       const inv = invites.find(i => i.id === inviteId);
+
+      // add to dates array
       payload.dates = arrayUnion({
         ...inv,
         status: "accepted",
@@ -125,11 +127,21 @@ export function DashMessages(props) {
           [connection.id]: { uploaded: false, url: "" }
         }
       });
+
+      // persist a system‐style chat message
+      const confirmationMsg = {
+        senderId: "system",
+        receiverId: null,
+        text: `Date scheduled for ${new Date(inv.timestamp.toDate()).toLocaleString()} @ ${inv.location}`,
+        timeStamp: inv.timestamp.toMillis()
+      };
+      payload.messages = arrayUnion(confirmationMsg);
     }
-    await updateDoc(convoRef, payload);
+
+    await updateDoc(ref, payload);
   };
 
-  // 7️⃣ Chat handlers
+  // Send chat message
   const submitNewMessage = async () => {
     if (!newMessageText.trim() || !selectedConversation) return;
     const newMsg = {
@@ -138,35 +150,42 @@ export function DashMessages(props) {
       text: newMessageText.trim(),
       timeStamp: Date.now()
     };
-    const convoRef = doc(db, "conversations", selectedConversation.conversationId);
-    await updateDoc(convoRef, { messages: arrayUnion(newMsg) });
+    const ref = doc(db, "conversations", selectedConversation.conversationId);
+    await updateDoc(ref, { messages: arrayUnion(newMsg) });
     setNewMessageText("");
   };
   const handleOnKeyDown = e => {
     if (e.key === "Enter" && newMessageText.trim()) submitNewMessage();
   };
 
-  // 8️⃣ Auto-scroll effect
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messageArray]);
 
-  // 9️⃣ Render
-  if (authLoading) {
-    return <div className="p-4 text-center">Loading…</div>;
-  }
-  if (!me) {
-    return <div className="p-4 text-center text-red-500">Please log in to chat.</div>;
-  }
+  // Early returns
+  if (authLoading) return <div className="p-4 text-center">Loading…</div>;
+  if (!me)      return <div className="p-4 text-center text-red-500">Please log in to chat.</div>;
 
   return (
     <>
       {/* Header */}
       <div className="flex justify-between items-center px-4 py-2 border-b">
-        <h2 className="text-2xl font-semibold">{connection.name || connection.id}</h2>
-        <button onClick={handleOpenInviteModal} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800">
-          Invite to Date
-        </button>
+        <h2 className="text-2xl font-semibold">{connection.name}</h2>
+        <div className="space-x-2">
+          <button
+            onClick={() => setDatesModalOpen(true)}
+            className="bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300"
+          >
+            View Dates
+          </button>
+          <button
+            onClick={handleOpenInviteModal}
+            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800"
+          >
+            Invite to Date
+          </button>
+        </div>
       </div>
 
       {/* Invite Modal */}
@@ -174,7 +193,7 @@ export function DashMessages(props) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-xl font-semibold mb-4">Invite to Date</h3>
-            <label className="block mb-2 text-sm">Date &amp; Time</label>
+            <label className="block mb-2 text-sm">Date & Time</label>
             <input
               type="datetime-local"
               value={inviteDateTime}
@@ -190,13 +209,52 @@ export function DashMessages(props) {
               className="border p-2 mb-4 w-full"
             />
             <div className="flex justify-end">
-              <button onClick={handleCloseInviteModal} className="mr-2 px-4 py-2 border rounded">Cancel</button>
+              <button onClick={handleCloseInviteModal} className="mr-2 px-4 py-2 border rounded">
+                Cancel
+              </button>
               <button
                 onClick={handleSendInvite}
                 disabled={!inviteDateTime || !inviteLocation}
-                className={`px-4 py-2 rounded text-white ${inviteDateTime && inviteLocation ? 'bg-indigo-600 hover:bg-indigo-800' : 'bg-gray-400 cursor-not-allowed'}`}
+                className={`px-4 py-2 rounded text-white ${
+                  inviteDateTime && inviteLocation
+                    ? "bg-indigo-600 hover:bg-indigo-800"
+                    : "bg-gray-400 cursor-not-allowed"
+                }`}
               >
                 Send Invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dates Modal */}
+      {isDatesModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h3 className="text-xl font-semibold mb-4">Scheduled Dates</h3>
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {dates.filter(d => d.status === "accepted").length > 0 ? (
+                dates
+                  .filter(d => d.status === "accepted")
+                  .map(d => (
+                    <div
+                      key={d.id}
+                      className="px-4 py-2 bg-green-100 rounded text-gray-800"
+                    >
+                      {`Date scheduled for ${new Date(d.timestamp.toDate()).toLocaleString()} @ ${d.location}`}
+                    </div>
+                  ))
+              ) : (
+                <p className="text-gray-500">No accepted dates yet.</p>
+              )}
+            </div>
+            <div className="mt-6 text-right">
+              <button
+                onClick={() => setDatesModalOpen(false)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-800"
+              >
+                Close
               </button>
             </div>
           </div>
@@ -206,16 +264,25 @@ export function DashMessages(props) {
       {/* Pending Invites */}
       <div className="px-4 py-2">
         {invites.map(inv => (
-          <div key={inv.id} className="bg-yellow-100 p-4 mb-2 rounded flex justify-between items-center">
+          <div
+            key={inv.id}
+            className="bg-yellow-100 p-4 mb-2 rounded flex justify-between items-center"
+          >
             <span>
-              {connection.name || connection.id} invited you on{" "}
+              {connection.name} invited you on{" "}
               {new Date(inv.timestamp.toDate()).toLocaleString()} @ {inv.location}
             </span>
             <div className="space-x-2">
-              <button onClick={() => handleRespond(inv.id, true)} className="px-3 py-1 bg-green-500 text-white rounded">
+              <button
+                onClick={() => handleRespond(inv.id, true)}
+                className="px-3 py-1 bg-green-500 text-white rounded"
+              >
                 Accept
               </button>
-              <button onClick={() => handleRespond(inv.id, false)} className="px-3 py-1 bg-red-500 text-white rounded">
+              <button
+                onClick={() => handleRespond(inv.id, false)}
+                className="px-3 py-1 bg-red-500 text-white rounded"
+              >
                 Decline
               </button>
             </div>
@@ -223,26 +290,19 @@ export function DashMessages(props) {
         ))}
       </div>
 
-      {/* Scheduled Dates */}
-      <div className="px-4 py-2">
-        {dates.filter(d => d.status === "accepted").map(d => (
-          <div key={d.id} className="bg-green-100 p-4 mb-2 rounded">
-            Date scheduled for {new Date(d.timestamp.toDate()).toLocaleString()} @ {d.location}
-          </div>
-        ))}
-      </div>
-
       {/* Chat Messages */}
       <div className="flex flex-col h-[57vh] pb-1 mt-1 mx-3 max-w-full shadow bg-white rounded-3xl border border-gray-50">
         <div className="flex flex-col flex-grow overflow-y-auto px-11 pt-6 pb-4">
-          {(messageArray.length ? messageArray : DUMMY_MESSAGES).map((msg, i) => (
+          {(messageArray.length ? messageArray : DUMMY_MESSAGES).map((msg, idx) => (
             <div
-              key={i}
-              className={`${
+              key={idx}
+              className={
                 msg.senderId === me
                   ? "self-end px-8 py-3.5 text-white bg-blue-700 mt-4 rounded-[40px]"
+                  : msg.senderId === "system"
+                  ? "self-center px-6 py-2 text-gray-700 bg-green-100 mt-4 rounded"
                   : "self-start px-6 py-3.5 text-black bg-gray-300 mt-4 rounded-[40px]"
-              }`}
+              }
             >
               {msg.text}
             </div>
@@ -261,7 +321,7 @@ export function DashMessages(props) {
           <button
             onClick={submitNewMessage}
             disabled={!newMessageText.trim()}
-            className={`${!newMessageText.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`${!newMessageText.trim() ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <FaPaperPlane className="text-indigo-600 text-4xl cursor-pointer hover:text-indigo-800" />
           </button>
