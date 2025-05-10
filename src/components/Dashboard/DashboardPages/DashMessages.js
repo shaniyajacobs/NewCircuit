@@ -1,122 +1,254 @@
-import { doc, getDoc, getDocFromServer, onSnapshot, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+  Timestamp
+} from "firebase/firestore";
 import React, { useEffect, useState, useRef } from "react";
 import { auth, db } from "../../../pages/firebaseConfig";
 import { FaPaperPlane } from "react-icons/fa";
-import userEvent from "@testing-library/user-event";
 
-const messages = [
-  { senderId: "user", receiverId: "other", text: "Salutations M'Lady.", timeStamp: 0},
-  { senderId: "other", receiverId: "user", text: "I loved our chat!! 🥰��", timeStamp: 0},
-  { senderId: "user", receiverId: "other", text: "Let's go on a date? 🙏🏻", timeStamp: 0},
-  // EXAMPLE MESSAGE ARRAY
+// Dummy example messages for empty state
+const DUMMY_MESSAGES = [
+  { senderId: "user", receiverId: "other", text: "Salutations M'Lady.", timeStamp: 0 },
+  { senderId: "other", receiverId: "user", text: "I loved our chat!! 🥰", timeStamp: 0 },
+  { senderId: "user", receiverId: "other", text: "Let's go on a date? 🙏🏻", timeStamp: 0 },
 ];
 
 export function DashMessages(props) {
   const { connection } = props;
+
+  // 1️⃣ Auth state
+  const [me, setMe] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  useEffect(() => {
+    const unsubAuth = auth.onAuthStateChanged(user => {
+      setMe(user?.uid ?? null);
+      setAuthLoading(false);
+    });
+    return () => unsubAuth();
+  }, []);
+
+  // 2️⃣ Conversation state
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messageArray, setMessageArray] = useState([]);
+  const [invites, setInvites] = useState([]);
+  const [dates, setDates] = useState([]);
+
+  // 3️⃣ Invite modal state
+  const [isInviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteDateTime, setInviteDateTime] = useState("");
+  const [inviteLocation, setInviteLocation] = useState("");
+
+  // 4️⃣ Chat input
   const [newMessageText, setNewMessageText] = useState("");
   const messagesEndRef = useRef(null);
 
-  const CONVERSATION_ID = () => {
-    if (auth.currentUser.uid < connection.id) {
-      return `${auth.currentUser.uid}${connection.id}`;
-    } else {
-      return `${connection.id}${auth.currentUser.uid}`;
-    }
-  };
+  // Helper to form conversation ID
+  const CONVERSATION_ID = () =>
+    me && connection.id
+      ? me < connection.id
+        ? `${me}${connection.id}`
+        : `${connection.id}${me}`
+      : "";
 
+  // 5️⃣ Firestore subscription
   useEffect(() => {
-    const initializeConversation = async () => {
-      const convoId = CONVERSATION_ID();
-      const convoRef = doc(db, "conversations", convoId);
-      const convoSnap = await getDoc(convoRef);
+    if (!me) return;                 // bail until we know who "me" is
+    const convoId = CONVERSATION_ID();
+    if (!convoId) return;
+    const convoRef = doc(db, "conversations", convoId);
 
-      if (!convoSnap.exists()) {
-        // Initialize new conversation
-        const newConversation = {
+    const initialize = async () => {
+      const snap = await getDoc(convoRef);
+      if (!snap.exists()) {
+        await setDoc(convoRef, {
           conversationId: convoId,
-          userIds: [auth.currentUser.uid, connection.id],
-          messages: []
-        };
-        await setDoc(convoRef, newConversation);
-        setSelectedConversation(newConversation);
-        setMessageArray([]);
-      } else {
-        const convoData = convoSnap.data();
-        setSelectedConversation(convoData);
-        setMessageArray(convoData.messages || []);
+          userIds: [me, connection.id],
+          messages: [],
+          invites: [],
+          dates: []
+        });
       }
     };
+    initialize();
 
-    initializeConversation();
-
-    // Set up real-time listener for conversation updates
-    const unsub = onSnapshot(doc(db, "conversations", CONVERSATION_ID()), (doc) => {
-      if (doc.exists()) {
-        const convoData = doc.data();
-        setSelectedConversation(convoData);
-        setMessageArray(convoData.messages || []);
-      }
+    const unsub = onSnapshot(convoRef, snap => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      setSelectedConversation(data);
+      setMessageArray(data.messages || []);
+      setInvites(data.invites || []);
+      setDates(data.dates || []);
     });
-
     return () => unsub();
-  }, [connection.id]);
+  }, [me, connection.id]);
 
-  const handleOnKeyDown = (event) => {
-    if (event.key === 'Enter' && newMessageText.trim()) {
-      submitNewMessage();
-    }
+  // 6️⃣ Invite handlers
+  const handleOpenInviteModal = () => setInviteModalOpen(true);
+  const handleCloseInviteModal = () => setInviteModalOpen(false);
+
+  const handleSendInvite = async () => {
+    const convoId = CONVERSATION_ID();
+    const convoRef = doc(db, "conversations", convoId);
+    const newInvite = {
+      id: `invite_${Date.now()}`,
+      invitedBy: me,
+      timestamp: Timestamp.fromDate(new Date(inviteDateTime)),
+      location: inviteLocation,
+      status: "pending",
+      photos: {
+        [me]: { uploaded: false, url: "" },
+        [connection.id]: { uploaded: false, url: "" }
+      }
+    };
+    await updateDoc(convoRef, { invites: arrayUnion(newInvite) });
+    setInviteDateTime("");
+    setInviteLocation("");
+    setInviteModalOpen(false);
   };
 
-  async function submitNewMessage() {
-    if (!newMessageText.trim() || !selectedConversation) return;
+  const handleRespond = async (inviteId, accepted) => {
+    const convoRef = doc(db, "conversations", CONVERSATION_ID());
+    const remaining = invites.filter(i => i.id !== inviteId);
+    const payload = { invites: remaining };
+    if (accepted) {
+      const inv = invites.find(i => i.id === inviteId);
+      payload.dates = arrayUnion({
+        ...inv,
+        status: "accepted",
+        photos: {
+          [me]: { uploaded: false, url: "" },
+          [connection.id]: { uploaded: false, url: "" }
+        }
+      });
+    }
+    await updateDoc(convoRef, payload);
+  };
 
-    const newMessage = {
-      senderId: auth.currentUser.uid,
+  // 7️⃣ Chat handlers
+  const submitNewMessage = async () => {
+    if (!newMessageText.trim() || !selectedConversation) return;
+    const newMsg = {
+      senderId: me,
       receiverId: connection.id,
       text: newMessageText.trim(),
       timeStamp: Date.now()
     };
+    const convoRef = doc(db, "conversations", selectedConversation.conversationId);
+    await updateDoc(convoRef, { messages: arrayUnion(newMsg) });
+    setNewMessageText("");
+  };
+  const handleOnKeyDown = e => {
+    if (e.key === "Enter" && newMessageText.trim()) submitNewMessage();
+  };
 
-    const updatedConversation = {
-      ...selectedConversation,
-      messages: [...messageArray, newMessage]
-    };
-
-    try {
-      await setDoc(doc(db, "conversations", selectedConversation.conversationId), updatedConversation);
-      setNewMessageText("");
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
-  }
-
+  // 8️⃣ Auto-scroll effect
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messageArray]);
 
+  // 9️⃣ Render
+  if (authLoading) {
+    return <div className="p-4 text-center">Loading…</div>;
+  }
+  if (!me) {
+    return <div className="p-4 text-center text-red-500">Please log in to chat.</div>;
+  }
+
   return (
-    <div className="flex flex-col h-[57vh] pb-1 mt-1 mx-3 mx-5 text-sm font-semibold leading-snug bg-white rounded-3xl border border-gray-50 shadow-[0px_4px_20px_rgba(238,238,238,0.502)] max-md:max-w-full">
-      <div className="flex flex-col flex-grow overflow-hidden">
+    <>
+      {/* Header */}
+      <div className="flex justify-between items-center px-4 py-2 border-b">
+        <h2 className="text-2xl font-semibold">{connection.name || connection.id}</h2>
+        <button onClick={handleOpenInviteModal} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800">
+          Invite to Date
+        </button>
+      </div>
+
+      {/* Invite Modal */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">Invite to Date</h3>
+            <label className="block mb-2 text-sm">Date &amp; Time</label>
+            <input
+              type="datetime-local"
+              value={inviteDateTime}
+              onChange={e => setInviteDateTime(e.target.value)}
+              className="border p-2 mb-4 w-full"
+            />
+            <label className="block mb-2 text-sm">Location</label>
+            <input
+              type="text"
+              value={inviteLocation}
+              onChange={e => setInviteLocation(e.target.value)}
+              placeholder="Enter location"
+              className="border p-2 mb-4 w-full"
+            />
+            <div className="flex justify-end">
+              <button onClick={handleCloseInviteModal} className="mr-2 px-4 py-2 border rounded">Cancel</button>
+              <button
+                onClick={handleSendInvite}
+                disabled={!inviteDateTime || !inviteLocation}
+                className={`px-4 py-2 rounded text-white ${inviteDateTime && inviteLocation ? 'bg-indigo-600 hover:bg-indigo-800' : 'bg-gray-400 cursor-not-allowed'}`}
+              >
+                Send Invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Invites */}
+      <div className="px-4 py-2">
+        {invites.map(inv => (
+          <div key={inv.id} className="bg-yellow-100 p-4 mb-2 rounded flex justify-between items-center">
+            <span>
+              {connection.name || connection.id} invited you on{" "}
+              {new Date(inv.timestamp.toDate()).toLocaleString()} @ {inv.location}
+            </span>
+            <div className="space-x-2">
+              <button onClick={() => handleRespond(inv.id, true)} className="px-3 py-1 bg-green-500 text-white rounded">
+                Accept
+              </button>
+              <button onClick={() => handleRespond(inv.id, false)} className="px-3 py-1 bg-red-500 text-white rounded">
+                Decline
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Scheduled Dates */}
+      <div className="px-4 py-2">
+        {dates.filter(d => d.status === "accepted").map(d => (
+          <div key={d.id} className="bg-green-100 p-4 mb-2 rounded">
+            Date scheduled for {new Date(d.timestamp.toDate()).toLocaleString()} @ {d.location}
+          </div>
+        ))}
+      </div>
+
+      {/* Chat Messages */}
+      <div className="flex flex-col h-[57vh] pb-1 mt-1 mx-3 max-w-full shadow bg-white rounded-3xl border border-gray-50">
         <div className="flex flex-col flex-grow overflow-y-auto px-11 pt-6 pb-4">
-          {messageArray.map((message, index) => (
+          {(messageArray.length ? messageArray : DUMMY_MESSAGES).map((msg, i) => (
             <div
-              key={index}
+              key={i}
               className={`${
-                message.senderId === auth.currentUser.uid
+                msg.senderId === me
                   ? "self-end px-8 py-3.5 text-white bg-blue-700 mt-4 rounded-[40px]"
                   : "self-start px-6 py-3.5 text-black bg-gray-300 mt-4 rounded-[40px]"
               }`}
             >
-              {message.text}
+              {msg.text}
             </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
-
         <div className="flex items-center gap-4 px-6 py-4 border-t border-gray-200">
           <input
             type="text"
@@ -126,7 +258,7 @@ export function DashMessages(props) {
             placeholder="Type a message..."
             className="flex-grow text-2xl outline-none bg-transparent"
           />
-          <button 
+          <button
             onClick={submitNewMessage}
             disabled={!newMessageText.trim()}
             className={`${!newMessageText.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -135,6 +267,6 @@ export function DashMessages(props) {
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
