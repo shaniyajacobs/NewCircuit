@@ -4,30 +4,55 @@ import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState } from 'react';
 import { FooterShapes } from './Login';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { auth, db } from "./firebaseConfig";
+import { doc, updateDoc } from "firebase/firestore";
 
 const PreferencePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { userData } = location.state || {};
-  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
     gender: '',
     sexualPreference: ''
   });
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(userData.userId)
-    navigate('/locations', {
-      state: {
-        userData: { 
-          ...userData, 
-          gender: formData.gender, 
-          sexualPreference: formData.sexualPreference 
-        }
+    setLoading(true);
+    setError('');
+
+    try {
+      if (!auth.currentUser) {
+        throw new Error('No authenticated user found');
       }
-    });
+
+      // Update the user's document in Firestore
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      await updateDoc(userRef, {
+        gender: formData.gender,
+        sexualPreference: formData.sexualPreference,
+        updatedAt: new Date()
+      });
+
+      // Navigate to the next page with the updated data
+      navigate('/locations', {
+        state: {
+          userData: { 
+            ...userData, 
+            gender: formData.gender, 
+            sexualPreference: formData.sexualPreference 
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Error saving preferences:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,6 +64,12 @@ const PreferencePage = () => {
         </Logo>
         <h1>Tell Us More About You</h1>
         
+        {error && (
+          <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
+
         <Form onSubmit={handleSubmit}>
           <InputGroup>
             <Label>Gender</Label>
@@ -70,7 +101,9 @@ const PreferencePage = () => {
             </Select>
           </InputGroup>
 
-          <Button type="submit">Continue</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : "Continue"}
+          </Button>
         </Form>
       </ContentWrapper>
     </PageContainer>
