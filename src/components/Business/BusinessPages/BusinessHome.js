@@ -97,13 +97,13 @@ const BusinessHome = () => {
       <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mb-6">
         <h2 className="text-2xl font-semibold text-indigo-950 mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <QuickActionCard
+          {/* <QuickActionCard
             icon={FaPlus}
             title="Create New Coupon"
             description="Add a new coupon to attract more customers"
             onClick={() => navigate('/enterprise-dash/coupons')}
             color="bg-blue-500"
-          />
+          /> */}
           <QuickActionCard
             icon={FaChartLine}
             title="View Analytics"
@@ -111,10 +111,17 @@ const BusinessHome = () => {
             onClick={() => navigate('/enterprise-dash/analytics')}
             color="bg-green-500"
           />
-          <QuickActionCard
+          {/* <QuickActionCard
             icon={FaUsers}
             title="Manage Profile"
             description="Update your business information"
+            onClick={() => navigate('/enterprise-dash/profile')}
+            color="bg-purple-500"
+          /> */}
+          <QuickActionCard
+            icon={FaUsers}
+            title="View Profile"
+            description="Check your business information"
             onClick={() => navigate('/enterprise-dash/profile')}
             color="bg-purple-500"
           />
