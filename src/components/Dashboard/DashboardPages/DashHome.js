@@ -1,12 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 
 const DashHome = () => {
   const navigate = useNavigate();
-
-  const upcomingEvents = [
+  const [upcomingEvents, setUpcomingEvents] = useState([
     {
       title: "25-34 yrs old SF",
       date: "01/24/25",
@@ -31,7 +30,9 @@ const DashHome = () => {
       action: "Join in 24 hours",
       isActive: false,
     },
-  ];
+  ]);
+
+  const [showMatchesButton, setShowMatchesButton] = useState(false);
 
   const signUpEvents = [
     {
@@ -86,6 +87,14 @@ const DashHome = () => {
     navigate('dashMyConnections');
   };
 
+  const handleEventJoin = (event) => {
+    // Remove the event from the list
+    setUpcomingEvents(prevEvents => 
+      prevEvents.filter(e => e.title !== event.title)
+    );
+    // Show the matches button after joining
+    setShowMatchesButton(true);
+  };
 
   return (
     <div>
@@ -93,12 +102,14 @@ const DashHome = () => {
         <div className="flex bg-white justify-between items-center mb-6">
           <div>
             <div className="flex flex-col gap-2">
-              <button 
-                onClick={handleMatchesClick}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
-              >
-                You just went on a date! Here are your ai rec matches! 
-              </button>
+              {showMatchesButton && (
+                <button 
+                  onClick={handleMatchesClick}
+                  className="px-8 py-4 text-xl font-bold text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors shadow-lg transform hover:scale-105 transition-transform"
+                >
+                  Choose Your Matches
+                </button>
+              )}
               <button 
                 onClick={handleConnectionsClick}
                 className="px-4 py-2 text-sm font-medium text-white bg-[#85A2F2] rounded-lg hover:opacity-90 transition-colors"
@@ -114,7 +125,12 @@ const DashHome = () => {
         
         <div className="flex bg-white rounded-xl">
           {upcomingEvents.map((event, index) => (
-            <EventCard key={index} event={event} type="upcoming" />
+            <EventCard 
+              key={index} 
+              event={event} 
+              type="upcoming" 
+              onJoin={handleEventJoin}
+            />
           ))}
         </div>
         <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
