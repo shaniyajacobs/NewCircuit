@@ -134,7 +134,6 @@ const DashHome = () => {
           <div className="mb-6 text-xl font-semibold text-indigo-950">
             Upcoming Events
           </div>
-          <div className="overflow-x-auto border-2 border-gray-200 rounded-xl p-4">
             <div className="flex bg-white rounded-xl min-w-max min-h-[300px] items-start">
               {upcomingEvents.length > 0 ? (
                 upcomingEvents.map((event) => (
@@ -146,7 +145,6 @@ const DashHome = () => {
                 </div>
               )}
             </div>
-          </div>
         </div>
 
         <div className="p-7 bg-white rounded-3xl border-2 border-gray-200 shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 mt-8">
