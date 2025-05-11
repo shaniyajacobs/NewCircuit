@@ -39,12 +39,6 @@ const BusinessSidebar = () => {
       cName: "nav-text",
     },
     {
-      title: "Coupons",
-      path: "/enterprise-dash/coupons",
-      icon: <RiIcons.RiCoupon3Line />,
-      cName: "nav-text",
-    },
-    {
       title: "Analytics",
       path: "/enterprise-dash/analytics",
       icon: <MdIcons.MdAnalytics />,

@@ -9,14 +9,6 @@ const BusinessProfile = () => {
   const [businessData, setBusinessData] = useState({
     businessName: '',
     email: '',
-    phone: '',
-    address: '',
-    description: '',
-    logo: '',
-    website: '',
-    cuisine: '',
-    openingHours: '',
-    priceRange: ''
   });
 
   const auth = getAuth();
@@ -110,7 +102,7 @@ const BusinessProfile = () => {
       <div className="max-w-2xl">
         <div className="mb-8">
           <div className="flex items-center gap-6 mb-6">
-            <div className="w-32 h-32 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
+            {/* <div className="w-32 h-32 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
               {businessData.logo ? (
                 <img
                   src={businessData.logo}
@@ -120,7 +112,7 @@ const BusinessProfile = () => {
               ) : (
                 <span className="text-gray-400">No logo</span>
               )}
-            </div>
+            </div> */}
             {/* {isEditing && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -158,63 +150,6 @@ const BusinessProfile = () => {
             //onChange={handleInputChange}
             //disabled={true}
           />
-          <ProfileField
-            label="Phone"
-            name="phone"
-            type="tel"
-            value={businessData.phone}
-            //onChange={handleInputChange}
-            //disabled={!isEditing}
-          />
-          <ProfileField
-            label="Website"
-            name="website"
-            type="url"
-            value={businessData.website}
-            //onChange={handleInputChange}
-            //disabled={!isEditing}
-          />
-          <ProfileField
-            label="Cuisine Type"
-            name="cuisine"
-            value={businessData.cuisine}
-            //onChange={handleInputChange}
-            //disabled={!isEditing}
-          />
-          <ProfileField
-            label="Price Range"
-            name="priceRange"
-            value={businessData.priceRange}
-            //onChange={handleInputChange}
-            //disabled={!isEditing}
-          />
-        </div>
-
-        <ProfileField
-          label="Address"
-          name="address"
-          value={businessData.address}
-          //onChange={handleInputChange}
-          //disabled={!isEditing}
-        />
-
-        <ProfileField
-          label="Description"
-          name="description"
-          type="textarea"
-          value={businessData.description}
-          //onChange={handleInputChange}
-          //disabled={!isEditing}
-        />
-
-        <ProfileField
-          label="Opening Hours"
-          name="openingHours"
-          type="textarea"
-          value={businessData.openingHours}
-          //onChange={handleInputChange}
-          //disabled={!isEditing}
-        />
 
         {/* {isEditing && (
           <div className="flex justify-end gap-4 mt-6">
@@ -233,6 +168,7 @@ const BusinessProfile = () => {
             </button>
           </div>
         )} */}
+      </div>
     </div>
   );
 };
