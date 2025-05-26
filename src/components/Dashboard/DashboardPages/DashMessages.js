@@ -170,8 +170,8 @@ export function DashMessages({ connection }) {
   return (
     <>
       {/* Header */}
-      <div className="flex justify-between items-center px-4 py-2 border-b">
-        <h2 className="text-2xl font-semibold">{connection.name}</h2>
+      <div className="flex justify-end items-center px-4 py-2 border-b">
+       
         <div className="space-x-2">
           <button
             onClick={() => setDatesModalOpen(true)}
