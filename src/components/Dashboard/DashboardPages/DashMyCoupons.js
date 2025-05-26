@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { auth, db } from '../../../pages/firebaseConfig';
+import { auth, db, storage } from '../../../pages/firebaseConfig';
 import {
   collection,
   query,
@@ -9,182 +9,241 @@ import {
   updateDoc,
   getDoc
 } from 'firebase/firestore';
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
+} from 'firebase/storage';
 
-const DashMyCoupons = () => {
+export default function DashMyCoupons() {
   const me = auth.currentUser.uid;
+
   const [conversations, setConversations] = useState([]);
   const [acceptedDates, setAcceptedDates] = useState([]);
   const [usersMap, setUsersMap] = useState({});
-  const [selectedDate1Id, setSelectedDate1Id] = useState('');
-  const [selectedDate2Id, setSelectedDate2Id] = useState('');
-  const [error, setError] = useState('');
 
-  // 1️⃣ Subscribe and extract all accepted dates
+  // local preview + persisted URL
+  const [date1Url, setDate1Url] = useState('');
+  const [date2Url, setDate2Url] = useState('');
+  const [preview1, setPreview1] = useState(null);
+  const [preview2, setPreview2] = useState(null);
+
+  const [sel1, setSel1] = useState('');
+  const [sel2, setSel2] = useState('');
+  const [error, setError] = useState('');
+  const [loading1, setLoading1] = useState(false);
+  const [loading2, setLoading2] = useState(false);
+
+  // 1️⃣ subscribe & extract
   useEffect(() => {
     const q = query(
       collection(db, 'conversations'),
       where('userIds', 'array-contains', me)
     );
-    const unsub = onSnapshot(q, snap => {
+    return onSnapshot(q, snap => {
       const convos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setConversations(convos);
-      const dates = convos.flatMap(convo =>
-        (convo.dates || [])
+      const dates = convos.flatMap(c =>
+        (c.dates || [])
           .filter(d => d.status === 'accepted')
           .map(d => ({
             ...d,
-            convoId: convo.id,
-            partnerId: convo.userIds.find(u => u !== me)
+            convoId: c.id,
+            partnerId: c.userIds.find(u => u !== me)
           }))
       );
       setAcceptedDates(dates);
     });
-    return () => unsub();
   }, [me]);
 
-  // 2️⃣ Fetch partner names from users collection
+  // 2️⃣ fetch partner names
   useEffect(() => {
-    const uniqueIds = [...new Set(acceptedDates.map(d => d.partnerId))];
-    uniqueIds.forEach(uid => {
+    acceptedDates.forEach(d => {
+      const uid = d.partnerId;
       if (!usersMap[uid]) {
         getDoc(doc(db, 'users', uid)).then(uDoc => {
           if (uDoc.exists()) {
             const { firstName, lastName } = uDoc.data();
-            const fullName = [firstName, lastName].filter(Boolean).join(' ');
-            setUsersMap(prev => ({ ...prev, [uid]: fullName || uid }));
+            setUsersMap(m => ({ ...m, [uid]: `${firstName} ${lastName}`.trim() }));
           } else {
-            setUsersMap(prev => ({ ...prev, [uid]: uid }));
+            setUsersMap(m => ({ ...m, [uid]: uid }));
           }
         });
       }
     });
   }, [acceptedDates, usersMap]);
 
-  // Photo upload (unchanged)
-  const handlePhotoUpload = async (dateId, ownerId, event) => {
+  // 3️⃣ whenever sel1 changes, reset slot1 state unless that date really has a URL
+  useEffect(() => {
+    const d = acceptedDates.find(d => d.id === sel1);
+    if (d?.photos?.[me]?.uploaded) {
+      setDate1Url(d.photos[me].url);
+      setPreview1(null);
+    } else {
+      setDate1Url('');
+      setPreview1(null);
+    }
+  }, [sel1, acceptedDates, me]);
+
+  // 4️⃣ same for slot2
+  useEffect(() => {
+    const d = acceptedDates.find(d => d.id === sel2);
+    if (d?.photos?.[me]?.uploaded) {
+      setDate2Url(d.photos[me].url);
+      setPreview2(null);
+    } else {
+      setDate2Url('');
+      setPreview2(null);
+    }
+  }, [sel2, acceptedDates, me]);
+
+  const onFile = (slot, e) => {
     setError('');
-    const file = event.target.files[0];
-    if (!file) {
-      setError('No file selected');
-      return;
-    }
-    if (!dateId) {
-      setError('Please select a date first');
-      return;
-    }
+    const file = e.target.files[0];
+    if (!file) return;
     const reader = new FileReader();
-    reader.onload = async e => {
-      const url = e.target.result;
-      const date = acceptedDates.find(d => d.id === dateId);
-      if (!date) return;
-      const convoRef = doc(db, 'conversations', date.convoId);
-      const convoData = conversations.find(c => c.id === date.convoId);
-      if (!convoData) return;
-      const updatedDates = (convoData.dates || []).map(d =>
-        d.id === dateId
-          ? { ...d, photos: { ...d.photos, [ownerId]: { uploaded: true, url } } }
-          : d
-      );
-      await updateDoc(convoRef, { dates: updatedDates });
+    reader.onload = ev => {
+      slot === 1 ? setPreview1(ev.target.result) : setPreview2(ev.target.result);
     };
     reader.readAsDataURL(file);
   };
 
+  const upload = async slot => {
+    setError('');
+    const selected = slot === 1 ? sel1 : sel2;
+    const preview  = slot === 1 ? preview1 : preview2;
+    const setLoading = slot === 1 ? setLoading1 : setLoading2;
+    if (!selected) { setError(`Select date ${slot}`); return; }
+    if (!preview)  { setError(`Upload your photo for date ${slot}`); return; }
+
+    setLoading(true);
+    try {
+      const d = acceptedDates.find(x => x.id === selected);
+      const path = `datePictures/${d.convoId}/${d.id}/${me}`;
+      const ref  = storageRef(storage, path);
+      const blob = await fetch(preview).then(r => r.blob());
+      await uploadBytes(ref, blob);
+      const url = await getDownloadURL(ref);
+
+      // update Firestore
+      const convoRef = doc(db, 'conversations', d.convoId);
+      const snap     = await getDoc(convoRef);
+      const data     = snap.data();
+      const updated  = (data.dates || []).map(x =>
+        x.id === d.id
+          ? {
+              ...x,
+              photos: {
+                ...x.photos,
+                [me]: { uploaded: true, url }
+              }
+            }
+          : x
+      );
+      await updateDoc(convoRef, { dates: updated });
+
+      // persist locally
+      if (slot === 1) {
+        setDate1Url(url);
+        setPreview1(null);
+      } else {
+        setDate2Url(url);
+        setPreview2(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Upload failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="p-7 bg-white rounded-3xl border border-gray-50 shadow-lg max-md:p-5">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-[#151D48]">How it Works:</h2>
-        <div className="px-4 py-2 bg-yellow-100 rounded-lg">
-          <span className="text-gray-700">Status: Pending</span>
-        </div>
-      </div>
+    <div className="p-7 bg-white rounded shadow-lg">
+      <h2 className="text-2xl mb-4">My Coupons</h2>
+      {error && <div className="mb-4 text-red-500">{error}</div>}
 
-      {/* Steps */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-[#85A2F2] rounded-lg p-4 flex items-center">
-          <div className="w-10 h-10 bg-[#151D48] rounded-full flex items-center justify-center text-white font-bold mr-3">1</div>
-          <p className="text-[#151D48] font-medium">Select the date and upload your photo</p>
-        </div>
-        <div className="bg-[#85A2F2] rounded-lg p-4 flex items-center">
-          <div className="w-10 h-10 bg-[#151D48] rounded-full flex items-center justify-center text-white font-bold mr-3">2</div>
-          <p className="text-[#151D48] font-medium">Repeat for second date</p>
-        </div>
-      </div>
+      {[1,2].map(slot => {
+        const sel       = slot===1 ? sel1      : sel2;
+        const setSel    = slot===1 ? setSel1    : setSel2;
+        const preview   = slot===1 ? preview1   : preview2;
+        const persisted = slot===1 ? date1Url   : date2Url;
+        const otherSel  = slot===1 ? sel2       : sel1;
+        const loading   = slot===1 ? loading1   : loading2;
 
-      <div className="space-y-6">
-        {[1, 2].map(slot => {
-          const selectedId = slot === 1 ? selectedDate1Id : selectedDate2Id;
-          const setSelected = slot === 1 ? setSelectedDate1Id : setSelectedDate2Id;
-          const otherSelected = slot === 1 ? selectedDate2Id : selectedDate1Id;
-          const date = acceptedDates.find(d => d.id === selectedId);
+        return (
+          <div key={slot} className="mb-8">
+            <h3 className="font-semibold mb-2">Date {slot}</h3>
+            <select
+              className="border p-2 rounded w-full mb-4"
+              value={sel}
+              onChange={e => setSel(e.target.value)}
+            >
+              <option value="">Select a scheduled date…</option>
+              {acceptedDates
+                .filter(d => d.id !== otherSel)
+                .map(d => {
+                  const name = usersMap[d.partnerId] || d.partnerId;
+                  return (
+                    <option key={d.id} value={d.id}>
+                      {new Date(d.timestamp.toDate()).toLocaleString()}{' '}
+                      — with {name} @ {d.location}
+                    </option>
+                  );
+                })}
+            </select>
 
-          return (
-            <div key={slot}>
-              <h3 className="text-lg font-semibold text-[#151D48] mb-3">{`Date ${slot}:`}</h3>
-              <select
-                className="border p-2 rounded mb-4 w-full"
-                value={selectedId}
-                onChange={e => {
-                  setError('');
-                  setSelected(e.target.value);
-                }}
-              >
-                <option value="" disabled>
-                  Select a scheduled date...
-                </option>
-                {acceptedDates
-                  .filter(d => d.id !== otherSelected)
-                  .map(d => {
-                    const partnerName = usersMap[d.partnerId] || d.partnerId;
-                    return (
-                      <option key={d.id} value={d.id}>
-                        {`${new Date(d.timestamp.toDate()).toLocaleString()} with ${partnerName} @ ${d.location}`}
-                      </option>
-                    );
-                  })}
-              </select>
-
-              <div className="grid grid-cols-2 gap-4">
-                {/* Your slot */}
-                <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex items-center justify-center hover:border-[#151D48] hover:bg-blue-50 transition-all">
-                  {date && date.photos[me]?.uploaded ? (
-                    <img src={date.photos[me].url} alt="Your photo" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <label className="cursor-pointer text-center text-[#151D48] w-full h-full flex flex-col items-center justify-center">
-                      <div className="text-4xl mb-2 text-[#85A2F2]">+</div>
-                      <span>Upload your photo</span>
-                      <input
-                        className="hidden"
-                        type="file"
-                        accept="image/*"
-                        onChange={e => handlePhotoUpload(selectedId, me, e)}
-                      />
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {/* YOU */}
+              <div className="border-2 border-dashed rounded h-48 flex items-center justify-center">
+                {persisted ? (
+                  <img src={persisted} className="w-full h-full object-cover rounded" />
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id={`you-${slot}`}
+                      className="hidden"
+                      onChange={e => onFile(slot, e)}
+                    />
+                    <label
+                      htmlFor={`you-${slot}`}
+                      className="w-full h-full flex flex-col items-center justify-center cursor-pointer"
+                    >
+                      {preview
+                        ? <img src={preview} className="w-full h-full object-cover rounded" />
+                        : <>
+                            <div className="text-4xl text-gray-400">+</div>
+                            <span>Your photo</span>
+                          </>}
                     </label>
-                  )}
-                </div>
-
-                {/* Partner slot */}
-                <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex items-center justify-center">
-                  {date && date.photos[date.partnerId]?.uploaded ? (
-                    <img src={date.photos[date.partnerId].url} alt="Partner upload" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <span className="text-gray-400">Waiting for partner's photo</span>
-                  )}
-                </div>
+                  </>
+                )}
+              </div>
+              {/* PARTNER */}
+              <div className="border-2 border-dashed rounded h-48 flex items-center justify-center text-gray-400">
+                {persisted ? 'Waiting for partner' : 'Your upload locks this slot'}
               </div>
             </div>
-          );
-        })}
 
-        {error && (
-          <div className="text-red-500 text-center font-medium mt-4 bg-red-50 p-3 rounded-lg">
-            {error}
+            <button
+              onClick={() => upload(slot)}
+              disabled={loading || !!persisted}
+              className={`w-full py-2 text-white rounded ${
+                persisted
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : loading
+                    ? 'bg-indigo-300'
+                    : 'bg-indigo-600 hover:bg-indigo-800'
+              }`}
+            >
+              {persisted ? 'Submitted ✅' : loading ? 'Uploading…' : `Submit Date ${slot}`}
+            </button>
           </div>
-        )}
-      </div>
+        );
+      })}
+
     </div>
   );
-};
-
-export default DashMyCoupons;
+}
