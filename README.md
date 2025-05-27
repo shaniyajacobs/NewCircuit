@@ -40,11 +40,6 @@ git clone [repository-url]
 npm install
 ```
 
-3. Create a `.env` file in the root directory and add your environment variables:
-```
-REACT_APP_EMAILJS_USER_ID=your_emailjs_user_id
-REACT_APP_EMAILJS_TEMPLATE_ID=your_emailjs_template_id
-```
 
 4. Start the development server:
 ```bash
@@ -77,9 +72,7 @@ src/
 ## Development
 
 - `npm start` - Runs the app in development mode
-- `npm test` - Launches the test runner
 - `npm run build` - Builds the app for production
-- `npm run eject` - Ejects from Create React App
 
 ## Contributing
 
@@ -89,6 +82,3 @@ src/
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
