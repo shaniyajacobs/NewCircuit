@@ -1,15 +1,11 @@
 import styled from 'styled-components';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { FooterShapes } from './Login';
-import { auth, db, storage } from './firebaseConfig';
+import { auth, db } from './firebaseConfig';
 import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import ImageUploading from 'react-images-uploading';
-import { IoPersonCircle } from 'react-icons/io5';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-
+import { doc, setDoc } from 'firebase/firestore';
 
 const LoginContainer = styled.div`
   display: flex;
@@ -92,20 +88,13 @@ const ContentWrapper = styled.div`
   padding: 0 20px;
 `;
 
-const CreateAccount = () => {
+const EnterpriseCreateAccount = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [createPassword, setCreatePassword] = useState('');
   const [reenterPassword, setReenterPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [images, setImages] = React.useState([]);
-  const maxNumber = 1;
-
-  const onChange = (imageList, addUpdateIndex) => {
-    // data for submit
-    setImages(imageList);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -121,9 +110,7 @@ const CreateAccount = () => {
       // Check if email exists
       const methods = await fetchSignInMethodsForEmail(auth, email);
       if (methods && methods.length > 0) {
-        setLoading(false);
-        setError('This email is already registered. Please sign in or use a different email.');
-        return;
+        throw new Error('This email is already registered. Please sign in or use a different email.');
       }
 
       // Password validation
@@ -135,40 +122,11 @@ const CreateAccount = () => {
         throw new Error('Password should be at least 6 characters');
       }
 
-      let uploadedImages = null; // Start with null
-
-      // Handle image upload if an image was selected
-      if (images.length > 0) {
-        try {
-          // Create unique filename
-          const timestamp = new Date().getTime();
-          const filename = `${timestamp}_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
-          const storageRef = ref(storage, `profilePictures/${filename}`);
-
-          // Upload the file directly from the image data
-          const imageData = images[0].data_url;
-          const uploadTask = await uploadBytes(storageRef, dataURItoBlob(imageData));
-          
-          // Get the URL of the uploaded file
-          const imageUrl = await getDownloadURL(uploadTask.ref);
-          console.log('Image uploaded successfully. URL:', imageUrl);
-          
-          // Set the uploaded image URL
-          uploadedImages = imageUrl;
-
-        } catch (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw new Error('Failed to upload profile picture. Please try again.');
-        }
-      }
-
-      // Navigate to profile and log the image URL
-      console.log('Image URL in create account:', uploadedImages);
-      navigate('/profile', {
+      // Navigate to enterprise profile
+      navigate('/enterprise-profile', {
         state: {
           email: email,
-          password: createPassword,
-          image: uploadedImages // This will be either null or the image URL
+          password: createPassword
         }
       });
 
@@ -178,20 +136,6 @@ const CreateAccount = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Helper function to convert data URI to Blob
-  const dataURItoBlob = (dataURI) => {
-    const byteString = atob(dataURI.split(',')[1]);
-    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
-    }
-    
-    return new Blob([ab], { type: mimeString });
   };
 
   return (
@@ -207,61 +151,9 @@ const CreateAccount = () => {
               {error}
             </div>
           )}
-          <ImageUploading
-            multiple
-            value={images}
-            onChange={onChange}
-            maxNumber={maxNumber}
-            dataURLKey="data_url"
-          >
-            {({
-              imageList,
-              onImageUpload,
-              onImageRemoveAll,
-              onImageUpdate,
-              onImageRemove,
-              isDragging,
-              dragProps,
-            }) => (
-              // write your building UI
-              <div className="upload__image-wrapper">
-                <div style={{flex: 1, flexDirection: 'column', justifyItems: 'center'}}>
-                  
-                  { imageList.length < maxNumber ? 
-                  <button
-                    style={isDragging ? { color: 'red' } : undefined}
-                    onClick={onImageUpload}
-                    {...dragProps}
-                  >
-                    Click or Drop here
-                  </button> : <div/>
-                  }
-                
-                  {imageList.length ? 
-                  imageList.map((image, index) => (
-                    <div key={index} className="image-item">
-                      {/* <img
-                        src={image['data_url']}
-                        alt=""
-                        resizeMode='fit'
-                      /> */}
-                      <img src={image['data_url']} alt="" width='100'/>
-                    </div>
-                  )) : 
-                  <div
-                    onClick={onImageUpload}
-                  >
-                    <IoPersonCircle style={{width: '100px', height: '100px'}}/>
-                  </div>
-                  }
-                  <button onClick={onImageRemoveAll}>Remove image</button>
-                </div>
-              </div>
-            )}
-          </ImageUploading>
           
           <InputGroup>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Business Email</Label>
             <Input
               type="email"
               id="email"
@@ -303,10 +195,10 @@ const CreateAccount = () => {
           <Button 
             type="button" 
             secondary 
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/enterprise-login')}
             disabled={loading}
           >
-            Back to Sign In
+            Back to Business Login
           </Button>
         </LoginForm>
       </ContentWrapper>
@@ -314,4 +206,4 @@ const CreateAccount = () => {
   );
 };
 
-export default CreateAccount;
+export default EnterpriseCreateAccount;
