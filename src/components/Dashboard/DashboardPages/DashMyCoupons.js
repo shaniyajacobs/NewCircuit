@@ -34,6 +34,15 @@ export default function DashMyCoupons() {
   const [loading1, setLoading1] = useState(false);
   const [loading2, setLoading2] = useState(false);
 
+  useEffect(() => {
+    setSel1('');
+    setSel2('');
+    setDate1Url('');
+    setDate2Url('');
+    setPreview1(null);
+    setPreview2(null);
+  }, [me]);
+
   // 1️⃣ subscribe & extract
   useEffect(() => {
     const q = query(
@@ -58,20 +67,21 @@ export default function DashMyCoupons() {
 
   // 2️⃣ fetch partner names
   useEffect(() => {
-    acceptedDates.forEach(d => {
-      const uid = d.partnerId;
-      if (!usersMap[uid]) {
-        getDoc(doc(db, 'users', uid)).then(uDoc => {
-          if (uDoc.exists()) {
-            const { firstName, lastName } = uDoc.data();
-            setUsersMap(m => ({ ...m, [uid]: `${firstName} ${lastName}`.trim() }));
-          } else {
-            setUsersMap(m => ({ ...m, [uid]: uid }));
-          }
-        });
+  acceptedDates.forEach(d => {
+    const uid = String(d.partnerId); // force string
+    if (!uid || usersMap[uid]) return;
+
+    getDoc(doc(db, 'users', uid)).then(uDoc => {
+      if (uDoc.exists()) {
+        const { firstName, lastName } = uDoc.data();
+        setUsersMap(m => ({ ...m, [uid]: `${firstName} ${lastName}`.trim() }));
+      } else {
+        setUsersMap(m => ({ ...m, [uid]: uid }));
       }
     });
-  }, [acceptedDates, usersMap]);
+  });
+}, [acceptedDates]);
+  
 
   // 3️⃣ whenever sel1 changes, reset slot1 state unless that date really has a URL
   useEffect(() => {
@@ -170,10 +180,14 @@ export default function DashMyCoupons() {
         const persisted = slot===1 ? date1Url   : date2Url;
         const otherSel  = slot===1 ? sel2       : sel1;
         const loading   = slot===1 ? loading1   : loading2;
-
+        const dateObj = acceptedDates.find(d => String(d.id) === sel);
+        const partnerId = dateObj?.partnerId;
+        const partner = partnerId ? usersMap[String(partnerId)] || partnerId : null;
         return (
           <div key={slot} className="mb-8">
-            <h3 className="font-semibold mb-2">Date {slot}</h3>
+            <h3 className="font-semibold mb-2">
+            {partner ? `Date with ${partner}` : `Date ${slot}`}
+            </h3>
             <select
               className="border p-2 rounded w-full mb-4"
               value={sel}
@@ -183,11 +197,11 @@ export default function DashMyCoupons() {
               {acceptedDates
                 .filter(d => d.id !== otherSel)
                 .map(d => {
-                  const name = usersMap[d.partnerId] || d.partnerId;
+                  const name = usersMap[String(d.partnerId)] || d.partnerId;
                   return (
                     <option key={d.id} value={d.id}>
                       {new Date(d.timestamp.toDate()).toLocaleString()}{' '}
-                      — with {name} @ {d.location}
+                      — with {name} at {d.location}
                     </option>
                   );
                 })}
