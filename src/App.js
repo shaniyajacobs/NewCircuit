@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import AOS from 'aos';
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import "aos/dist/aos.css";
 import './index.css';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate
-} from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 // All pages
 import Home from './pages/Home';
 import Contact from './pages/Contact';
@@ -38,6 +35,8 @@ import Dashboard from './pages/Dashboard';
 import NavBar from './components/Navbar/NavBar';
 import FinalQuizPage from './pages/finalQuizPage';
 import PreferencePage from './pages/preferencePage';
+
+const stripePromise = loadStripe("pk_test_51RHbstPpnLZEC8ZQlHoFbnmUGkkKT52aCLMYlMN6fgzmWnVFEPVv8mulHh1PJJaQJRN5yghwIJTfTgumFXt0H3Y400P8jrINGs");
 
 // Preload function
 const preloadImages = () => {
@@ -114,7 +113,9 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/dashboard/*" element={
               <PrivateRoute>
-                <Dashboard />
+                <Elements stripe={stripePromise}>
+                  <Dashboard />
+                </Elements>
               </PrivateRoute>
             } />
             <Route path = "/preferencePage" element={<PreferencePage/>}/>
