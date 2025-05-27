@@ -362,6 +362,26 @@ const Login = () => {
           >
             Create an Account
           </Button>
+
+          <Button 
+            type="button" 
+            secondary 
+            onClick={() => navigate('/enterprise-login')}
+            disabled={loading}
+            style={{ backgroundColor: '#F3F3F3' }}
+          >
+            Are you a business?
+          </Button>
+
+          <Button 
+            type="button" 
+            secondary 
+            onClick={() => navigate('/enterprise-create-account')}
+            disabled={loading}
+            style={{ backgroundColor: '#F3F3F3' }}
+          >
+            Create Business Account
+          </Button>
         </LoginForm>
       </ContentWrapper>
     </LoginContainer>

@@ -20,6 +20,12 @@ import LocationScreen from './pages/LocationScreen';
 import QuizStartScreen from './pages/QuizStartScreen';
 import PersonalityQuizPage from './pages/PersonalityQuizPage';
 import Reactivate from './pages/Reactivate';
+import EnterpriseLogin from './pages/EnterpriseLogin';
+import EnterpriseCreateAccount from './pages/EnterpriseCreateAccount';
+import EnterpriseProfile from './pages/EnterpriseProfile';
+import EnterpriseUserProfile from './pages/EnterpriseUserProfile';
+import EnterpriseVerifyEmail from './pages/EnterpriseVerifyEmail';
+import EnterpriseDash from './pages/EnterpriseDash';
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ProfileProvider } from './contexts/ProfileContext';
@@ -127,6 +133,12 @@ function App() {
             <Route path="/quiz-start" element={<QuizStartScreen />} />
             <Route path="/personalityquizpage/:step" element={<PersonalityQuizPage/>} />
             <Route path="/reactivate" element={<Reactivate />} />
+            <Route path="/enterprise-login" element={<EnterpriseLogin />} />
+            <Route path="/enterprise-create-account" element={<EnterpriseCreateAccount />} />
+            <Route path="/enterprise-profile" element={<EnterpriseProfile />} />
+            <Route path="/enterprise-user-profile" element={<EnterpriseUserProfile />} />
+            <Route path="/enterprise-verify-email" element={<EnterpriseVerifyEmail />} />
+            <Route path="/enterprise-dash/*" element={<EnterpriseDash />} />
           </Routes>
         </ScrollToTop>
       </Router>

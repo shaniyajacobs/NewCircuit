@@ -46,7 +46,7 @@ const DashMyCoupons = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg">
+    <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-md:p-5">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-[#151D48]">How it Works:</h2>
         <div className="px-4 py-2 bg-yellow-100 rounded-lg">

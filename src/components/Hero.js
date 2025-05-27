@@ -49,7 +49,7 @@ const Hero = () => {
                         <div className="grid md:grid-cols-2 gap-12">
                             {/* First Testimonial */}
                             <div className="space-y-4">
-                                <p className="text-2xl">
+                                <p className="text-xl">
                                     I was hesitant to try speed dating online, but Circuit made 
                                     the experience seamless and exciting. The events are 
                                     well-organized, and the platform is so easy to use. What 
@@ -63,7 +63,7 @@ const Hero = () => {
 
                             {/* Second Testimonial */}
                             <div className="space-y-4">
-                                <p className="text-2xl">
+                                <p className="text-xl">
                                     Circuit is unlike anything I've tried before. The virtual speed 
                                     dating events are lively and engaging, and the focus on 
                                     real-life connections is so refreshing. I loved how easy it 

@@ -14,19 +14,27 @@ const Profile = () => {
   const { email, password, image } = location.state || {};
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Initialize formData with the image from location.state
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     birthDate: '',
     phoneNumber: '',
-    image: null,
+    image: image, // Set initial image from location.state
     location: ''
   });
 
   useEffect(() => {
-    if (!email || !password || !image) {
+    if (!email || !password) {
       navigate('/create-account');
+      return;
     }
+    // Update formData when image changes
+    setFormData(prev => ({
+      ...prev,
+      image: image // Update image in formData when it comes from location.state
+    }));
     setLoading(false);
   }, [email, password, image]);
 
@@ -37,6 +45,7 @@ const Profile = () => {
         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          console.log('User data in profile:', userData);
           setFormData({
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
@@ -63,7 +72,9 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      // Instead of creating auth account here, just store the data and navigate
+      console.log('Location state image:', image); // Debug log
+      console.log('FormData image:', formData.image); // Debug log
+      
       navigate('/verify-email', {
         state: { 
           userData: {
@@ -73,9 +84,8 @@ const Profile = () => {
             lastName: formData.lastName,
             birthDate: formData.birthDate,
             phoneNumber: formData.phoneNumber,
-            image: formData.image,
+            image: image, // Use image directly from location.state
             location: formData.location
-
           }
         }
       });
