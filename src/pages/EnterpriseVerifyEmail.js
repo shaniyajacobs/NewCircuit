@@ -127,9 +127,9 @@ const EnterpriseVerifyEmail = () => {
       // Create flattened business document in Firestore
       await setDoc(doc(db, "businesses", userCredential.user.uid), {
         // Business data fields
-        businessName: userData.businessData.businessName,
+        //businessName: userData.businessData.businessName,
         legalBusinessName: userData.businessData.legalBusinessName,
-        businessType: userData.businessData.businessType,
+        /* businessType: userData.businessData.businessType,
         websiteUrl: userData.businessData.websiteUrl,
         businessDescription: userData.businessData.businessDescription,
         countryOfRegistration: userData.businessData.countryOfRegistration,
@@ -139,15 +139,15 @@ const EnterpriseVerifyEmail = () => {
         city: userData.businessData.city,
         state: userData.businessData.state,
         zipCode: userData.businessData.zipCode,
-        country: userData.businessData.country,
+        country: userData.businessData.country, */
 
         // User profile fields
         firstName: userData.userProfile.firstName,
         lastName: userData.userProfile.lastName,
-        phoneNumber: userData.userProfile.phoneNumber,
+        /* phoneNumber: userData.userProfile.phoneNumber,
         jobTitle: userData.userProfile.jobTitle,
         governmentIdUrl,
-        proofOfAuthUrl,
+        proofOfAuthUrl, */
 
         // Additional fields
         email: userData.email,
