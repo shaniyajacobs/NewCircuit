@@ -4,6 +4,7 @@ import PersonalityQuiz from "../components/PersonalityQuiz";
 import ClientTestimonials from "../components/ClientTestimonials";
 import Footer from '../components/Footer';
 import Hero from '../components/Hero';
+import Info from '../components/Info';
 import Pricing from '../components/Pricing';
 import FAQSection from '../components/FAQ/FAQSection';
 import {HowItWorks} from '../components/CircuitHowItWorks';
@@ -17,6 +18,7 @@ const Home = () => {
         <>            
             <Navbar />
             <Hero />
+            <Info />
             <HowItWorks />
             <MapPage />
             <ClientTestimonials />
