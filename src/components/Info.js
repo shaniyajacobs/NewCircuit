@@ -7,7 +7,7 @@ const Info = () => {
                 <div className="flex flex-col md:flex-row items-center gap-8">
                     {/* Text Box */}
                     <div
-                        className="w-full md:w-1/2 flex flex-col items-start gap-m self-stretch"
+                        className="w-full md:w-1/2 flex flex-col items-start gap-m self-stretch -mx-4 px-4"
                         style={{
                             background: 'radial-gradient(circle, #E2FF65 0%, #D2FFD7 100%)'
                         }}
@@ -15,7 +15,7 @@ const Info = () => {
                         <img
                             src="/cir_cross_PBlue.svg"
                             alt="Decorative icon"
-                            className="mb-4 w-12 h-12"
+                            className="w-12 h-12"
                         />
                         <div className="relative w-fit">
                             {/* Header */}
