@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ladyImage from '../images/lady.png'; // Import the lady image
+import styles from './Hero.module.css';
 
 
 const Hero = () => {
     return (
-        <div className="w-full h-[1200px] overflow-hidden pt-20">
+        <div className="w-full h-[1200px] overflow-hidden">
             <div className="w-full bg-[#0E49E8] h-[700px] flex items-center relative">
                 <div className="container mx-auto">
                     <div className="flex justify-between items-center">
@@ -41,43 +42,29 @@ const Hero = () => {
             </div>
 
             {/* Testimonials Section */}
-            <div className="bg-white h-[500px] py-16">
-                <div className="container mx-auto">
-                    <div className="-ml-4">
-                        <h2 className="text-[#0E49E8] text-2xl font-bold mb-8">What are they saying?</h2>
-                        
-                        <div className="grid md:grid-cols-2 gap-12">
-                            {/* First Testimonial */}
-                            <div className="space-y-4">
-                                <p className="text-xl">
-                                    I was hesitant to try speed dating online, but Circuit made 
-                                    the experience seamless and exciting. The events are 
-                                    well-organized, and the platform is so easy to use. What 
-                                    sets Circuit apart is the energy—it's vibrant, immersive, 
-                                    and actually fun! Plus, the incentives motivated me to 
-                                    meet my matches in person, which Highly recommend to 
-                                    anyone tired of the usual swiping!
-                                </p>
-                                <p className="text-[#0E49E8] font-bold">— Taylor J., New York City</p>
+            <section className={styles['testimonials-section']}>
+                <div className={styles['testimonials-container']}>
+                    <h2 className={styles['testimonials-heading']}>What they're saying</h2>
+                    <div className={styles['testimonials-container-gap']}></div>
+                    <div className={styles['testimonials-list']}>
+                        {[...Array(6)].map((_, i) => (
+                            <div className={styles['testimonial-card']} key={i}>
+                                <div className={styles['testimonial-message']}>
+                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+                                </div>
+                                <div className={styles['testimonial-profile']}>
+                                    <img className={styles['testimonial-avatar']} src="https://randomuser.me/api/portraits/women/44.jpg" alt="Audrey M." />
+                                    <div className={styles['testimonial-info']}>
+                                        <div className={styles['testimonial-name']}>Audrey M.</div>
+                                        <div className={styles['testimonial-location']}>Chicago, 20</div>
+                                    </div>
+                                </div>
                             </div>
-
-                            {/* Second Testimonial */}
-                            <div className="space-y-4">
-                                <p className="text-xl">
-                                    Circuit is unlike anything I've tried before. The virtual speed 
-                                    dating events are lively and engaging, and the focus on 
-                                    real-life connections is so refreshing. I loved how easy it 
-                                    was to meet intentional singles who are actually looking 
-                                    for something meaningful. The incentives for meeting in 
-                                    person are such a unique touch—it's like they really care 
-                                    about their users finding love.
-                                </p>
-                                <p className="text-[#0E49E8] font-bold">— Jordan L., Chicago</p>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
-            </div>
+            </section>
+            
         </div>
     );
 };
