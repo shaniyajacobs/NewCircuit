@@ -1,8 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Info = () => {
     return (
-        <div className="w-full py-16 bg-white">
+        <div className="w-full py-16 bg-mindaro-light">
             <div className="container mx-auto px-4">
                 <div className="relative flex flex-col md:flex-row items-center gap-0">
                     {/* Text Box */}
@@ -19,7 +20,7 @@ const Info = () => {
                         />
                         <div className="relative w-fit ml-s mr-m">
                             {/* Header */}
-                            <h2 className="font-bricolage text-h3 md:text-h2 xl:text-h1 font-semibold text-[#211F20]">
+                            <h2 className="font-bricolage text-h3 md:text-h2 xl:text-h1 font-semibold text-black">
                                 {/* "We'll" */}
                                 <span>We'll </span>
                                 {/* "plug" with scribble */}
@@ -28,22 +29,32 @@ const Info = () => {
                                     <img
                                         src="/smaller_scribble.svg"
                                         alt="Scribble decoration"
-                                        className="absolute bottom-[-85px] opacity-50 pointer-events-none"
-                                        style={{ width: '215px', height: '215px' }}
+                                        className="absolute bottom-[5px] opacity-50 pointer-events-none"
                                     />
                                 </span>
                                 {/* Rest of the text */}
                                 <span> you with single locals</span>
                             </h2>
                         </div>
-                        <p className="text-body-m text-[#211F20] font-poppins font-normal leading-normal ml-s mr-m">
+                        <p className="text-body-m text-black font-poppins font-normal leading-normal ml-s mr-m">
                             Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
                             Suspendisse mattis metus neque, ac hendrerit risus pharetra ac. 
                             This is where you can put your main content text.
                         </p>
-                        <button className="flex items-center justify-center gap-3 py-3 px-6 rounded-lg bg-[#211F20] text-[#FAFFE7] font-poppins text-base leading-normal hover:bg-gray-800 transition-colors ml-s mr-m mb-xxl">
-                            Find me a partner
-                        </button>
+                        <Link to="/create-account">
+                            <button className="flex items-center justify-center gap-3 py-3 px-6 rounded-lg bg-black text-mindaro-light font-poppins text-base leading-normal hover:bg-gray-800 transition-colors ml-s mr-m mb-xxl">
+                                Find me a partner
+                            </button>
+                        </Link>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="absolute left-1/2 md:top-[50%] sm:top-[432px] top-[500px] md:left-1/2 md:top-[50%] transform -translate-x-1/2 -translate-y-1/2">
+                        <img
+                            src="/Minus2.svg"
+                            alt="Minus divider"
+                            className="lg:w-24 lg:h-24 w-20 h-20 rotate-6"
+                        />
                     </div>
 
                     {/* Image Box */}
@@ -65,13 +76,6 @@ const Info = () => {
                             }}
                         />
                     </div>
-
-                    {/* Absolutely positioned divider for desktop (overlapping border) */}
-                    <img
-                        src="/Minus2.svg"
-                        alt="Minus divider"
-                        className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 w-20 h-20 rotate-6"
-                    />
                 </div>
             </div>
         </div>
