@@ -3,7 +3,15 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
+    screens: {
+      'sm': '744px',     // Mobile breakpoint (744+)
+      'md': '1280px',    // Tablet/smaller desktop (1280+)
+      'lg': '1440px',    // Desktop (1440+)
+    },
     extend: {
+      colors: {
+        'mindaro-light': '#FAFFE7',
+      },
       fontFamily: {
         bricolage: ['"Bricolage Grotesque"', 'sans-serif'],
         poppins: ['Poppins', 'sans-serif'],
