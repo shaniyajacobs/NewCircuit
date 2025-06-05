@@ -12,7 +12,7 @@ const NavBar = () => {
     };
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-10 bg-white shadow-sm">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
             <div className="container mx-auto py-4">
                 <div className="flex justify-between h-20 items-center">
                     <div className="flex-shrink-0 -ml-4">
