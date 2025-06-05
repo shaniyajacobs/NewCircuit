@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../images/Cir_Primary_RGB_Mixed Black.png'; // Adjust the path based on your image location
+import styles from './NavBar.module.css';
 
 const NavBar = () => {
+    const [showAnnouncement, setShowAnnouncement] = useState(true);
     const navigate = useNavigate();
     const scrollToSection = (id) => {
         const element = document.getElementById(id);
@@ -11,49 +13,43 @@ const NavBar = () => {
         }
     };
 
+    useEffect(() => {
+        const handleScroll = () => {
+            setShowAnnouncement(window.scrollY < 40);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     return (
-        <nav className="fixed top-0 left-0 right-0 z-10 bg-white shadow-sm">
-            <div className="container mx-auto py-4">
-                <div className="flex justify-between h-20 items-center">
-                    <div className="flex-shrink-0 -ml-4">
-                        <Link to="/" className="flex items-center">
-                            <img 
-                                src={logo} 
-                                alt="Circuit Logo" 
-                                className="h-16" // Increased from h-12 to h-16
-                            />
-                        </Link>
-                    </div>
-                    
-                    <div className="flex space-x-12 pr-4">
-                        <button 
-                            onClick={() => scrollToSection('partnerships')}
-                            className="text-gray-900 hover:text-[#0E49E8] px-3 py-2 text-base font-medium flex items-center"
-                        >
-                            Partnerships
-                            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <button
-                            onClick={() => scrollToSection('about')}
-                            className="text-gray-900 hover:text-[#0E49E8] px-3 py-2 text-base font-medium flex items-center"
-                        >
-                            About
-                            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <button 
-                            onClick={() => navigate('/login')}
-                            className="text-gray-900 hover:text-[#0E49E8] px-3 py-2 text-base font-medium"
-                        >
-                            Sign In
-                        </button>
-                    </div>
+        <>
+        <div className={styles.top_text_box + (showAnnouncement ? '' : ' ' + styles.hide)}>
+            <span className={styles.top_text}>
+                The #1 speed dating app in north america
+            </span>
+        </div>
+        <nav className={styles.navContainer}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+                    <img 
+                        src={logo} 
+                        alt="Circuit Logo" 
+                        className={styles.logo}
+                    />
+                </Link>
+            </div>
+            <div className={styles.navLinks}>
+                <Link to="/how-it-works" className={styles.linkButton}>How it works</Link>
+                <Link to="/pricing" className={styles.linkButton}>Pricing</Link>
+                <Link to="/faq" className={styles.linkButton}>FAQ</Link>
+                <Link to="/contact" className={styles.linkButton}>Contact</Link>
+                <div className={styles.buttonGroup}>
+                    <button className={styles.outlinedButton}>Sign in</button>
+                    <button className={styles.filledButton}>Get started</button>
                 </div>
             </div>
         </nav>
+        </>
     );
 };
 

@@ -1,0 +1,129 @@
+/* general box of the navbar */
+.navContainer {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid var(--Raisin_Black, #211F20);
+  background: #FAFFE7;
+  backdrop-filter: blur(12px);
+  display: flex;
+  padding: var(--TopBottom-M, 16px) var(--LeftRight-S, 50px);
+  justify-content: space-between;
+  align-items: center;
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* top black text of screen */
+.top_text_box {
+  display: flex;
+  padding: var(--TopBottom-S, 12px) 0px;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  align-self: stretch;
+
+  border-bottom: 1px solid var(--Raisin_Black, #211F20);
+  background: var(--Raisin_Black, #211F20);
+}
+
+.top_text { 
+  color: var(--Sea_Salt, #F3F3F3);
+  text-align: center;
+  font-family: Poppins;
+  font-size: var(--Body-S-Med, 16px);
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+}
+
+/* circuit logo */
+.logo {
+  width: 167px;
+  height: 43.829px;
+  flex-shrink: 0;
+  margin-left: 0;
+}
+
+/* gaps between each link */
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: var(--Gap-M, 32px);
+}
+
+/* each nav link */
+.linkButton {
+  background: none;
+  border: none;
+  color: var(--Raisin_Black, #211F20);
+  font-family: 'Poppins';
+  font-size: var(--Body-S-Med, 16px);
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  cursor: pointer;
+  padding: 6px 12px;
+  transition: all .3s;
+}
+
+.linkButton:hover {
+  opacity: 0.6;
+}
+
+/* signin button */
+.outlinedButton {
+  display: flex;
+  padding: var(--TopBottom-S, 12px) var(--Left-Right-M, 24px);
+  justify-content: center;
+  align-items: center;
+  gap: var(--Gap-XXS, 12px);
+  border-radius: var(--Radius-S, 8px);
+  border: 1px solid rgba(33, 31, 32, 0.50);
+  transition: all .3s;
+}
+
+.outlinedButton:hover {
+  opacity: 0.6;
+}
+
+/* getstarted button */
+.filledButton {
+  display: flex;
+  padding: var(--TopBottom-S, 12px) var(--Left-Right-M, 24px);
+  justify-content: center;
+  align-items: center;
+  gap: var(--Gap-XXS, 12px);
+
+  border-radius: var(--Radius-S, 8px);
+  background: var(--Raisin_Black, #211F20);
+  color: var(--Mindaro_Light, #FAFFE7);
+
+  font-family: Poppins;
+  font-size: var(--Body-S-Med, 16px);
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  transition: all .3s;
+}
+
+.filledButton:hover {
+  opacity: 0.6;
+}
+
+/*smaller gap between signup / getstarted */
+.buttonGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--Gap-XS, 16px);
+}
+
+.hide {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  height: 0;
+  padding: 0;
+  border: none;
+} 
