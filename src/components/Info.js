@@ -8,7 +8,7 @@ const Info = () => {
                 <div className="relative flex flex-col md:flex-row items-center gap-0">
                     {/* Text Box */}
                     <div
-                        className="w-full md:w-1/2 flex flex-col items-start gap-m gap-[10px] flex-1 self-stretch bg-[#F3F3F4] rounded-t-2xl md:rounded-l-2xl md:rounded-b-none md:rounded-r-none overflow-hidden"
+                        className="w-full md:w-1/2 flex flex-col items-start gap-m flex-1 self-stretch bg-[#F3F3F4] rounded-t-2xl md:rounded-l-2xl md:rounded-b-none md:rounded-r-none overflow-hidden"
                         style={{
                             background: 'radial-gradient(circle, #E2FF65 0%, #D2FFD7 100%)'
                         }}
@@ -24,12 +24,15 @@ const Info = () => {
                                 {/* "We'll" */}
                                 <span>We'll </span>
                                 {/* "plug" with scribble */}
-                                <span className="relative inline-block">
-                                    plug
-                                    <img
+                                <span className="relative inline-block ml-s mr-s">
+                                    {'plug'}
+                                    <img 
                                         src="/smaller_scribble.svg"
                                         alt="Scribble decoration"
-                                        className="absolute bottom-[5px] opacity-50 pointer-events-none"
+                                        className="absolute bottom-[7px] pointer-events-none"
+                                        style={{
+                                            transform: 'scale(1.5)',
+                                        }}
                                     />
                                 </span>
                                 {/* Rest of the text */}
@@ -49,7 +52,7 @@ const Info = () => {
                     </div>
 
                     {/* Divider */}
-                    <div className="absolute left-1/2 md:top-[50%] sm:top-[432px] top-[500px] md:left-1/2 md:top-[50%] transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="absolute left-1/2 md:top-[50%] sm:top-[477px] top-[500px] md:left-1/2 md:top-[50%] transform -translate-x-1/2 -translate-y-1/2">
                         <img
                             src="/Minus2.svg"
                             alt="Minus divider"
