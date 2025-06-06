@@ -22,7 +22,7 @@
   font-size: var(--H2, 48px);
   font-style: normal;
   font-weight: 600;
-  line-height: 110%; /* 52.8px */
+  line-height: 110%; 
 }
 
 .testimonials-list {
