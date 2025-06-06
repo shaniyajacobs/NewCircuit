@@ -52,7 +52,7 @@ const Info = () => {
                     </div>
 
                     {/* Divider */}
-                    <div className="absolute left-1/2 md:top-[50%] sm:top-[477px] top-[500px] md:left-1/2 md:top-[50%] transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="absolute left-1/2 md:top-[50%] sm:top-[435px] top-[500px] md:left-1/2 md:top-[50%] transform -translate-x-1/2 -translate-y-1/2">
                         <img
                             src="/Minus2.svg"
                             alt="Minus divider"
