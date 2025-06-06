@@ -5,7 +5,8 @@ import ladyImage from '../images/lady.png'; // Import the lady image
 
 const Hero = () => {
     return (
-        <div className="w-full h-[1200px] overflow-hidden pt-20">
+        <div className="w-full h-[500px] overflow-hidden pt-20">
+            {/* Mission Section - Commented Out
             <div className="w-full bg-[#0E49E8] h-[700px] flex items-center relative">
                 <div className="container mx-auto">
                     <div className="flex justify-between items-center">
@@ -28,7 +29,6 @@ const Hero = () => {
                             </div>
                         </div>
                         
-                        {/* Added image container */}
                         <div className="flex-shrink-0">
                             <img 
                                 src={ladyImage} 
@@ -39,6 +39,7 @@ const Hero = () => {
                     </div>
                 </div>
             </div>
+            */}
 
             {/* Testimonials Section */}
             <div className="bg-white h-[500px] py-16">
