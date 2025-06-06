@@ -1,6 +1,9 @@
 .testimonials-section {
     display: flex;
-    padding: var(--TopBottom-M, 100px) var(--LeftRight-S, 50px);
+    padding-top: var(--Gap-XXL, 100px);
+    padding-bottom: calc(var(--Gap-XXL, 100px) * 1.5);
+    padding-left: var(--LeftRight-S, 50px);
+    padding-right: var(--LeftRight-S, 50px);
     flex-direction: column;
     align-items: center;
     gap: var(--Gap-XXL, 100px);
@@ -12,6 +15,7 @@
   align-self: stretch;
   color: var(--Raisin_Black, #211F20);
   text-align: center;
+  margin: 0;
   
   /* H2 */
   font-family: "Bricolage Grotesque";
@@ -102,9 +106,11 @@
   line-height: normal;
 }
 
-.testimonials-container-gap {
-  height: var(--Gap-XXL, 100px);
-  width: 100%;
+.testimonials-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--Gap-XXL, 100px);
 }
 
 .testimonials-section-gap {
@@ -118,10 +124,31 @@
 }
 
 .testimonials-bottom-gap {
+  width: 100%;
+  height: 300px;
+  background: #FAFFE7;
+}
+
+.testimonials-list-marquee {
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+  margin-left: calc(-1 * var(--LeftRight-S, 50px));
+  margin-right: calc(-1 * var(--LeftRight-S, 50px));
+}
+
+.marquee-track {
   display: flex;
-  padding: var(--TopBottom-M, 100px) var(--LeftRight-S, 50px);
-  flex-direction: column;
-  align-items: center;
-  gap: var(--Gap-XXL, 100px);
-  align-self: stretch;
+  width: max-content;
+  animation: marquee-scroll 70s linear infinite; /* change speed here */
+  gap: var(--Gap-S, 24px);
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }

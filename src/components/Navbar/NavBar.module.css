@@ -126,4 +126,334 @@
   height: 0;
   padding: 0;
   border: none;
+}
+
+/* 1280+ */
+@media (max-width: 1439px) and (min-width: 1280px) {
+  .navContainer {
+    padding: 24px 32px;
+  }
+  .navLinks {
+    gap: 24px;
+  }
+  .linkButton,
+  .filledButton,
+  .outlinedButton {
+    font-size: 16px;
+    padding: 10px 20px;
+  }
+  .top_text_box {
+    padding: 10px 0;
+  }
+  .top_text {
+    font-size: 14px;
+  }
+}
+
+/* Tablet styles (744px - 1279px) */
+@media (max-width: 1279px) and (min-width: 744px) {
+  .navContainer {
+    padding: 24px 32px;
+  }
+  .logo {
+    width: 120px;
+    height: auto;
+  }
+  .top_text_box {
+    padding: 10px 0;
+  }
+  .top_text {
+    font-size: 14px;
+  }
+}
+
+/* Mobile styles (<= 743px) */
+@media (max-width: 743px) {
+  .navContainer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 12px;
+    gap: 12px;
+  }
+  .logo {
+    width: 100px;
+    height: auto;
+  }
+  .top_text_box {
+    padding: 6px 0;
+  }
+  .top_text {
+    font-size: 12px;
+  }
+}
+
+/* Hamburger menu styles */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 200;
+}
+.hamburgerBar {
+  width: 28px;
+  height: 3px;
+  background: var(--Raisin_Black, #211F20);
+  margin: 4px 0;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+/* Hamburger morphs to X when open */
+.hamburger.open .hamburgerBar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger.open .hamburgerBar:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.open .hamburgerBar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Hamburger and overlay menu for 1279px and below */
+@media (max-width: 1279px) {
+  .navContainer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 32px;
+    gap: 0;
+  }
+  .logo {
+    margin-left: 0;
+  }
+  .hamburger {
+    display: flex;
+    margin-right: 0;
+    margin-left: 0;
+    position: static;
+    top: unset;
+    right: unset;
+    transform: none;
+  }
+  .navLinks {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--Mindaro_Light, #FAFFE7);
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 0;
+    padding: 0;
+    box-shadow: none;
+    transition: max-height 0.3s, opacity 0.3s;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 150;
+  }
+  .menuOpen {
+    max-height: 100vh;
+    opacity: 1;
+    pointer-events: auto;
+    transition: max-height 0.3s, opacity 0.3s;
+  }
+  .menuClosed {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: max-height 0.3s, opacity 0.3s;
+  }
+  .menuHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 24px 0 16px 24px;
+    border-bottom: 2px solid var(--Raisin_Black, #211F20);
+    background: var(--Mindaro_Light, #FAFFE7);
+    box-sizing: border-box;
+  }
+  .linkButton, .filledButton, .outlinedButton {
+    font-size: 24px;
+    color: var(--Raisin_Black, #211F20);
+    padding: 24px 0 0 24px;
+    background: none;
+    border: none;
+    text-align: left;
+    width: 100%;
+    font-weight: 500;
+    transition: color 0.2s;
+    box-shadow: none;
+  }
+  .filledButton {
+    color: var(--Palatinate_Blue, #1C50D8);
+    font-weight: 500;
+    background: none;
+    padding-bottom: 0;
+  }
+  .outlinedButton {
+    color: var(--Raisin_Black, #211F20);
+    font-weight: 500;
+    background: none;
+    padding-bottom: 0;
+  }
+  .buttonGroup {
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    margin-top: 0;
+  }
+  .socialRow {
+    display: flex;
+    gap: 24px;
+    margin-top: 48px;
+    margin-bottom: 32px;
+    width: 100%;
+    justify-content: flex-start;
+    align-items: center;
+    padding-left: 24px;
+  }
+  .menuButton {
+    text-align: left;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: 100%;
+    margin: 0;
+    padding-left: 24px;
+    padding-right: 0;
+  }
+  .menuColumn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+  .menuContent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 744px;
+    height: 1000px;
+    position: absolute;
+    background: var(--Mindaro_Light, #FAFFE7);
+    left: 0;
+    top: 90px;
+    box-sizing: border-box;
+  }
+}
+
+/* Hide navLinks on desktop */
+@media (min-width: 1277px) {
+  .navContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--TopBottom-M, 16px) var(--LeftRight-S, 50px);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .logo {
+    margin-left: 0;
+    width: 167px;
+    height: 43.829px;
+  }
+  .navLinks {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--Gap-M, 32px);
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: auto;
+    max-height: none;
+    padding: 0;
+    height: auto;
+    width: auto;
+  }
+  .linkButton, .filledButton, .outlinedButton {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    color: var(--Raisin_Black, #211F20);
+    padding: 6px 12px;
+    width: auto;
+    text-align: center;
+    background: none;
+    border: none;
+    font-family: 'Poppins';
+    font-weight: 500;
+    line-height: normal;
+    cursor: pointer;
+    transition: all .3s;
+  }
+  .filledButton {
+    color: var(--Mindaro_Light, #FAFFE7);
+    background: var(--Raisin_Black, #211F20);
+    border-radius: var(--Radius-S, 8px);
+    font-weight: 600;
+    padding: 12px 24px;
+  }
+  .outlinedButton {
+    border: 1px solid rgba(33, 31, 32, 0.50);
+    border-radius: var(--Radius-S, 8px);
+    background: none;
+    color: var(--Raisin_Black, #211F20);
+    font-weight: 500;
+    padding: 12px 24px;
+  }
+  .buttonGroup {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--Gap-XS, 16px);
+    margin-top: 0;
+  }
+  .menuHeader, .menuContent, .menuColumn {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1279px) {
+  .hamburger {
+    display: flex;
+  }
+}
+
+@media (min-width: 1277px) {
+  .hamburger {
+    display: none;
+  }
+}
+
+/* Desktop nav links/buttons container */
+.desktopNavLinks {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--Gap-M, 32px);
+}
+@media (max-width: 1276px) {
+  .desktopNavLinks {
+    display: none;
+  }
+}
+@media (min-width: 1277px) {
+  .desktopNavLinks {
+    display: flex;
+  }
 } 
