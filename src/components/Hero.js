@@ -1,11 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import ladyImage from '../images/lady.png'; // Import the lady image
+import styles from './Hero.module.css';
 import SlidingBar from './SlidingBar';
+import Info from './Info';
+
 const LightningIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="22" viewBox="0 0 12 22" fill="none" className="inline-block mr-2 align-middle">
     <path d="M9.35664 0.5L0 12.2866H4.31606L2.64336 21.5L12 9.71344H7.68394L9.35664 0.5Z" fill="#211F20" />
   </svg>
 );
+
 const Hero = () => {
   return (
     <div className="w-full overflow-hidden relative">
@@ -85,38 +90,46 @@ const Hero = () => {
       <div className="w-full z-20 mt-12">
         <SlidingBar />
       </div>
-      {/* Testimonials Section */}
-      <div className="bg-white h-[500px] py-16">
-        <div className="container mx-auto">
-          <div className="-ml-4">
-            <h2 className="text-[#0E49E8] text-2xl font-bold mb-8" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              What are they saying?
-            </h2>
-            <div className="grid md:grid-cols-2 gap-12">
-              {/* First Testimonial */}
-              <div className="space-y-4">
-                <p className="text-xl" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                  I was hesitant to try speed dating online, but Circuit made the experience seamless and exciting. The events are
-                  well-organized, and the platform is so easy to use. What sets Circuit apart is the energy—it's vibrant, immersive,
-                  and actually fun! Plus, the incentives motivated me to meet my matches in person. Highly recommend to
-                  anyone tired of the usual swiping!
-                </p>
-                <p className="text-[#0E49E8] font-bold" style={{ fontFamily: 'Poppins, sans-serif' }}>— Taylor J., New York City</p>
-              </div>
-              {/* Second Testimonial */}
-              <div className="space-y-4">
-                <p className="text-xl" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                  Circuit is unlike anything I've tried before. The virtual speed dating events are lively and engaging, and the focus on
-                  real-life connections is so refreshing. I loved how easy it was to meet intentional singles who are actually looking
-                  for something meaningful. The incentives for meeting in person are such a unique touch—it's like they really care
-                  about their users finding love.
-                </p>
-                <p className="text-[#0E49E8] font-bold" style={{ fontFamily: 'Poppins, sans-serif' }}>— Jordan L., Chicago</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Info />
+            {/* Testimonials Section */}
+            <section className={styles['testimonials-section']}>
+                <div className={styles['testimonials-container']}>
+                    <h2 className={styles['testimonials-heading']}>What they're saying</h2>
+                    <div className={styles['testimonials-list-marquee']}>
+                      <div className={styles['marquee-track']}>
+                        {[...Array(6)].map((_, i) => (
+                          <div className={styles['testimonial-card']} key={i}>
+                            <div className={styles['testimonial-message']}>
+                              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+                            </div>
+                            <div className={styles['testimonial-profile']}>
+                              <img className={styles['testimonial-avatar']} src="https://randomuser.me/api/portraits/women/44.jpg" alt="Audrey M." />
+                              <div className={styles['testimonial-info']}>
+                                <div className={styles['testimonial-name']}>Audrey M.</div>
+                                <div className={styles['testimonial-location']}>Chicago, 20</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {[...Array(6)].map((_, i) => (
+                          <div className={styles['testimonial-card']} key={`dup-${i}`}>
+                            <div className={styles['testimonial-message']}>
+                              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+                            </div>
+                            <div className={styles['testimonial-profile']}>
+                              <img className={styles['testimonial-avatar']} src="https://randomuser.me/api/portraits/women/44.jpg" alt="Audrey M." />
+                              <div className={styles['testimonial-info']}>
+                                <div className={styles['testimonial-name']}>Audrey M.</div>
+                                <div className={styles['testimonial-location']}>Chicago, 20</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                </div>
+                <div className={styles['testimonials-bottom-gap']}></div>
+            </section>
     </div>
   );
 };
