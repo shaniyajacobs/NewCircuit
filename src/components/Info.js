@@ -5,6 +5,14 @@ const Info = () => {
     return (
         <div className="w-full py-16 bg-mindaro-light">
             <div className="container mx-auto px-4">
+                {/* Text Section */}
+                <div className="text-center pt-[100px] pb-[100px] pl-xs pr-xs md:pl-m md:pr-m md:pt-[150px] md:pb-[150px] lg:pl-l lg:pr-l lg:pt-[200px] lg:pb-[200px]">
+                    <h2 className="font-bricolage text-[22px] lg:text-[36px] md:text-[30px] text-black font-light font-weight-[400] mb-16 max-w-[800px] mx-auto leading-[130%]">
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                        Suspendisse mattis metus neque, ac hendrerit risus pharetra ac. 
+                    </h2>
+                </div>
+                
                 <div className="relative flex flex-col md:flex-row items-center gap-0">
                     {/* Text Box */}
                     <div
@@ -39,7 +47,7 @@ const Info = () => {
                                 <span> you with single locals</span>
                             </h2>
                         </div>
-                        <p className="text-body-m text-black font-poppins font-normal leading-normal ml-s mr-m">
+                        <p className="text-body-m text-black font-poppins font-light leading-normal ml-s mr-m">
                             Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
                             Suspendisse mattis metus neque, ac hendrerit risus pharetra ac. 
                             This is where you can put your main content text.
