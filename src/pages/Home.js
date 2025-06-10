@@ -17,8 +17,7 @@ const Home = () => {
     return (
         <>            
             <Navbar />
-            <Hero />
-            <HowItWorks />
+            <Hero />  
             <MapPage />
             <ClientTestimonials />
             <PersonalityQuiz />

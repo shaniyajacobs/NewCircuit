@@ -1,108 +1,200 @@
 import * as React from "react";
-import profileIcon from '../images/profileIcon.png';
-import heart from '../images/heart.png';
-import find from '../images/find.png';
-import champagne from '../images/champagne.png';
+import styles from './CircuitHowItWorks.module.css';
+import Howitworks1 from '../images/Howitworks1.webp';
+import Howitworks2 from '../images/Howitworks2.webp';
+import Howitworks3 from '../images/Howitworks3.webp';
+import arrow from '../images/Return_Arrow1.svg'; 
 
+// Step data
 export const stepsData = [
   {
-    title: "1. Get Started",
-    description: "Sign up, select your location, and create your profile. Take our personality indicator to discover personalized connections just for you.",
-    isBlue: true
+    stepNum: "STEP 01",
+    title: "Sign Up to Circuit",
+    description: "Sign up & take the personality indicator test for us to match you with potential dates.",
+    image: Howitworks1
   },
   {
-    title: "2. Explore Circuit",
-    description: "Choose your circuit and enjoy 10 exciting speed dates. Connect, converse, and spark chemistry in a fun, fast-paced setting.",
-    isBlue: false
+    stepNum: "STEP 02",
+    title: "Find a date in your city",
+    description: "Sign up for a date in your city & select up to 3 sparks to take things further",
+    image: Howitworks2
   },
   {
-    title: "3. Choose Your Connections",
-    description: "After your speed dates, choose up to 3 people you'd like to stay in touch with. If your choices align, you'll both be a mutual connection.",
-    isBlue: false
-  },
-  {
-    title: "4. Ignite the Spark",
-    description: "Take it to the next level with a memorable date at one of our partnered restaurants and deepen your connection.",
-    isBlue: true
+    stepNum: "STEP 03",
+    title: "Ignite the spark",
+    description: "Connect with your sparks and go on 1-1 dates with them. The 3rd date includes a free drink on us!",
+    image: Howitworks3
   }
 ];
 
-export function StepCard({ title, description, isBlue }) {
+
+
+export function StepCard({ stepNum, title, description, image, isFirst, isThird, dotColors }) {
   return (
-    <div
-      className={`overflow-hidden flex flex-col items-center px-10 pt-6 pb-6 max-w-full min-h-[240px] rounded-[30px] w-full ${isBlue ? 'bg-blue-700 border border-blue-900' : 'bg-neutral-800'}`} // Reduced padding and min-height
-    >
-      {/* Icon Box (Lime Green or Blue) */}
+    <div className={isThird || isFirst ? `${styles.stepcard} ${styles.stepcardArrow}` : styles.stepcard} style={{ position: 'relative' }}>
+      {/* Arrow for step 1 and step 3 */}
+      {isFirst && (
+        <img
+          src={arrow}
+          alt="Arrow"
+          className={`${styles.arrowImg} ${styles.arrowFirst}`}
+          style={{
+            position: 'absolute',
+            right: '-75px',
+            top: '-74px',
+            width: '168px',
+            height: '168px',
+            zIndex: 3,
+          }}
+        />
+      )}
+      {isThird && (
+        <img
+          src={arrow}
+          alt="Arrow"
+          className={`${styles.arrowImg} ${styles.arrowThird}`} 
+          style={{
+            position: 'absolute',
+            right: '-75px',
+            top: '-74px',
+            width: '168px',
+            height: '168px',
+            zIndex: 3,
+          }}
+        />
+      )}
       <div
-        className={`relative flex items-center justify-center rounded-2xl h-[40px] w-[40px] min-h-[40px] shadow-[0px_2px_16px_rgba(0,0,0,0.035)] mb-4 // Reduced size and margin
-          ${isBlue && description.includes('our') ? 'bg-lime-300' : 'bg-blue-700'}`}
+        className={styles.stepcardImage}
+        style={{
+          height: isThird ? "var(--card3-image-height)" : "var(--card-image-height)",
+          borderTopLeftRadius: "var(--card-radius)",
+          borderTopRightRadius: "var(--card-radius)",
+          overflow: "hidden",
+          position: "relative"
+        }}
       >
-        {/* Profile Icon should only be inside the lime-green square in "Get Started" */}
-        {title === "1. Get Started" && (
-          <img
-            src={profileIcon}
-            alt="Profile Icon"
-            className="absolute inset-0 m-auto w-6 h-6" // Reduced image size
-          />
-        )}
-        {title === "2. Explore Circuit" && (
-          <img
-            src={heart}
-            alt="Heart"
-            className="absolute inset-3 m-auto w-6 h-6" // Reduced image size
-          />
-        )}
-        {title === "3. Choose Your Connections" && (
-          <img
-            src={find}
-            alt="Find"
-            className="absolute inset-0 m-auto w-6 h-6" // Reduced image size
-          />
-        )}
-        {title === "4. Ignite the Spark" && (
-          <img
-            src={champagne}
-            alt="Champagne"
-            className="absolute inset-0 m-auto w-6 h-6" // Reduced image size
-          />
-        )}
+        {/* Dots in top right */}
+        <div className={styles.dotsContainer}>
+          {dotColors && dotColors.map((color, idx) => (
+            <div
+              key={idx}
+              className={styles.dot}
+              style={{ background: color }}
+            ></div>
+          ))}
+        </div>
+        <img src={image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       </div>
-
-      {/* Title inside the card */}
-      <h2 className="text-xl font-bold text-zinc-100 mb-3 text-center"> {/* Reduced text size */}
-        {title}
-      </h2>
-
-      {/* Description */}
-      <div className="z-10 text-sm font-medium leading-5 text-zinc-100 max-w-[350px] text-center"> {/* Reduced text size */}
-        {description}
+      <div
+        className={styles.stepcardContent}
+        style={{
+          height: isThird ? "var(--card3-text-height)" : "var(--card-text-height)",
+          background: "#FAFFE7",
+          borderBottomLeftRadius: "var(--card-radius)",
+          borderBottomRightRadius: "var(--card-radius)",
+          padding: "var(--card-padding)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--gap-xxs)",
+        }}
+      >
+        <div className={styles.stepcardStepnum}>{stepNum}</div>
+        <div className={styles.stepcardTitle}>{title}</div>
+        <div className={styles.stepcardDesc}>{description}</div>
       </div>
     </div>
   );
 }
 
 export function HowItWorks() {
+  // Define dot color arrays for each card
+  const mindaro = '#E2FF65';
+  const mindaroLight = '#FAFFE7';
+  const dotColorsArr = [
+    [mindaro, mindaroLight, mindaroLight],
+    [mindaro, mindaro, mindaroLight],
+    [mindaro, mindaro, mindaro],
+  ];
   return (
-    <div className="flex flex-col items-center justify-center px-12 py-16 bg-white max-md:px-5 max-md:pt-16"> {/* Reduced padding */}
-      {/* Centering the Title */}
-      <div className="flex z-10 flex-col mb-12 w-full max-w-[644px] font-bold text-center">
-        <div className="text-6xl tracking-tighter leading-none text-blue-700 max-md:max-w-full max-md:text-3xl"> {/* Reduced text size */}
-          How It Works
-        </div>
-      </div>
-      
-      {/* Centering the Steps */}
-      <div className="grid grid-cols-2 gap-6 w-full max-w-[1163px] max-md:grid-cols-1"> {/* Reduced gap */}
+    <section
+      className="howitworks-section"
+      style={{
+        background: '#FAFFE7',
+        paddingTop: 'var(--section-top)', // Section spacing per breakpoint
+        paddingBottom: 'var(--section-bottom)',
+        paddingLeft: 'var(--section-side)',
+        paddingRight: 'var(--section-side)',
+        width: '100%',
+        minHeight: 'var(--section-minheight)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}
+    >
+      {/* Heading */}
+      <h2
+        style={{
+          fontFamily: 'Bricolage Grotesque',
+          fontStyle: 'normal',
+          fontWeight: 600,
+          fontSize: 'var(--h2)', // Heading font per breakpoint
+          lineHeight: '110%',
+          color: '#211F20',
+          textAlign: 'center',
+          marginBottom: 'var(--gap-xxl)',
+        }}
+      >
+        How it works
+      </h2>
+      {/* Cards Row/Column Responsive */}
+      <div
+        className="relative flex flex-col md:flex-row items-center howitworks-cards-container"
+        style={{
+          //width: '100%',
+          display: 'flex',
+          //gap: 'var(--gap-m)',
+          justifyContent: 'center',
+          //marginBottom: 'var(--gap-xxs)',
+          gap: 'var(--gap-m)',
+          alignSelf: 'stretch',
+        }}
+      >
         {stepsData.map((step, index) => (
-          <StepCard
+          <div
             key={index}
-            title={step.title}
-            description={step.description}
-            isBlue={step.isBlue}
-            image={profileIcon}
-          />
+            className="howitworks-card-wrapper"
+            style={{
+              flex: '0 0 auto',
+              width: 'var(--card-width)',
+              minWidth: 'var(--card-minwidth)',
+              maxWidth: 'var(--card-maxwidth)',
+              margin: 0,
+            }}
+          >
+            <StepCard
+              stepNum={step.stepNum}
+              title={step.title}
+              description={step.description}
+              image={step.image}
+              isFirst={index === 0}
+              isThird={index === 2}
+              dotColors={dotColorsArr[index]}
+            />
+          </div>
         ))}
       </div>
-    </div>
+      {/* Learn more button */}
+      <button className={styles.howitworksBtn}
+        style={{
+          padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
+          marginTop: 'var(--gap-xxl)',
+          marginBottom: 'var(--section-TopBottom-M, 100)',
+        }}
+      >
+        Learn more
+      </button>
+    </section>
   );
 }
+
+
