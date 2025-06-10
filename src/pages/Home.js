@@ -11,7 +11,7 @@ import {HowItWorks} from '../components/CircuitHowItWorks';
 import {AboutSection} from '../components/About'
 import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 import MapPage from '../components/MapPage/MapPage'
-
+import Current from '../components/Current';
 
 const Home = () => {
     return (
@@ -19,6 +19,7 @@ const Home = () => {
             <Navbar />
             <Hero />  
             <MapPage />
+            <Current />
             <ClientTestimonials />
             <PersonalityQuiz />
             <div id="partnerships">
