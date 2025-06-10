@@ -89,7 +89,7 @@ export function StepCard({ stepNum, title, description, image, isFirst, isThird,
         className={styles.stepcardContent}
         style={{
           height: isThird ? "var(--card3-text-height)" : "var(--card-text-height)",
-          background: "#FAFEF7",
+          background: "#FAFFE7",
           borderBottomLeftRadius: "var(--card-radius)",
           borderBottomRightRadius: "var(--card-radius)",
           padding: "var(--card-padding)",
@@ -109,7 +109,7 @@ export function StepCard({ stepNum, title, description, image, isFirst, isThird,
 export function HowItWorks() {
   // Define dot color arrays for each card
   const mindaro = '#E2FF65';
-  const mindaroLight = '#FAFEF7';
+  const mindaroLight = '#FAFFE7';
   const dotColorsArr = [
     [mindaro, mindaroLight, mindaroLight],
     [mindaro, mindaro, mindaroLight],
@@ -119,7 +119,7 @@ export function HowItWorks() {
     <section
       className="howitworks-section"
       style={{
-        background: '#FAFEF7',
+        background: '#FAFFE7',
         paddingTop: 'var(--section-top)', // Section spacing per breakpoint
         paddingBottom: 'var(--section-bottom)',
         paddingLeft: 'var(--section-side)',
@@ -148,7 +148,7 @@ export function HowItWorks() {
       </h2>
       {/* Cards Row/Column Responsive */}
       <div
-        className="relative flex flex-col xl:flex-row items-center howitworks-cards-container"
+        className="relative flex flex-col md:flex-row items-center howitworks-cards-container"
         style={{
           //width: '100%',
           display: 'flex',
