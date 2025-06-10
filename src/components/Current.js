@@ -43,7 +43,7 @@ const Current = () => {
                             This is where you can put your main content text.
                         </p>
                         <Link to="/create-account">
-                            <button className="flex items-center justify-center gap-3 py-3 px-6 rounded-lg bg-black text-mindaro-light font-poppins text-base leading-normal hover:bg-gray-800 transition-colors ml-s mr-m mb-xxl">
+                            <button className="flex items-center justify-center gap-3 py-3 px-6 rounded-lg bg-black text-mindaro-light font-poppins text-base leading-normal transition-transform hover:scale-105 hover:opacity-60 ml-s mr-m mb-xxl">
                                 Sign up now
                             </button>
                         </Link>
