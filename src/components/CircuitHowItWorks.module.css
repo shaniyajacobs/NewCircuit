@@ -84,7 +84,7 @@
   height: var(--card-total-height);
   border-radius: var(--card-radius);
   border: var(--card-border-width) solid #211F20;
-  background: #FAFEF7;
+  background: #FAFFE7;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -133,7 +133,7 @@
   align-self: stretch;
   height: auto; /* will be set inline via style prop */
   width: 100%;
-  background: #FAFEF7;
+  background: #FAFFE7;
   border-bottom-left-radius: var(--card-radius);
   border-bottom-right-radius: var(--card-radius);
   padding: var(--Margins, 24px); /* padding only for the text section as a whole */
@@ -165,7 +165,12 @@
     height: 16px;
     border-radius: 100px;
     border: 1px solid var(--Raisin_Black, #211F20);
-    background: var(--Mindaro, #e2ff65);
+    background: var(--Mindaro, #E2FF65);
+  }
+
+  /* For inactive dots, add this class */
+  .dot[data-inactive="true"] {
+    background: #FAFFE7;
   }
 
   /* Modifier for stepcard with arrow (step 3) to allow overflow */
