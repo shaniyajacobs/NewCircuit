@@ -18,7 +18,7 @@ const Waiting = () => {
             <img
                 src="/Minus.svg"
                 alt="Minus decoration"
-                className="w-24 h-24 md:w-32 md:h-32 -rotate-6"
+                className="w-20 h-20 md:w-32 md:h-32 -rotate-6"
             />
             <h1
               style={{
@@ -49,7 +49,7 @@ const Waiting = () => {
             </p>
             <Link to="/create-account" className="inline-block">
               <button
-                className="flex items-center justify-center gap-3 px-4 rounded-lg bg-[#E2FF65] text-black font-poppins leading-normal transition-all hover:scale-105 hover:opacity-60 w-[114px] md:w-[127px] lg:w-[147px] h-[34px] lg:h-[48px] text-[12px] md:text-[14px] lg:text-[16px] whitespace-nowrap"
+                className="flex items-center justify-center gap-3 px-4 rounded-[4px] bg-[#E2FF65] text-black font-poppins leading-normal transition-all hover:scale-105 hover:opacity-60 w-[114px] md:w-[127px] lg:w-[147px] h-[34px] lg:h-[48px] text-[12px] md:text-[14px] lg:text-[16px] md:rounded-[6px] lg:rounded-[8px] whitespace-nowrap"
               >
                 Sign up now
               </button>
