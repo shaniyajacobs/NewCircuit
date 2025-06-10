@@ -11,6 +11,7 @@ import {ThirdDatesOnUs} from '../components/ThirdDatesOnUs';
 import {AboutSection} from '../components/About'
 import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 import MapPage from '../components/MapPage/MapPage'
+import {Values} from '../components/Values'
 
 
 const Home = () => {
@@ -29,6 +30,7 @@ const Home = () => {
             <div id="about">
                 <AboutSection />
             </div>
+            <Values/>
             <Pricing/>
             <FAQSection/>
             <Footer />
