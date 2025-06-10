@@ -23,7 +23,7 @@ export function ThirdDatesOnUs() {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full bg-white flex flex-col items-center px-[48px] py-[100px] gap-[100px] sm:px-[48px] px-[24px] sm:py-[100px] py-[60px]">
+    <div className="w-full bg-white flex flex-col items-center px-[64px] py-[100px] gap-[100px] sm:px-[96px] px-[48px] sm:py-[100px] py-[60px]">
       {/* Title */}
       <h2
         style={{
@@ -48,8 +48,13 @@ export function ThirdDatesOnUs() {
             // For full screen, let's target a desktop width (e.g., around 300px for a 3-column layout with gaps)
             // On mobile, it will take full width (w-full)
             // sm:w-[calc(33.333%-24px)] is what you had, let's re-incorporate it for sm+
-            className="w-full sm:w-[calc(33.333%-24px)] flex flex-col justify-end items-start rounded-[20px] border-[1.5px] border-[#211F20] bg-[#FAFFE7] relative
-                       p-[24px] sm:p-[48px] aspect-[16/9] md:aspect-square" // Responsive padding
+            className="third-date-card flex flex-col justify-between items-start rounded-[20px] border-[1.5px] border-[#211F20] bg-[#FAFFE7] relative p-[24px] sm:p-[48px]"
+            style={{
+                flex: '1 1 calc(33.333% - 24px)', // 3 cards per row with spacing
+                aspectRatio: window.innerWidth >= 768 && window.innerWidth <= 1024 ? '1 / 1' : 'auto',
+                maxWidth: '425px',
+                width: '100%',
+}}
           >
             {/* Icon container in top left corner */}
             <div
@@ -118,7 +123,7 @@ export function ThirdDatesOnUs() {
               ))}
             </div>
             {/* Text content with adjusted spacing and sizes */}
-            <div className="mt-[80px] sm:mt-[100px] md:mt-[120px]">
+            <div className="mt-[120px] sm:mt-[140px] md:mt-[160px]">
               <p
                 className="font-bricolage uppercase text-[#211F20]/75 mb-3 sm:mb-4 text-left
                           text-[14px] sm:text-[15px] md:text-[17px]"
@@ -144,143 +149,146 @@ export function ThirdDatesOnUs() {
         ))}
       </div>
       {/* Image Section */}
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          height: '500px',
-          minHeight: 'var(--Min-Height-S, 500px)',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          alignItems: 'flex-end',
-          alignSelf: 'stretch',
-          borderRadius: 'var(--Radius-M, 16px)',
-          overflow: 'hidden',
-          marginTop: '-70px',
-          background: `url('/WomanWineGlass.png') lightgray 50% / cover no-repeat`,
-        }}
-        // Responsive padding for image section
-        className="px-[24px] py-[24px] sm:px-[50px] sm:py-[50px]"
-      >
-        {/* Noise overlay */}
+      <div className="w-full flex justify-center">
         <div
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'2.5\' numOctaves=\'6\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
-            opacity: 0.95,
-            mixBlendMode: 'overlay',
-            pointerEvents: 'none',
-            zIndex: 2,
+            position: 'relative',
+            display: 'flex',
+            height: '500px',
+            minHeight: 'var(--Min-Height-S, 500px)',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            alignItems: 'flex-end',
+            alignSelf: 'stretch',
+            borderRadius: 'var(--Radius-M, 16px)',
+            overflow: 'hidden',
+            marginTop: '-70px',
+            background: `url('/WomanWineGlass.png') lightgray 50% / cover no-repeat`,
+            maxWidth: '95.5%',
           }}
-        />
-        {/* Black gradient overlay */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100%)',
-            pointerEvents: 'none',
-            zIndex: 3,
-          }}
-        />
-        {/* Dots in top right corner of image section (Reverted to always filled) */}
-        <div style={{
-          position: 'absolute',
-          top: 24,
-          right: 24,
-          display: 'flex',
-          flexDirection: 'row',
-          gap: '10px',
-          zIndex: 4
-        }}>
-          {[0, 1, 2, 3].map((dotIdx) => (
-            <div
-              key={dotIdx}
-              style={{
-                display: 'flex',
-                width: '12px',
-                height: '12px',
-                padding: '8px',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: '10px',
-                borderRadius: '100px',
-                border: '1.5px solid #211F20',
-                background: '#E2FF65', // Always filled as per original or desired look
-              }}
-            />
-          ))}
-        </div>
-        {/* Text above gradient */}
-        <div style={{
-          position: 'relative',
-          zIndex: 4,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          width: '100%',
-        }}>
-          <span
-            // Mobile first: 16px, then 20px on sm+
-            className="text-[16px] sm:text-[20px]"
+          // Responsive padding for image section
+          className="px-[24px] py-[24px] sm:px-[50px] sm:py-[50px] w-full"
+        >
+          {/* Noise overlay */}
+          <div
             style={{
-              alignSelf: 'stretch',
-              color: '#FAFFE7',
-              fontFamily: '"Bricolage Grotesque", sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 500,
-              lineHeight: '130%',
-              textTransform: 'uppercase',
-              marginBottom: '8px',
-            }}
-          >
-            STEP 04
-          </span>
-          <span
-            // Mobile first: 40px, then 64px on sm+
-            className="text-[40px] sm:text-[64px]"
-            style={{
-              position: 'relative',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'2.5\' numOctaves=\'6\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
+              opacity: 0.95,
+              mixBlendMode: 'overlay',
+              pointerEvents: 'none',
               zIndex: 2,
-              alignSelf: 'stretch',
-              color: 'var(--Mindaro_Light, #FAFFE7)',
-              fontFamily: '"Bricolage Grotesque", sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 550,
-              lineHeight: '110%',
-              marginTop: 'auto',
-              marginBottom: 0,
             }}
-          >
-            The third date includes a drink on us
-          </span>
-          <span
-            // Mobile first: 14px, then 16px on sm+
-            className="text-[14px] sm:text-[16px]"
+          />
+          {/* Black gradient overlay */}
+          <div
             style={{
-              alignSelf: 'stretch',
-              color: 'var(--Mindaro_Light, #FAFFE7)',
-              fontFamily: 'Poppins, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 400,
-              lineHeight: 'normal',
-              marginTop: '8px'
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100%)',
+              pointerEvents: 'none',
+              zIndex: 3,
             }}
-          >
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
-          </span>
+          />
+          {/* Dots in top right corner of image section (Reverted to always filled) */}
+          <div style={{
+            position: 'absolute',
+            top: 24,
+            right: 24,
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '10px',
+            zIndex: 4
+          }}>
+            {[0, 1, 2, 3].map((dotIdx) => (
+              <div
+                key={dotIdx}
+                style={{
+                  display: 'flex',
+                  width: '12px',
+                  height: '12px',
+                  padding: '8px',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  borderRadius: '100px',
+                  border: '1.5px solid #211F20',
+                  background: '#E2FF65', // Always filled as per original or desired look
+                }}
+              />
+            ))}
+          </div>
+          {/* Text above gradient */}
+          <div style={{
+            position: 'relative',
+            zIndex: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            width: '100%',
+          }}>
+            <span
+              // Mobile first: 16px, then 20px on sm+
+              className="text-[16px] sm:text-[20px]"
+              style={{
+                alignSelf: 'stretch',
+                color: '#FAFFE7',
+                fontFamily: '"Bricolage Grotesque", sans-serif',
+                fontStyle: 'normal',
+                fontWeight: 500,
+                lineHeight: '130%',
+                textTransform: 'uppercase',
+                marginBottom: '8px',
+              }}
+            >
+              STEP 04
+            </span>
+            <span
+              // Mobile first: 40px, then 64px on sm+
+              className="text-[40px] sm:text-[64px]"
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                alignSelf: 'stretch',
+                color: 'var(--Mindaro_Light, #FAFFE7)',
+                fontFamily: '"Bricolage Grotesque", sans-serif',
+                fontStyle: 'normal',
+                fontWeight: 550,
+                lineHeight: '110%',
+                marginTop: 'auto',
+                marginBottom: 0,
+              }}
+            >
+              The third date includes a drink on us
+            </span>
+            <span
+              // Mobile first: 14px, then 16px on sm+
+              className="text-[14px] sm:text-[16px]"
+              style={{
+                alignSelf: 'stretch',
+                color: 'var(--Mindaro_Light, #FAFFE7)',
+                fontFamily: 'Poppins, sans-serif',
+                fontStyle: 'normal',
+                fontWeight: 400,
+                lineHeight: 'normal',
+                marginTop: '8px'
+              }}
+            >
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+            </span>
+          </div>
         </div>
       </div>
       {/* Button */}
       <button
-        onClick={() => navigate('/claim-drink')}
+        onClick={() => navigate('/create-account')}
         style={{
           display: 'flex',
           padding: 'var(--TopBottom-S, 14px) var(--Left-Right-M, 28px)',
