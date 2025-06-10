@@ -4,6 +4,7 @@ import Howitworks1 from '../images/Howitworks1.webp';
 import Howitworks2 from '../images/Howitworks2.webp';
 import Howitworks3 from '../images/Howitworks3.webp';
 import arrow from '../images/Return_Arrow1.svg'; 
+import { Link } from 'react-router-dom';
 
 // Step data
 export const stepsData = [
@@ -184,15 +185,17 @@ export function HowItWorks() {
         ))}
       </div>
       {/* Learn more button */}
-      <button className={styles.howitworksBtn}
-        style={{
-          padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
-          marginTop: 'var(--gap-xxl)',
-          marginBottom: 'var(--section-TopBottom-M, 100)',
-        }}
-      >
-        Learn more
-      </button>
+      <Link to="/create-account">
+        <button className={styles.howitworksBtn}
+          style={{
+            padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
+            marginTop: 'var(--gap-xxl)',
+            marginBottom: 'var(--section-TopBottom-M, 100)',
+          }}
+        >
+          Learn more
+        </button>
+      </Link>
     </section>
   );
 }
