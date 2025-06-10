@@ -1,0 +1,449 @@
+/* CircuitHowItWorks.module.css */
+
+/* ===== Default: 1440+ (Desktop) ===== */
+:root {
+  /* Section variables */
+  --section-top: 100px;
+  --section-bottom: 100px;
+  --section-side: 50px;
+  --section-minheight: 450px;
+  /* Card/component variables */
+  --card-maxwidth: 425px;
+  --card-minwidth: 425px;
+  --cards-row-maxwidth: 1340px;
+  --card-radius: 16px;
+  --card-padding: 24px;
+  --card-image-height: 278px;
+  --card-text-height: 172px;
+  --card3-image-height: 254px;   /* special for card 3 */
+  --card3-text-height: 196px;    /* special for card 3 */
+  --stepnum-font: 16px;
+  --card-desc-font: 16px;
+  --h2: 48px;
+  --gap-xxl: 100px;
+  --gap-xl: 75px;
+  --gap-m: 32px;
+  --gap-xs: 16px;
+  --gap-xxs: 12px;
+  --radius-s: 8px;
+  --H8: 16px;
+  --H7: 24px;
+}
+
+.howitworks-section {
+  background: #FAFFE7;
+  padding-top: var(--section-top);
+  padding-bottom: var(--section-bottom);
+  padding-left: var(--section-side);
+  padding-right: var(--section-side);
+  width: 100%;
+  min-height: var(--section-minheight);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.howitworks-cards-container {
+  width: 100%;
+  max-width: var(--cards-row-maxwidth);
+  display: flex;
+  flex-direction: row;
+  gap: var(--gap-m);
+  justify-content: center;
+  margin-bottom: var(--gap-xxl);
+}
+
+.howitworks-card-wrapper {
+  flex: 0 0 auto;
+  width: var(--card-maxwidth);
+  min-width: var(--card-minwidth);
+  max-width: var(--card-maxwidth);
+  margin: 0;
+}
+
+.howitworks-stepcard {
+  border-radius: var(--card-radius);
+  width: 100%;
+  max-width: var(--card-maxwidth);
+  min-width: var(--card-minwidth);
+  background: #FAFEF7;
+  border: 1px solid #211F20;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.howitworks-cards {
+  display: flex;
+  flex-direction: row;
+  gap: var(--gap-m);
+  justify-content: center;
+}
+
+.stepcard {
+  width: var(--card-maxwidth);
+  height: var(--card-total-height);
+  border-radius: var(--card-radius);
+  border: var(--card-border-width) solid #211F20;
+  background: #FAFFE7;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.stepcardStepnum {
+    align-self: stretch;
+    font-family: "Bricolage Grotesque";
+    font-style: normal;
+    font-size: var(--H8, 16px);
+    font-weight: 500;
+    line-height: 130%;
+    text-transform: uppercase;
+    color: rgba(33, 31, 32, 0.75); 
+    margin: 0;
+}
+
+.stepcardTitle {
+    font-family: Bricolage Grotesque;
+    font-size: var(--H7);
+    font-weight: 500;
+    color: #211F20;
+    margin: 0;
+}
+
+.stepcardDesc {
+    font-family: Poppins;
+    font-size: var(--card-desc-font);
+    font-weight: 400;
+    color: #211F20;
+    margin: 0;
+}
+
+.stepcardImage {
+  height: auto; /* will be set inline */
+  width: 100%;
+  box-sizing: border-box;
+  border-top-left-radius: var(--card-radius);
+  border-top-right-radius: var(--card-radius);
+  overflow: hidden;
+  border: var(--card-border-width) solid #211F20;
+}
+
+.stepcardContent {
+  align-self: stretch;
+  height: auto; /* will be set inline via style prop */
+  width: 100%;
+  background: #FAFFE7;
+  border-bottom-left-radius: var(--card-radius);
+  border-bottom-right-radius: var(--card-radius);
+  padding: var(--Margins, 24px); /* padding only for the text section as a whole */
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xxs); /* gap between stepnum, title, and desc */
+  box-sizing: border-box;
+}
+
+
+/* Remove extra margin-bottom from last child in stepcardContent to avoid extra space at the bottom */
+.stepcardContent > :last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Dots container: responsive padding from top/right */
+.dotsContainer {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    z-index: 2;
+  }
+  
+  .dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 100px;
+    border: 1px solid var(--Raisin_Black, #211F20);
+    background: var(--Mindaro, #E2FF65);
+  }
+
+  /* For inactive dots, add this class */
+  .dot[data-inactive="true"] {
+    background: #FAFFE7;
+  }
+
+  /* Modifier for stepcard with arrow (step 3) to allow overflow */
+.stepcardArrow {
+    overflow: visible !important;
+  }
+  
+  /* Arrow image for stepcard 3 */
+  .arrowImg {
+    position: absolute;
+    right: -75px;
+    top: -74px;
+    width: 168px;
+    height: 168px;
+    display: block;
+    z-index: 3;
+  }
+
+  .arrowThird { 
+    display: block;
+  }
+
+  .arrowFirst {
+    display: block;
+  }
+
+  .howitworksBtn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 140px;
+    height: 48px;
+    border-radius: var(--radius-s, 8px);
+    background: var(--Raisin_Black, #211F20);
+    color: #FAFFE7;
+    font-family: Poppins;
+    font-style: normal;
+    font-weight: 500;
+    font-size: var(--button-font, 16px);
+    line-height: normal;
+    padding: var(--TopBottom-S, 12px) var(--Left-Right-M, 24px);
+    gap: var(--gap-xxs, 12px);
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-radius: var(--radius-s, 8px);
+    background: var(--Raisin_Black, #211F20);
+  }
+
+/*
+  Padding is only on the text section as a whole, not on individual text elements.
+  Use gap-xxs for spacing between stepnum, title, and desc.
+*/
+
+/* ===== Desktop (2560px+) ===== */
+@media (min-width: 2560px) {
+    :root {
+      --card-maxwidth: 425.33px;
+      --card-image-height: 278px;
+      --card-text-height: 172px;
+      --card3-image-height: 254px;
+      --card3-text-height: 196px;
+      --card-padding: 24px;
+      --card-border-width: 1px;
+      --Margins: 24px;
+      --gap-xxs: 12px;
+      --H8: 16px;
+      --H7: 24px;
+      --h2: 48px;
+      --TopBottom-S: 12px;
+      --Left-Right-M: 24px;
+    }
+    .arrowFirst {
+        display: none;
+    }
+  }
+
+/* ===== 1280+ (Tablet) ===== */
+@media (min-width: 1280px) and (max-width: 2560px) {
+  :root {
+    --section-top: 75px;
+    --section-bottom: 75px;
+    --section-side: 32px;
+    --section-minheight: 450px;
+    --card-maxwidth: 389.33px;
+    --card-minwidth: 389.33px;
+    --cards-row-maxwidth: 1216px;
+    --card-radius: 12px;
+    --card-padding: 20px;
+    --card-image-height: 204px;
+    --card-text-height: 146px;
+    --card3-image-height: 183px;
+    --card3-text-height: 167px;
+    --card-border-width: 1px;
+    --stepnum-font: 14px;
+    --card-desc-font: 14px;
+    --h2: 40px;
+    --gap-xxl: 75px;
+    --gap-xl: 50px;
+    --gap-m: 24px;
+    --gap-xs: 14px;
+    --gap-xxs: 10px;
+    --Margins:20px;
+    --H8: 14px;
+    --H7: 20px;
+    --button-font: 14px;
+    --TopBottom-S: 10px;
+    --Left-Right-M: 20px;
+    --section-TopBottom-M: 75px;
+  }
+  .dotsContainer {
+    top: 20px;
+    right: 20px;
+    gap: 8px;
+  }
+  .howitworksBtn {
+    width: 120px;
+    height: 41px;
+    padding: var(--TopBottom-S, 10px) var(--Left-Right-M, 20px);
+    gap: var(--gap-xxs, 10px);
+    font-size: var(--button-font, 14px);
+    border-radius: var(--radius-s, 6px);
+  }
+  .arrowImg {
+    right: -48px;
+    top: -47px;
+    width: 114px;
+    height: 114px;
+    aspect-ratio: 1/1;
+
+  }
+  .arrowFirst{
+    display: none;
+  }
+  .arrowThird{
+    transform: scale(.678571428);
+    }
+}
+
+/* ===== 744+ (Smaller Tablet) ===== */
+@media (max-width: 1279px) and (min-width: 744px) {
+  :root {
+    --section-top: 50px;
+    --section-bottom: 50px;
+    --section-side: 24px;
+    --section-minheight: 350px;
+    --card-maxwidth: 696px;
+    --card-minwidth: 696px;
+    --cards-row-maxwidth: 800px;
+    --card-radius: 10px;
+    --card-border-width: 1px;
+    --card-padding: 16px;
+    --card-image-height: 150px;
+    --card-text-height: 103px;
+    --card3-image-height: 150px;
+    --card3-text-height: 103px;
+    --stepnum-font: 12px;
+    --card-desc-font: 12px;
+    --h2: 32px;
+    --gap-xxl: 50px;
+    --gap-xl: 26px;
+    --gap-m: 20px;
+    --gap-xs: 12px;
+    --gap-xxs: 8px;
+    --Margins:16px;
+    --H8: 12px;
+    --H7: 16px;
+    --button-font: 12px;
+    --TopBottom-S: 8px;
+    --Left-Right-M: 20px;
+    --section-TopBottom-M: 50px;
+  }
+  .howitworks-cards-container {
+    flex-direction: column !important;
+    align-items: center;
+    gap: var(--gap-m);
+  }
+  .howitworks-card-wrapper {
+    width: 100% !important;
+    min-width: unset !important;
+    max-width: var(--card-maxwidth) !important;
+    margin-bottom: var(--gap-m);
+  }
+  .howitworksBtn {
+    width: 109px;
+    height: 34px;
+    padding: var(--TopBottom-S, 10px) var(--Left-Right-M, 20px);
+    gap: var(--gap-xxs, 10px);
+    font-size: var(--button-font, 18px);
+  }
+  .stepcardContent > :last-child {
+    margin-bottom: 0 !important;
+  }
+  .dotsContainer {
+    top: 16px;
+    right: 16px;
+    gap: 6px;
+  }
+  .arrowThird{
+    display: none;
+  }
+  .arrowFirst{
+    display: block !important;
+    transform: scale(.648809524, 0.654761905); 
+  }
+}
+
+
+/* ===== 744- (Mobile) ===== */
+@media (max-width: 743px) {
+  :root {
+    --section-top: 32px;
+    --section-bottom: 32px;
+    --section-side: 16px;
+    --section-minheight: 250px;
+    --card-maxwidth: 358px;
+    --card-minwidth: 358px;
+    --cards-row-maxwidth: 350px;
+    --card-radius: 8px;
+    --card-padding: 16px;
+    --card-image-height: 150px;
+    --card-text-height: 110px;
+    --card3-image-height: 150px;
+    --card3-text-height: 110px;
+    --card-border-width: 1px;
+    --stepnum-font: 12px;
+    --card-desc-font: 12px;
+    --h2: 32px;
+    --gap-xxl: 24px;
+    --gap-xl: 20px;
+    --gap-m: 16px;
+    --gap-xs: 8px;
+    --gap-xxs: 8px;
+    --Margins:12px;
+    --H8: 12px;
+    --H7: 14px;
+    --button-font: 12px;
+    --TopBottom-S: 8px;
+    --Left-Right-M: 20px;
+    --section-TopBottom-M: 50px;
+  }
+  .howitworks-card-wrapper {
+    max-width: var(--card-maxwidth) !important;
+    padding: 0;
+  }
+  .dot {
+    width: 12px;
+    height: 12px;
+  }
+  .stepcardContent > :last-child {
+    margin-bottom: 0 !important;
+  }
+  .dotsContainer {
+    top: 12px;
+    right: 12px;
+    gap: 6px;
+  }
+  .dot {
+    width: 12px;
+    height: 12px;
+  }
+  .howitworksBtn {
+    width: 109px;
+    height: 34px;
+    padding: var(--TopBottom-S, 8px) var(--Left-Right-M, 20px);
+    gap: var(--gap-xxs, 8px);
+    font-size: var(--button-font, 12px);
+    border-radius: var(--radius-s, 4px);
+  }
+  .arrowThird{
+    display: none;
+  }
+  .arrowFirst{
+    transform: scale(.505952381, 0.511904762); 
+  }
+}
