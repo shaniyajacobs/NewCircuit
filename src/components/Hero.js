@@ -77,7 +77,7 @@ const Hero = () => {
                   boxShadow: 'none',
                   gap: '8px',
                 }}
-                className="transition-colors"
+                className="transition-colors hover:scale-110 transition-transform"
               >
                 <LightningIcon />
                 Spark your connection
