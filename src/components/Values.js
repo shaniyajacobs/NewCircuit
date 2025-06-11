@@ -19,7 +19,7 @@ export function Values() {
           background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.00) 0%, rgba(0, 0, 0, 0.75) 100%), url(<path-to-image>) lightgray 50% / cover no-repeat',
           backgroundBlendMode: 'normal, soft-light',
         }}
-        className="flex min-h-[580px] p-[24px] sm:p-[50px] flex-col justify-end items-start flex-[0.8] rounded-[16px] relative overflow-hidden"
+        className="flex min-h-[400px] sm:min-h-[580px] p-[24px] sm:p-[50px] flex-col justify-end items-start flex-[0.8] rounded-[16px] relative overflow-hidden"
       >
         {/* Video Background */}
         <video
@@ -44,10 +44,52 @@ export function Values() {
           }}
         />
         
+        {/* Black gradient overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.3) 10%%)',
+            pointerEvents: 'none',
+            zIndex: 3,
+          }}
+        />
+        
+        {/* Noise overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'2.5\' numOctaves=\'6\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
+            opacity: 1,
+            mixBlendMode: 'overlay',
+            pointerEvents: 'none',
+            zIndex: 4,
+          }}
+        />
+        
         {/* Text over video */}
-        <div className="relative z-2">
+        <div 
+            style={{
+                position: 'relative',
+                zIndex: 10,
+            }}
+        >
           <h1
-            className="w-fit max-w-[500px] sm:max-w-[600px] md:max-w-[700px] text-[28px] sm:text-[36px] md:text-[50px] font-bricolage font-semibold leading-[110%] text-[#FAFFE7] text-left max-w-[10000px] md:max-w-[1000px]"
+            style={{
+              color: '#FAFFE7',
+              textAlign: 'left',
+              fontFamily: '"Bricolage Grotesque", sans-serif',
+              fontWeight: 520,
+              lineHeight: '120%',
+            }}
+            className="w-fit max-w-[500px] sm:max-w-[600px] md:max-w-[700px] text-[28px] sm:text-[36px] md:text-[50px] text-left max-w-[10000px] md:max-w-[1000px]"
           >
             Behind the team trying to spark your flame
           </h1>
@@ -58,12 +100,19 @@ export function Values() {
       <div className="flex flex-col gap-[30px] flex-1  max-h-[800px]">
         {/* Value 01 */}
         <div
-            className="flex h-[200px] max-h-[800px] p-[20px] sm:p-[30px] flex-col items-start gap-[20px] sm:gap-[30px] rounded-[16px] bg-[radial-gradient(50%_50%_at_50%_50%,_#E2FF65_0%,_#D2FFD7_100%)]"
+            className="flex p-[20px] sm:p-[30px] flex-col items-start gap-[20px] sm:gap-[30px] rounded-[16px] bg-[radial-gradient(50%_50%_at_50%_50%,_#E2FF65_0%,_#D2FFD7_100%)]"
         >
-            <h2 className="text-[20px] sm:text-[24px] md:text-[28px] font-bricolage font-semibold leading-[110%] text-[#211F20]">
+            <h2 
+                style={{
+                    fontFamily: '"Bricolage Grotesque", sans-serif',
+                    fontWeight: 520,
+                    lineHeight: '120%',
+                }}
+                className="text-[28px] sm:text-[32px] md:text-[24px] lg:text-[36px] leading-[110%] text-[#211F20] break-words"
+            >
                 → Value 01
             </h2>
-            <p className="text-[12px] sm:text-[14px] font-poppins font-normal text-[#211F20]">
+            <p className="text-[12px] sm:text-[14px] md:text-[11px] lg:text-[14px] font-poppins font-normal text-[#211F20] break-words">
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
             </p>
         </div>
@@ -71,12 +120,19 @@ export function Values() {
 
         {/* Value 02 */}
         <div
-            className="flex h-[200px] max-h-[800px] p-[20px] sm:p-[30px] flex-col items-start gap-[20px] sm:gap-[30px] rounded-[16px] bg-[radial-gradient(50%_50%_at_50%_50%,_#8EFF7A_0%,_#D7FFF8_100%)]"
+            className="flex p-[20px] sm:p-[30px] flex-col items-start gap-[20px] sm:gap-[30px] rounded-[16px] bg-[radial-gradient(50%_50%_at_50%_50%,_#8EFF7A_0%,_#D7FFF8_100%)]"
         >
-            <h2 className="text-[20px] sm:text-[24px] md:text-[28px] font-bricolage font-semibold leading-[110%] text-[#211F20]">
+            <h2 
+                style={{
+                    fontFamily: '"Bricolage Grotesque", sans-serif',
+                    fontWeight: 520,
+                    lineHeight: '120%',
+                }}
+                className="text-[28px] sm:text-[32px] md:text-[24px] lg:text-[36px] leading-[110%] text-[#211F20] break-words"
+            >
                 → Value 02
             </h2>
-            <p className="text-[12px] sm:text-[14px] font-poppins font-normal text-[#211F20]">
+            <p className="text-[12px] sm:text-[14px] md:text-[11px] lg:text-[14px] font-poppins font-normal text-[#211F20] break-words">
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
             </p>
         </div>
@@ -84,20 +140,35 @@ export function Values() {
 
         {/* Value 03 */}
         <div
-            className="flex flex-1 min-h-[300px] p-[20px] sm:p-[30px] flex-col items-start justify-between gap-[20px] sm:gap-[30px] rounded-[16px] bg-[radial-gradient(50%_50%_at_50%_50%,_#79FFC7_0%,_#FFF9A1_100%)]"
+            className="flex flex-1 min-h-[300px] p-[20px] sm:p-[30px] flex-col items-start gap-[20px] sm:gap-[30px] rounded-[16px] bg-[radial-gradient(50%_50%_at_50%_50%,_#79FFC7_0%,_#FFF9A1_100%)]"
         >
-        <div>
-            <h2 className="text-[20px] sm:text-[24px] md:text-[28px] font-bricolage font-semibold leading-[110%] text-[#211F20]">
-                → Value 03
-            </h2>
-            <p className="text-[12px] sm:text-[14px] font-poppins font-normal text-[#211F20]">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
-            </p>
+            <div className="flex flex-col items-start gap-[20px] sm:gap-[30px]">
+                <h2 
+                    style={{
+                        fontFamily: '"Bricolage Grotesque", sans-serif',
+                        fontWeight: 520,
+                        lineHeight: '120%',
+                    }}
+                    className="text-[28px] sm:text-[32px] md:text-[24px] lg:text-[36px] leading-[110%] text-[#211F20] break-words"
+                >
+                    → Value 03
+                </h2>
+                <p className="text-[12px] sm:text-[14px] md:text-[11px] lg:text-[14px] font-poppins font-normal text-[#211F20] break-words">
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+                </p>
+            </div>
+            <button 
+                className="text-white px-4 py-2 rounded text-sm mt-auto"
+                style={{
+                    backgroundColor: '#211F20',
+                    transition: 'all 0.3s',
+                }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '0.6'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+            >
+                Learn more
+            </button>
         </div>
-        <button className="bg-black text-white px-4 py-2 rounded text-sm mt-2">
-            Learn more
-        </button>
-    </div>
       </div>
     </div>
   );
