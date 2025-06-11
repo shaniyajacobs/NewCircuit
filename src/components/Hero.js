@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import ladyImage from '../images/lady.png'; // Import the lady image
 import styles from './Hero.module.css';
 import SlidingBar from './SlidingBar';
 import Info from './Info';
+import {HowItWorks} from './CircuitHowItWorks';
 
 const LightningIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="22" viewBox="0 0 12 22" fill="none" className="inline-block mr-2 align-middle">
@@ -77,7 +77,7 @@ const Hero = () => {
                   boxShadow: 'none',
                   gap: '8px',
                 }}
-                className="transition-colors"
+                className="transition-colors hover:scale-110 transition-transform"
               >
                 <LightningIcon />
                 Spark your connection
@@ -91,6 +91,7 @@ const Hero = () => {
         <SlidingBar />
       </div>
       <Info />
+      <HowItWorks />
             {/* Testimonials Section */}
             <section className={styles['testimonials-section']}>
                 <div className={styles['testimonials-container']}>
