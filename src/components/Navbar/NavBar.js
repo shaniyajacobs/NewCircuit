@@ -57,8 +57,8 @@ const NavBar = () => {
                   <Link to="/faq" className={styles.linkButton}>FAQ</Link>
                   <Link to="/contact" className={styles.linkButton}>Contact</Link>
                   <div className={styles.buttonGroup}>
-                    <button className={styles.outlinedButton}>Sign in</button>
-                    <Link to="/get-started" className={styles.filledButton}>Get started</Link>
+                    <Link to="/login" className={styles.outlinedButton}>Sign in</Link>
+                    <Link to="/create-account" className={styles.filledButton}>Get started</Link>
                   </div>
                 </div>
                 {/* Hamburger/X icon for tablet/mobile */}
@@ -103,8 +103,8 @@ const NavBar = () => {
                     <Link to="/pricing" className={styles.linkButton} onClick={handleLinkClick}>Pricing</Link>
                     <Link to="/faq" className={styles.linkButton} onClick={handleLinkClick}>FAQ</Link>
                     <Link to="/contact" className={styles.linkButton} onClick={handleLinkClick}>Contact</Link>
-                    <Link to="/get-started" className={styles.filledButton + ' ' + styles.menuButton} onClick={handleLinkClick}>Get started</Link>
-                    <button className={styles.outlinedButton + ' ' + styles.menuButton} onClick={handleLinkClick}>Sign in</button>
+                    <Link to="/create-account" className={styles.filledButton + ' ' + styles.menuButton} onClick={handleLinkClick}>Get started</Link>
+                    <Link to="/login" className={styles.outlinedButton + ' ' + styles.menuButton} onClick={handleLinkClick}>Sign in</Link>
                   </div>
                   <div className={styles.socialRow}>
                     <a href="https://instagram.com" aria-label="Instagram" target="_blank" rel="noopener noreferrer"><FaInstagram size={28} /></a>

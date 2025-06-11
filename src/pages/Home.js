@@ -11,15 +11,16 @@ import {HowItWorks} from '../components/CircuitHowItWorks';
 import {AboutSection} from '../components/About'
 import {RestaurantPartnerships} from '../components/RestaurantPartnerships';
 import MapPage from '../components/MapPage/MapPage'
-
+import Current from '../components/Current';
+import Waiting from '../components/Waiting';
 
 const Home = () => {
     return (
         <>            
             <Navbar />
-            <Hero />
-            <HowItWorks />
+            <Hero />  
             <MapPage />
+            <Current />
             <ClientTestimonials />
             <PersonalityQuiz />
             <div id="partnerships">
@@ -30,6 +31,7 @@ const Home = () => {
             </div>
             <Pricing/>
             <FAQSection/>
+            <Waiting />
             <Footer />
         </>
     )
