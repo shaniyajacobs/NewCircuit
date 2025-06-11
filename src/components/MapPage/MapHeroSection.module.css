@@ -1,0 +1,228 @@
+.heroContainer {
+  display: flex;
+  width: 100%;
+  max-width: 1400px;
+  flex-direction: column;
+  align-items: flex-start;
+  background: var(--Mindaro_Light, #FAFFE7);
+  align-self: stretch;
+  margin: 0 auto 64px auto; /* Center and add bottom space before map */
+  padding: 40px 32px; /* Add horizontal space at left and right */
+  box-sizing: border-box;
+}
+
+.heroContentRow {
+  display: flex;
+  width: 100%;
+  max-width: 1600px;
+  flex-direction: row;
+  gap: var(--Gap-L, 50px);
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.heroColumn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--Gap-L, 50px);
+  flex: 1 0 0;
+  max-width: 700px;
+}
+
+.heroImageBox {
+  display: flex;
+  min-height: var(--Min-Height-L, 700px);
+  padding: var(--Margins-S, 50px);
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  flex: 1 0 0;
+  align-self: stretch;
+  border-radius: var(--Radius-M, 16px);
+  
+  /* background is set inline in the React component */
+  /* background-blend-mode: normal, soft-light, normal; */
+  max-width: 850px;
+  box-sizing: border-box;
+}
+
+.heroImageText {
+  align-self: stretch;
+  color: var(--Mindaro_Light, #FAFFE7);
+  font-family: "Bricolage Grotesque";
+  font-size: var(--H1, 60px);
+  font-style: normal;
+  font-weight: 600;
+  line-height: 110%;
+}
+
+.topBox {
+  display: flex;
+  padding: var(--Margins-S, 50px);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 40px;
+  align-self: stretch;
+  border-radius: var(--Radius-M, 16px);
+  background: radial-gradient(50% 50% at 50% 50%, #8EFF7A 0%, #D7FFF8 100%);
+}
+
+.middleBox {
+  display: flex;
+  padding: var(--Margins-S, 50px);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 40px;
+  align-self: stretch;
+  border-radius: var(--Radius-M, 16px);
+  background: radial-gradient(50% 50% at 50% 50%, #B4FFF2 0%, #E1FFD6 100%);
+}
+
+.bottomBox {
+  display: flex;
+  padding: var(--Margins-S, 50px);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 40px;
+  align-self: stretch;
+  border-radius: var(--Radius-M, 16px);
+  background: radial-gradient(50% 50% at 50% 50%, #B0EEFF 0%, #E7E9FF 100%);
+}
+
+.heroHeader {
+  color: var(--Raisin_Black, #211F20);
+
+  /* H2 */
+  font-family: "Bricolage Grotesque";
+  font-size: var(--H2, 48px);
+  font-style: normal;
+  font-weight: 600;
+  line-height: 110%; /* 52.8px */
+}
+
+.heroHeaderBodyGap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--Gap-S, 24px);
+  align-self: stretch;
+}
+
+.heroBody {
+  align-self: stretch;
+  color: var(--Raisin_Black, #211F20);
+
+  /* Body-S-Reg */
+  font-family: Poppins;
+  font-size: var(--Body-S-Reg, 16px);
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.heroButton {
+  display: flex;
+  padding: var(--TopBottom-S, 12px) var(--Left-Right-M, 24px);
+  justify-content: center;
+  align-items: center;
+  gap: var(--Gap-XXS, 12px);
+  border-radius: var(--Radius-S, 8px);
+  border: 1px solid rgba(33, 31, 32, 0.25);
+  background: var(--Raisin_Black, #211F20);
+  color: var(--Mindaro_Light, #FAFFE7);
+  font-family: Poppins;
+  font-size: var(--Body-S-Med, 16px);
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  cursor: pointer;
+}
+
+/* Add spacing below the hero section for separation from the map */
+.heroBottomSpacer {
+  width: 100%;
+  height: 64px;
+}
+
+/* Tablet and below: keep side-by-side layout */
+@media (max-width: 1024px) {
+  .heroContainer {
+    padding: 24px 16px;
+  }
+  .heroContentRow {
+    gap: 24px;
+  }
+  .heroImageBox {
+    min-height: 320px;
+    padding: 24px;
+    max-width: 600px;
+  }
+  .heroImageText {
+    font-size: 35px;
+  }
+  .heroColumn {
+    gap: 24px;
+    max-width: 600px;
+  }
+  .topBox, .middleBox, .bottomBox {
+    padding: 24px;
+    border-radius: 14px;
+  }
+  .heroHeader {
+    font-size: 32px;
+  }
+}
+
+/* Mobile: stack all vertically, full width, smaller paddings/fonts */
+@media (max-width: 700px) {
+  .heroContainer {
+    padding: 12px 6px;
+  }
+  .heroContentRow {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .heroColumn {
+    max-width: 100%;
+    gap: 12px;
+  }
+  .heroImageBox {
+    min-height: 180px;
+    padding: 10px;
+    max-width: 100%;
+    border-radius: 10px;
+    margin-top: 12px;
+  }
+  .heroImageText {
+    font-size: 38px;
+    text-align: left;
+    word-break: break-word;
+  }
+  .topBox, .middleBox, .bottomBox {
+    padding: 10px;
+    border-radius: 10px;
+  }
+  .heroHeader {
+    font-size: 20px;
+  }
+  .heroBody {
+    font-size: 12px;
+  }
+  .heroButton {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
+
+.heroImageBoxMobileOrder {
+  order: 0;
+}
+
+@media (max-width: 700px) {
+  .heroImageBoxMobileOrder {
+    order: 2;
+  }
+} 
