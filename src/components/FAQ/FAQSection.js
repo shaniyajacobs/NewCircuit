@@ -89,68 +89,28 @@ export default function FAQSection() {
           }
         `}
       </style>
-      {/* Decorative Circle SVG absolutely positioned on top */}
-      <div
-        style={{
-          position: 'absolute',
-          left: '100px',
-          top: '-10px',
-          width: '130px',
-          height: '130px',
-          transform: 'rotate(9.5deg)',
-          zIndex: 10,
-          pointerEvents: 'none',
-        }}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="130" height="130" viewBox="0 0 130 130" fill="none" style={{ position: 'absolute', top: 0, left: 0 }}>
-          <circle cx="65" cy="65" r="55" fill="#211F20" stroke="#211F20" strokeWidth="1" />
-          {/* Replace circular text with SVG image */}
-          <image 
-            href="/Circled_Text_White.svg" 
-            x="0" 
-            y="0" 
-            width="130" 
-            height="130" 
-            preserveAspectRatio="xMidYMid meet"
-          />
-        </svg>
-        {/* Plus Icon SVG centered and smaller */}
-        <div
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            width: '80px',
-            height: '80px',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 101,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <img 
-            src="/cir_minus_Black.svg" 
-            alt="minus icon"
-            style={{ 
-              objectFit: 'contain',
-              width: '150px',
-              height: '150px'
-            }}
-          />
-        </div>
-      </div>
-      <section className="w-full flex flex-col md:flex-row items-stretch justify-center min-h-[400px] md:min-h-[520px] py-12 px-4 md:px-12 gap-0">
+      <section className="w-full flex flex-col md:flex-row items-center justify-center py-12 px-4 md:px-12 gap-0 mx-auto max-w-[1440px] overflow-visible">
         {/* Left: Image Side */}
         <div
-          className="flex flex-col justify-end items-start gap-4 flex-1 min-h-[300px] md:min-h-[400px] p-6 md:p-8 rounded-tl-[16px] md:rounded-l-[16px] rounded-tr-[16px] md:rounded-r-none rounded-bl-none md:rounded-bl-[16px] rounded-br-none md:rounded-br-none relative overflow-hidden"
+          className="flex flex-col justify-end items-start gap-4 w-[358px] h-[350px] sm:w-[696px] sm:h-[450px] md:w-[608px] md:h-[650px] lg:w-[670px] lg:h-[800px] p-6 md:p-8 rounded-tl-[16px] md:rounded-l-[16px] rounded-tr-[16px] md:rounded-r-none rounded-bl-none md:rounded-bl-[16px] rounded-br-none md:rounded-br-none relative overflow-visible"
           style={{
             background: 'url(/faqcard.webp) center center / cover no-repeat',
           }}
         >
+          {/* Plus Icon SVG */}
+          <div className="absolute -top-[50px] left-[40px] z-20 pointer-events-none scale-75 sm:scale-90 md:scale-100 lg:scale-110">
+            <img 
+              src="/Plus.svg" 
+              alt="plus icon"
+              className="w-[100px] h-[100px] rotate-6"
+              style={{ 
+                objectFit: 'contain'
+              }}
+            />
+          </div>
           <div style={{position: 'relative', zIndex: 5, width: '100%'}}>
             <h1
-              className="w-fit max-w-[500px] sm:max-w-[600px] md:max-w-[700px] text-[24px] sm:text-[32px] md:text-[52px] text-left mb-4 drop-shadow-lg"
+              className="w-fit max-w-[500px] sm:max-w-[600px] md:max-w-[700px] text-[32px] sm:text-[32px] md:text-[48px] lg:text-[64px] text-left mb-4 drop-shadow-lg"
               style={{
                 color: '#FAFFE7',
                 fontFamily: 'Bricolage Grotesque, sans-serif',
@@ -161,8 +121,7 @@ export default function FAQSection() {
               Got questions? Let's plug you in.
             </h1>
             <button
-              className="flex px-4 py-2 justify-center items-center gap-2 rounded-[8px] bg-[#E2FF65] text-[#211F20] font-poppins text-[14px] font-medium leading-normal shadow-md border-none outline-none hover:opacity-80 transition"
-              style={{ fontFamily: 'Poppins, sans-serif' }}
+              className="flex items-center justify-center gap-3 px-4 rounded-[4px] bg-[#E2FF65] text-black font-poppins leading-normal transition-all hover:scale-105 hover:opacity-60 w-[114px] md:w-[127px] lg:w-[147px] h-[34px] lg:h-[48px] text-[12px] md:text-[14px] lg:text-[16px] md:rounded-[6px] lg:rounded-[8px] whitespace-nowrap"
             >
               See full FAQ
             </button>
@@ -171,7 +130,7 @@ export default function FAQSection() {
 
         {/* Right: FAQ Side */}
         <div
-          className="flex flex-col items-start flex-1 min-h-[300px] md:min-h-[400px] p-6 md:p-8 rounded-tl-none md:rounded-l-none rounded-tr-none md:rounded-r-[16px] rounded-bl-[16px] md:rounded-bl-none rounded-br-[16px] md:rounded-br-[16px] relative overflow-hidden"
+          className="flex flex-col items-start w-[358px] h-[350px] sm:w-[696px] sm:h-[450px] md:w-[608px] md:h-[650px] lg:w-[670px] lg:h-[800px] p-6 md:p-8 rounded-tl-none md:rounded-l-none rounded-tr-none md:rounded-r-[16px] rounded-bl-[16px] md:rounded-bl-none rounded-br-[16px] md:rounded-br-[16px] relative overflow-hidden"
           style={{
             background: 'radial-gradient(50% 50% at 50% 50%, #B0EEFF 0%, #E7E9FF 100%)',
             paddingLeft: '0px',
@@ -179,22 +138,28 @@ export default function FAQSection() {
           }}
         >
           <div
-            className="flex flex-col items-start w-full"
+            className="flex flex-col items-start w-full h-full"
             style={{
               paddingTop: '0px',
               paddingLeft: '32px',
               paddingRight: '32px',
-              gap: '24px',
-              alignSelf: 'stretch',
             }}
           >
             <h1
-              className="text-[32px] md:text-[48px] font-bricolage font-semibold leading-[110%] text-[#211F20]"
-              style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontSize: '48px' }}
+              className="text-[32px] sm:text-[32px] md:text-[48px] lg:text-[64px] font-bricolage font-semibold leading-[110%] text-[#211F20] mb-6"
+              style={{ fontFamily: 'Bricolage Grotesque, sans-serif' }}
             >
               FAQ
             </h1>
-            <div className="flex flex-col w-full mb-12" style={{ alignSelf: 'stretch' }}>
+            <div 
+              className="flex flex-col w-full overflow-y-auto"
+              style={{ 
+                alignSelf: 'stretch',
+                maxHeight: 'calc(100% - 80px)',
+                paddingRight: '8px',
+                paddingBottom: '32px'
+              }}
+            >
               {faqItems.map((item, idx) => (
                 <div key={idx}>
                   <div
@@ -211,7 +176,7 @@ export default function FAQSection() {
                     }}
                   >
                     <button
-                      className="flex-1 text-left text-[18px] md:text-[24px]"
+                      className="flex-1 text-left text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px]"
                       style={{
                         color: '#211F20',
                         fontFamily: 'Bricolage Grotesque, sans-serif',
@@ -220,7 +185,6 @@ export default function FAQSection() {
                         border: 'none',
                         outline: 'none',
                         cursor: 'pointer',
-                        fontSize: '24px',
                         paddingLeft: '0px',
                         paddingRight: '0px',
                         paddingTop: '14px',
@@ -250,12 +214,11 @@ export default function FAQSection() {
                   </div>
                   {(openIndex === idx || closingIndex === idx) && (
                     <div
-                      className={`w-full faq-dropdown ${openIndex === idx ? 'open' : 'close'}`}
+                      className={`w-full faq-dropdown ${openIndex === idx ? 'open' : 'close'} text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px]`}
                       style={{
                         padding: '0 0px 14px 0px',
                         color: '#211F20',
                         fontFamily: 'Poppins, sans-serif',
-                        fontSize: '16px',
                         lineHeight: '1.5',
                       }}
                     >

@@ -27,16 +27,7 @@ const Home = () => {
             <Current />
             <Values/>
             <Pricing/>
-            {/* <ClientTestimonials />
-            <PersonalityQuiz />
-            <div id="partnerships">
-                <RestaurantPartnerships/>
-            </div>
-            <div id="about">
-                <AboutSection />
-            </div>
-            <Pricing/>
-            <FAQSection/> */}
+            <FAQSection/>
             <Waiting />
             <Footer />
         </>
