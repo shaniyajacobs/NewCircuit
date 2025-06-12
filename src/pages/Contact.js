@@ -6,7 +6,7 @@ import ContactPage from '../components/ContactPage/ContactPage';
 const Contact = () => {
     return (
         <>
-            <NavBar />
+                <NavBar />
             <ContactPage />
             <Footer />
         </>
