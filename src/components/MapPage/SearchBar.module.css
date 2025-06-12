@@ -1,0 +1,30 @@
+.cantFindCityButton {
+  display: flex;
+  width: 292px;
+  height: 41px;
+  padding: 8px 71px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  position: absolute;
+  bottom: 0px;
+  border-radius: 0px 0px 8px 8px;
+  border: 1px solid #000;
+  background: var(--Raisin_Black, #211F20);
+  border-top: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.cantFindCityText {
+  width: 148px;
+  height: 25px;
+  flex-shrink: 0;
+  color: var(--Sea_Salt, #F3F3F3);
+  text-align: center;
+  font-family: Poppins, sans-serif;
+  font-size: var(--Body-S-Med, 16px);
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+} 
