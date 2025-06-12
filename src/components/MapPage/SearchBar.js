@@ -39,7 +39,7 @@ const SearchBar = ({ cities, onSearch }) => {
   };
 
   return (
-    <div style={{ position: "relative", width: "292px" }}>
+    <div style={{ position: "relative", width: "292px" }} className="search-bar-container">
       <form
         style={{
           display: "flex",
