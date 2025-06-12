@@ -101,7 +101,7 @@
   color: #000;
   outline: none;
   resize: vertical;
-  min-height: 200px;
+  min-height: 400px;
   max-height: 400px;
 }
 
@@ -225,4 +225,97 @@
   left: 0;
   right: 0;
   z-index: 2;
+}
+
+@media (max-width: 743px) {
+  .contactBackground {
+    padding: 32px 4px 32px 4px;
+    gap: 24px;
+  }
+  .contactTitle {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+  .contactRow {
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    max-width: 100vw;
+  }
+  .formContainer {
+    border-radius: 16px 16px 0 0;
+    padding: 24px 8px 24px 8px;
+    min-width: 0;
+    box-shadow: none;
+    gap: 16px;
+  }
+  .formTitle {
+    font-size: 24px;
+    margin-bottom: 0;
+  }
+  .formFields {
+    gap: 12px;
+  }
+  .inputRow {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .inputBox, .textareaBox {
+    font-size: 14px;
+    padding: 10px 12px;
+    min-width: 0;
+  }
+  .textareaBox {
+    min-height: 120px;
+    max-height: 180px;
+  }
+  .sendButton {
+    font-size: 14px;
+    padding: 8px 16px;
+    min-width: 60px;
+    height: 36px;
+    margin-top: 8px;
+  }
+  .sendButtonText {
+    font-size: 14px;
+  }
+  .imageContainer {
+    position: relative;
+    padding-top: 0;
+    padding-bottom: 24px;
+    min-height: 180px;
+    align-items: flex-end;
+    justify-content: flex-end;
+    background-position: center center !important;
+    background-size: cover !important;
+    gap: 0;
+  }
+  .contactInfoMobile {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    text-align: right;
+    z-index: 2;
+    width: auto;
+    max-width: 80%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .getInTouch {
+    font-size: 12px;
+    padding-top: 0;
+    margin: 0;
+  }
+  .email, .phone {
+    font-size: 18px;
+    margin: 4px 0 0 0;
+    text-align: right;
+    word-break: break-all;
+  }
+  .horizontalDivider {
+    width: 100vw;
+    margin: 0 0 12px -8px;
+  }
 } 

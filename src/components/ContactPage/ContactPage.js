@@ -70,9 +70,11 @@ const ContactPage = () => {
             backgroundBlendMode: 'normal, soft-light, normal'
           }}
         >
-          <div className={styles.getInTouch}>GET IN TOUCH</div>
-          <div className={styles.email}>hello@circuit.com</div>
-          <div className={styles.phone}>+514.514.5144</div>
+          <div className={styles.contactInfoMobile}>
+            <div className={styles.getInTouch}>GET IN TOUCH</div>
+            <div className={styles.email}>hello@circuit.com</div>
+            <div className={styles.phone}>+514.514.5144</div>
+          </div>
         </div>
       </div>
     </div>
