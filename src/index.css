@@ -9,6 +9,16 @@
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
+  background-color: #FAFFE7;
+}
+
+html {
+  background-color: #FAFFE7;
+}
+
+#root {
+  background-color: #FAFFE7;
+  min-height: 100vh;
 }
 
 .hero {

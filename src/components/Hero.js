@@ -76,7 +76,11 @@ const Hero = () => {
                   textAlign: 'center',
                   boxShadow: 'none',
                   gap: '8px',
+                  transition: 'all 0.3s',
+                  cursor: 'pointer',
                 }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '0.6'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
                 className="transition-colors hover:scale-110 transition-transform"
               >
                 <LightningIcon />
