@@ -1,0 +1,98 @@
+:root {
+  --TopBottom-M: 100px;
+  --LeftRight-S: 50px;
+  --Gap-XXL: 100px;
+  --Margins: 24px;
+  --Radius-M: 16px;
+
+  --Raisin_Black: #211F20;
+  --Mindaro_Light: #FAFFE7;
+
+  --H2: 48px;
+  --H7: 24px;
+  --H8: 16px;
+  --Body-S-Reg: 16px;
+}
+
+/* Section wrapper */
+.third-dates-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--TopBottom-M) var(--LeftRight-S);
+  gap: var(--Gap-XXL);
+  width: 100%;
+  background: white;
+  box-sizing: border-box;
+}
+
+/* Title */
+.third-dates-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: var(--H2);
+  font-weight: 600;
+  line-height: 110%;
+  text-align: center;
+  color: var(--Raisin_Black);
+  width: 100%;
+}
+
+/* Card grid */
+.third-dates-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--Gap-XXL);
+  width: 100%;
+  max-width: 1340px;
+  box-sizing: border-box;
+}
+
+/* Individual card */
+.third-date-card {
+  background: var(--Mindaro_Light);
+  border: 1px solid var(--Raisin_Black);
+  border-radius: var(--Radius-M);
+  padding: var(--Margins);
+  flex: 1 1 300px;
+  max-width: 425px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Card content */
+.third-date-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Step number */
+.third-date-step {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: var(--H8);
+  font-weight: 500;
+  text-transform: uppercase;
+  color: rgba(33, 31, 32, 0.75);
+  margin: 0;
+}
+
+/* Step title */
+.third-date-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: var(--H7);
+  font-weight: 500;
+  color: var(--Raisin_Black);
+  margin: 0;
+}
+
+/* Step description */
+.third-date-desc {
+  font-family: 'Poppins', sans-serif;
+  font-size: var(--Body-S-Reg);
+  font-weight: 400;
+  color: var(--Raisin_Black);
+  margin: 0;
+}
