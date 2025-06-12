@@ -44,12 +44,12 @@ const NavBar = () => {
         <nav className={styles.navContainer}>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
                 <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
-                    <img 
-                        src={logo} 
-                        alt="Circuit Logo" 
+                            <img 
+                                src={logo} 
+                                alt="Circuit Logo" 
                         className={styles.logo}
-                    />
-                </Link>
+                            />
+                        </Link>
                 {/* Desktop nav links/buttons */}
                 <div className={styles.desktopNavLinks}>
                   <Link to="/how-it-works" className={styles.linkButton}>How it works</Link>
@@ -60,9 +60,9 @@ const NavBar = () => {
                     <button className={styles.outlinedButton}>Sign in</button>
                     <Link to="/get-started" className={styles.filledButton}>Get started</Link>
                   </div>
-                </div>
+                    </div>
                 {/* Hamburger/X icon for tablet/mobile */}
-                <button
+                        <button 
                     className={styles.hamburger}
                     aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                     aria-expanded={menuOpen}
@@ -78,7 +78,7 @@ const NavBar = () => {
                         <span className={styles.hamburgerBar}></span>
                       </>
                     )}
-                </button>
+                        </button>
             </div>
             <div
                 className={
@@ -111,7 +111,7 @@ const NavBar = () => {
                     <a href="https://tiktok.com" aria-label="TikTok" target="_blank" rel="noopener noreferrer"><FaTiktok size={28} /></a>
                     <a href="https://linkedin.com" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer"><FaLinkedin size={28} /></a>
                     <a href="https://twitter.com" aria-label="X" target="_blank" rel="noopener noreferrer"><FaXTwitter size={28} /></a>
-                  </div>
+                    </div>
                 </div>
             </div>
         </nav>
