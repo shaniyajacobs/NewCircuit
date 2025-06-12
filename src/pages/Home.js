@@ -26,6 +26,7 @@ const Home = () => {
             <MapPage />
             <Current />
             <Values/>
+            <Pricing/>
             {/* <ClientTestimonials />
             <PersonalityQuiz />
             <div id="partnerships">
