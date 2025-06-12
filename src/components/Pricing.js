@@ -17,7 +17,7 @@ const Pricing = () => {
           Pricing
         </h2>
 
-        <div className={styles.toggleContainer}>
+        <div className={`${styles.toggleContainer} ${!isBundle ? styles.invertColors : ''}`}>
           <span
             className={styles.toggleText}
           >
@@ -26,13 +26,12 @@ const Pricing = () => {
 
           <button 
             onClick={() => setIsBundle(!isBundle)}
-            className={styles.toggleBackground}
-            //className={`flex items-center rounded-full ${styles.toggleBackground}`}
+            className={`${styles.toggleBackground} ${!isBundle ? styles.toggleBackgroundInverted : ''}`}
             aria-label={`Switch to ${isBundle ? "Individual" : "Bundles"} pricing`}
           >
 
             <div
-              className={`transition-transform duration-300 ${styles.toggleButton} 
+              className={`transition-transform duration-300 ${styles.toggleButton} ${!isBundle ? styles.toggleButtonInverted : ''} 
               ${isBundle ? "translate-x-0" : "translate-x-full"}`}
               style={{ transform: isBundle ? "translateX(0%)" : "translateX(100%)" }}
             />
