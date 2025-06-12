@@ -35,6 +35,7 @@ import Dashboard from './pages/Dashboard';
 import NavBar from './components/Navbar/NavBar';
 import FinalQuizPage from './pages/finalQuizPage';
 import PreferencePage from './pages/preferencePage';
+import Legal from './pages/Legal';
 
 const stripePromise = loadStripe("pk_test_51RHbstPpnLZEC8ZQlHoFbnmUGkkKT52aCLMYlMN6fgzmWnVFEPVv8mulHh1PJJaQJRN5yghwIJTfTgumFXt0H3Y400P8jrINGs");
 
@@ -139,6 +140,9 @@ function App() {
             <Route path="/enterprise-user-profile" element={<EnterpriseUserProfile />} />
             <Route path="/enterprise-verify-email" element={<EnterpriseVerifyEmail />} />
             <Route path="/enterprise-dash/*" element={<EnterpriseDash />} />
+            <Route path="/privacy-policy" element={<Legal />} />
+            <Route path="/cookie-policy" element={<Legal />} />
+            <Route path="/terms-of-service" element={<Legal />} />
           </Routes>
         </ScrollToTop>
       </Router>
