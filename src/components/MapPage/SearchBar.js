@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { FaMapMarkerAlt } from "react-icons/fa"; 
+import { useNavigate } from "react-router-dom";
 import styles from "./SearchBar.module.css";
 
 const SearchBar = ({ cities, onSearch }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredResults, setFilteredResults] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
+  const navigate = useNavigate();
 
   // Filter cities based on the input 
   const handleInputChange = (e) => {
@@ -28,7 +30,8 @@ const SearchBar = ({ cities, onSearch }) => {
   const handleCitySelect = (cityName) => {
     setSearchQuery(cityName);
     setFilteredResults([]); 
-    onSearch(cityName); 
+    onSearch(cityName);
+    navigate('/create-account');
   };
 
   const handleCantFindCity = () => {
@@ -45,13 +48,14 @@ const SearchBar = ({ cities, onSearch }) => {
           gap: "10px",
           width: "292px",
           height: "46px",
-          background: "linear-gradient(0deg, #F3F3F3, #F3F3F3), #85A2F2",
+          background: "var(--Mindaro_Light, #FAFFE7)",
           padding: "8px 10px",
           borderTop: searchQuery.trim() ? "none" : "0.5px solid #000000",
           border: searchQuery.trim() ? "0.5px solid #000000" : "none", 
           boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
-          borderRadius: searchQuery.trim() ? "0px 0px 0px 0px" : "0px 0px 8px 8px", 
+          borderRadius: searchQuery.trim() ? "4px 4px 0px 0px" : "4px",
         }}
+        className={searchQuery.trim() ? "rounded-t-[4px] sm:rounded-t-[6px] md:rounded-t-[8px]" : "rounded-[4px] sm:rounded-[6px] md:rounded-[8px]"}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setTimeout(() => setIsFocused(false), 100)}
       >
@@ -65,7 +69,7 @@ const SearchBar = ({ cities, onSearch }) => {
             width: "100%",
             border: "none",
             background: "transparent",
-            fontFamily: "'Poppins', sans-serif",
+            fontFamily: '"Bricolage Grotesque", sans-serif',
             fontSize: "18px",
             outline: "none",
             padding: "8px 0",
@@ -85,7 +89,7 @@ const SearchBar = ({ cities, onSearch }) => {
             top: "46px",
             left: "0",
             width: "292px",
-            background: filteredResults.length > 0 ? "#f3f3f3" : "transparent",
+            background: filteredResults.length > 0 ? "var(--Mindaro_Light, #FAFFE7)" : "transparent",
             border: filteredResults.length > 0 ? "0.5px solid #000000" : "none", 
             borderTop: "none",
             borderRadius: "0 0 8px 8px", 
@@ -108,14 +112,16 @@ const SearchBar = ({ cities, onSearch }) => {
                   key={state}
                   style={{
                     width: "100%",
-                    background: "#f3f3f3",
+                    background: "var(--Mindaro_Light, #FAFFE7)",
                   }}
                 >
                   <div
                     style={{
                       padding: "5px 16px",
                       fontWeight: "bold",
-                      background: "#f3f3f3",
+                      background: "var(--Mindaro_Light, #FAFFE7)",
+                      fontFamily: '"Bricolage Grotesque", sans-serif',
+                      fontSize: "16px"
                     }}
                   >
                     {state}
@@ -133,6 +139,8 @@ const SearchBar = ({ cities, onSearch }) => {
                           gap: "8px", 
                           padding: "8px 16px",
                           cursor: "pointer",
+                          fontFamily: '"Bricolage Grotesque", sans-serif',
+                          fontSize: "14px"
                         }}
                       >
                         <FaMapMarkerAlt size={14} color="#211F20" /> 
