@@ -111,7 +111,7 @@ const Pricing = () => {
                         <div className={styles.Price}>{card.price}</div>
                         <div className={styles.PricePerDate}>/Date</div>
                       </div>
-                    </div>
+                    </div> 
 
                     <div className={styles.PurchaseSection}>
                       <button className={styles.PurchaseButton}>
