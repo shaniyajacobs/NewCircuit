@@ -57,7 +57,7 @@ const MapPage = () => {
         <div
           style={{
             position: "absolute",
-            top: "115px",
+            top: "65px",
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 1000,
