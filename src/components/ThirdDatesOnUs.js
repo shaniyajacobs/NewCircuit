@@ -23,7 +23,7 @@ export function ThirdDatesOnUs() {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full bg-[#FAFFE7] flex flex-col items-center px-[48px] py-[100px] gap-[100px] sm:px-[48px] px-[24px] sm:py-[100px] py-[60px]">
+    <div className="w-full bg-[#FAFFE7] flex flex-col items-center px-[48px] py-[100px] gap-[16px] sm:gap-[20px] md:gap-[24px] lg:gap-[32px] sm:px-[48px] px-[24px] sm:py-[100px] py-[60px]">
       {/* Title */}
       <h2
         style={{
@@ -33,31 +33,26 @@ export function ThirdDatesOnUs() {
           fontWeight: 520,
           lineHeight: '120%',
           alignSelf: 'stretch',
+          marginBottom: '24px',
         }}
-        // Desktop: 48px, Mobile: 36px (example for responsiveness)
-        className="text-[36px] sm:text-[48px]"
+        className="text-[32px] sm:text-[32px] md:text-[40px] lg:text-[48px] mb-[24px] sm:mb-[50px] md:mb-[75px] lg:mb-[100px]"
       >
         The third date's on us
       </h2>
 
       {/* Card Grid */}
-      <div className="flex flex-col sm:flex-row justify-center gap-[36px] w-full">
+      <div className="flex flex-col items-center w-full gap-[16px]
+        sm:flex-col sm:items-center sm:justify-center sm:gap-[20px] sm:mx-auto
+        md:flex-row md:items-stretch md:justify-center md:gap-[24px] md:max-w-[1216px]
+        lg:flex-row lg:items-stretch lg:justify-between lg:gap-[32px] lg:max-w-[1340px]">
         {thirdDateSteps.map((card, index) => (
           <div
             key={index}
-            // For full screen, let's target a desktop width (e.g., around 300px for a 3-column layout with gaps)
-            // On mobile, it will take full width (w-full)
-            // sm:w-[calc(33.333%-24px)] is what you had, let's re-incorporate it for sm+
-            className="w-full sm:w-[calc(33.333%-24px)] flex flex-col justify-end items-start rounded-[20px] border-[1.5px] border-[#211F20] bg-[#FAFFE7] relative
-                       p-[24px] sm:p-[48px] aspect-[16/9] md:aspect-square" // Responsive padding
+            className="w-[358px] h-[202px] sm:w-[690px] sm:h-[246px] md:w-[380px] md:h-[350px] lg:w-[426px] lg:h-[450px] flex flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] border-[1.5px] border-[#211F20] bg-[#FAFFE7] relative p-[12px] sm:p-[16px] md:p-[20px] lg:p-[24px] shrink-0"
           >
             {/* Icon container in top left corner */}
             <div
-              className="absolute top-[24px] left-[24px] flex items-center justify-center
-                         w-[60px] h-[60px] sm:w-[80px] sm:h-[80px] md:w-[100px] md:h-[100px]"
-              style={{
-                maxWidth: 'calc(50% - 24px)',
-              }}
+              className="absolute top-[12px] left-[12px] sm:top-[16px] sm:left-[16px] md:top-[20px] md:left-[20px] lg:top-[24px] lg:left-[24px] flex items-center justify-center w-[50px] h-[50px] sm:w-[75px] sm:h-[75px] lg:w-[100px] lg:h-[100px]"
             >
               {index === 0 && (
                 <svg
@@ -72,7 +67,7 @@ export function ThirdDatesOnUs() {
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 101 64" fill="none"
-                  className="w-full h-full relative sm:top-1 md:top-2"
+                  className="w-full h-full"
                 >
                   <path fillRule="evenodd" clipRule="evenodd" d="M100.333 32C100.333 32 77.9473 63.2749 50.333 63.2749C22.7189 63.2749 0.333008 32 0.333008 32C0.333008 32 22.7189 0.725098 50.333 0.725098C77.9473 0.725098 100.333 32 100.333 32ZM73.1533 32C73.1533 44.5669 62.9366 54.7546 50.333 54.7546C37.7294 54.7546 27.5126 44.5669 27.5126 32C27.5126 19.4331 37.7294 9.24538 50.333 9.24538C62.9366 9.24538 73.1533 19.4331 73.1533 32ZM50.333 45.039C57.5553 45.039 63.4099 39.2012 63.4099 32C63.4099 24.7988 57.5553 18.961 50.333 18.961C43.1107 18.961 37.2561 24.7988 37.2561 32C37.2561 39.2012 43.1107 45.039 50.333 45.039Z" fill="#211F20"/>
                 </svg>
@@ -87,55 +82,52 @@ export function ThirdDatesOnUs() {
                 </svg>
               )}
             </div>
-            {/* Dots in top right corner - remains fixed */}
+            {/* Dots in top right corner */}
             <div 
               style={{ 
                 position: 'absolute', 
-                top: 24, 
-                right: 24, 
+                top: '12px',
+                right: '12px',
                 display: 'flex', 
-                flexDirection: 'row', 
-                gap: 'clamp(4px, 1vw, 10px)',
-                maxWidth: 'calc(50% - 24px)',
+                flexDirection: 'row',
+                maxWidth: 'calc(50% - 12px)',
               }}
+              className="gap-[6px] sm:gap-[8px] sm:top-[16px] sm:right-[16px] md:top-[20px] md:right-[20px] lg:top-[24px] lg:right-[24px]"
             >
               {[0, 1, 2, 3].map((dotIdx) => (
                 <div
                   key={dotIdx}
                   style={{
                     display: 'flex',
-                    width: 'clamp(6px, 1.5vw, 12px)',
-                    height: 'clamp(6px, 1.5vw, 12px)',
-                    padding: 'clamp(3px, 1vw, 8px)',
                     flexDirection: 'column',
                     alignItems: 'flex-start',
-                    gap: 'clamp(4px, 1vw, 10px)',
                     borderRadius: '100px',
                     border: '1.5px solid #211F20',
-                    background: dotIdx < index + 1 ? '#E2FF65' : 'transparent',
+                    background: dotIdx <= index ? '#E2FF65' : 'transparent',
                   }}
+                  className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px]"
                 />
               ))}
             </div>
-            {/* Text content with adjusted spacing and sizes */}
-            <div className="mt-[80px] sm:mt-[100px] md:mt-[120px]">
+            {/* Text content */}
+            <div className="w-full ">
               <p
-                className="font-bricolage uppercase text-[#211F20]/75 mb-3 sm:mb-4 text-left
-                          text-[14px] sm:text-[15px] md:text-[17px]"
+                className="font-bricolage uppercase text-[#211F20]/75 mb-2 sm:mb-2 md:mb-2.5 lg:mb-3 text-left
+                          text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px]"
                 style={{ fontFamily: '"Bricolage Grotesque", sans-serif', fontWeight: 400 }}
               >
                 {card.step}
               </p>
               <h3
-                className="font-bricolage text-[#211F20] mb-3 sm:mb-4 text-left
-                          text-[20px] sm:text-[22px] md:text-[26px]"
+                className="font-bricolage text-[#211F20] mb-2 sm:mb-2 md:mb-2.5 lg:mb-3 text-left
+                          text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px]"
                 style={{ fontFamily: '"Bricolage Grotesque", sans-serif', fontWeight: 400 }}
               >
                 {card.title}
               </h3>
               <p
                 className="font-poppins font-normal text-[#211F20] mb-0 pb-0 text-left
-                          text-[14px] sm:text-[15px] md:text-[17px]"
+                          text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px]"
               >
                 {card.desc}
               </p>
@@ -145,161 +137,106 @@ export function ThirdDatesOnUs() {
       </div>
       {/* Image Section */}
       <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          height: '500px',
-          minHeight: 'var(--Min-Height-S, 500px)',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          alignItems: 'flex-end',
-          alignSelf: 'stretch',
-          borderRadius: 'var(--Radius-M, 16px)',
-          overflow: 'hidden',
-          marginTop: '-70px',
-          background: `url('/WomanWineGlass.png') lightgray 50% / cover no-repeat`,
-        }}
-        // Responsive padding for image section
-        className="px-[24px] py-[24px] sm:px-[50px] sm:py-[50px]"
+        className="w-[358px] h-[259px] sm:w-[696px] sm:h-[217px] md:w-[1216px] md:h-[350px] lg:w-[1340px] lg:h-[450px] relative flex flex-col justify-end items-end overflow-hidden rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px]"
       >
-        {/* Noise overlay */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'2.5\' numOctaves=\'6\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
-            opacity: 0.95,
-            mixBlendMode: 'overlay',
-            pointerEvents: 'none',
-            zIndex: 2,
+        {/* Background image with overlays */}
+        <div className="absolute inset-0">
+          <div
+            className="w-full h-full"
+            style={{
+              background: `url('/WomanWineGlass.png') lightgray 50% / cover no-repeat`,
+            }}
+          />
+          {/* Noise overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'2.5\' numOctaves=\'6\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
+              opacity: 0.95,
+              mixBlendMode: 'overlay',
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Black gradient overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%)',
+              pointerEvents: 'none',
+            }}
+          />
+        </div>
+
+        {/* Dots in top right corner of image section */}
+        <div 
+          style={{ 
+            position: 'absolute', 
+            top: 24, 
+            right: 24, 
+            display: 'flex', 
+            flexDirection: 'row',
+            maxWidth: 'calc(50% - 24px)',
+            zIndex: 10,
           }}
-        />
-        {/* Black gradient overlay */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100%)',
-            pointerEvents: 'none',
-            zIndex: 3,
-          }}
-        />
-        {/* Dots in top right corner of image section (Reverted to always filled) */}
-        <div style={{
-          position: 'absolute',
-          top: 24,
-          right: 24,
-          display: 'flex',
-          flexDirection: 'row',
-          gap: '10px',
-          zIndex: 4
-        }}>
+          className="gap-[6px] sm:gap-[8px]"
+        >
           {[0, 1, 2, 3].map((dotIdx) => (
             <div
               key={dotIdx}
               style={{
                 display: 'flex',
-                width: '12px',
-                height: '12px',
-                padding: '8px',
                 flexDirection: 'column',
                 alignItems: 'flex-start',
-                gap: '10px',
                 borderRadius: '100px',
                 border: '1.5px solid #211F20',
-                background: '#E2FF65', // Always filled as per original or desired look
+                background: '#E2FF65',
               }}
+              className="w-[12px] h-[12px] sm:w-[16px] sm:h-[16px]"
             />
           ))}
         </div>
-        {/* Text above gradient */}
-        <div style={{
-          position: 'relative',
-          zIndex: 4,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          width: '100%',
-        }}>
-          <span
-            // Mobile first: 16px, then 20px on sm+
-            className="text-[16px] sm:text-[20px]"
-            style={{
-              alignSelf: 'stretch',
-              color: '#FAFFE7',
-              fontFamily: '"Bricolage Grotesque", sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 500,
-              lineHeight: '130%',
-              textTransform: 'uppercase',
-              marginBottom: '8px',
-            }}
-          >
+
+        {/* Content container */}
+        <div className="relative z-10 flex flex-col w-full p-[16px] sm:p-[24px] md:p-[32px] lg:p-[50px]">
+          {/* Text content */}
+          <span className="text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] text-[#FAFFE7] font-bricolage font-medium leading-[130%] uppercase mb-[8px]">
             STEP 04
           </span>
-          <span
-            // Mobile first: 40px, then 64px on sm+
-            className="text-[40px] sm:text-[64px]"
-            style={{
-              position: 'relative',
-              zIndex: 2,
-              alignSelf: 'stretch',
-              color: 'var(--Mindaro_Light, #FAFFE7)',
-              fontFamily: '"Bricolage Grotesque", sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 550,
-              lineHeight: '110%',
-              marginTop: 'auto',
-              marginBottom: 0,
-            }}
-          >
+          <span className="text-[32px] sm:text-[32px] md:text-[48px] lg:text-[64px] text-[#FAFFE7] font-bricolage font-medium leading-[110%]">
             The third date includes a drink on us
           </span>
-          <span
-            // Mobile first: 14px, then 16px on sm+
-            className="text-[14px] sm:text-[16px]"
-            style={{
-              alignSelf: 'stretch',
-              color: 'var(--Mindaro_Light, #FAFFE7)',
-              fontFamily: 'Poppins, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 400,
-              lineHeight: 'normal',
-              marginTop: '8px'
-            }}
-          >
+          <span className="text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] text-[#FAFFE7] font-poppins leading-normal mt-[8px]">
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
           </span>
         </div>
       </div>
       {/* Button */}
       <button
-        onClick={() => navigate('/claim-drink')}
+        onClick={() => navigate('/create-account')}
         style={{
           display: 'flex',
-          padding: 'var(--TopBottom-S, 14px) var(--Left-Right-M, 28px)',
           justifyContent: 'center',
           alignItems: 'center',
           gap: 'var(--Gap-XXS, 12px)',
-          borderRadius: 'var(--Radius-S, 8px)',
           background: 'var(--Raisin_Black, #211F20)',
           color: 'var(--Mindaro_Light, #FAFFE7)',
           fontFamily: 'Poppins, sans-serif',
-          fontSize: 'var(--Body-S-Med, 17px)',
           fontStyle: 'normal',
-          fontWeight: 500,
+          fontWeight: 400,
           lineHeight: 'normal',
           border: 'none',
           cursor: 'pointer',
-          marginTop: '8px',
-          transition: 'all 0.3s',
+          transition: 'all 0.3s ease-in-out',
         }}
+        className="text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] whitespace-nowrap px-[20px] sm:px-[20px] md:px-[20px] lg:px-[24px] py-[8px] sm:py-[8px] md:py-[10px] lg:py-[12px] mt-[24px] sm:mt-[50px] md:mt-[75px] lg:mt-[100px] rounded-[4px] sm:rounded-[6px] md:rounded-[6px] lg:rounded-[8px] hover:scale-[1.02] active:scale-[0.98]"
         onMouseOver={(e) => e.currentTarget.style.opacity = '0.6'}
         onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
       >
