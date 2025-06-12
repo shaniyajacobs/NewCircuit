@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 
 const Info = () => {
     return (
-        <div className="w-full py-16 bg-mindaro-light">
-            <div className="container mx-auto px-4">
+        <div className="w-full py-16 bg-mindaro-light flex items-center justify-center">
+            <div className="container mx-auto px-4 flex flex-col items-center">
                 {/* Text Section */}
                 <div className="text-center pt-[100px] pb-[100px] pl-xs pr-xs md:pl-m md:pr-m md:pt-[150px] md:pb-[150px] lg:pl-l lg:pr-l lg:pt-[200px] lg:pb-[200px]">
                     <h2 className="font-bricolage text-[22px] lg:text-[36px] md:text-[30px] text-black font-light font-weight-[400] mb-16 max-w-[800px] mx-auto leading-[130%]">
@@ -13,10 +13,10 @@ const Info = () => {
                     </h2>
                 </div>
                 
-                <div className="relative flex flex-col md:flex-row items-center gap-0">
+                <div className="relative flex flex-col md:flex-row items-center justify-center gap-0 w-full">
                     {/* Text Box */}
                     <div
-                        className="w-full md:w-1/2 flex flex-col items-start gap-m flex-1 self-stretch bg-[#F3F3F4] rounded-t-2xl md:rounded-l-2xl md:rounded-b-none md:rounded-r-none overflow-hidden"
+                        className="w-[358px] h-[396px] sm:w-[696px] sm:h-[329px] md:w-[608px] md:h-[650px] lg:w-[670px] lg:h-[800px] flex flex-col items-start gap-[16px] sm:gap-[20px] md:gap-[24px] lg:gap-[32px] pt-[16px] pl-[16px] pr-[24px] sm:pt-[24px] sm:pl-[24px] sm:pr-[50px] md:pt-[32px] md:pl-[32px] md:pr-[75px] lg:pt-[50px] lg:pl-[50px] lg:pr-[100px] bg-[#F3F3F4] rounded-t-2xl md:rounded-l-2xl md:rounded-b-none md:rounded-r-none overflow-hidden"
                         style={{
                             background: 'radial-gradient(circle, #E2FF65 0%, #D2FFD7 100%)'
                         }}
@@ -24,20 +24,20 @@ const Info = () => {
                         <img
                             src="/cir_cross_PBlue.svg"
                             alt="Decorative icon"
-                            className="w-12 h-12 ml-s mt-s"
+                            className="w-[24px] h-[24px] md:w-[32px] md:h-[32px] lg:w-[42px] lg:h-[42px]"
                         />
-                        <div className="relative w-fit ml-s mr-m">
+                        <div className="relative w-[303px] sm:w-[622px] md:w-[501px] lg:w-[520px]">
                             {/* Header */}
-                            <h2 className="font-bricolage text-h3 md:text-h2 xl:text-h1 font-semibold text-black">
+                            <h2 className="font-bricolage text-[32px] md:text-[48px] lg:text-[64px] font-semibold text-black leading-[130%]">
                                 {/* "We'll" */}
                                 <span>We'll </span>
                                 {/* "plug" with scribble */}
-                                <span className="relative inline-block ml-s mr-s">
+                                <span className="relative inline-block ml-[12px] mr-[12px]">
                                     {'plug'}
                                     <img 
                                         src="/smaller_scribble.svg"
                                         alt="Scribble decoration"
-                                        className="absolute bottom-[7px] pointer-events-none"
+                                        className="absolute bottom-[11px] pointer-events-none"
                                         style={{
                                             transform: 'scale(1.5)',
                                         }}
@@ -47,39 +47,34 @@ const Info = () => {
                                 <span> you with single locals</span>
                             </h2>
                         </div>
-                        <p className="text-body-m text-black font-poppins font-light leading-normal ml-s mr-m">
+                        <p className="text-[16px] md:text-[20px] lg:text-[24px] text-black font-poppins font-light leading-normal pb-[2px] sm:pb-[4px] md:pb-[8px] lg:pb-[18px]">
                             Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
                             Suspendisse mattis metus neque, ac hendrerit risus pharetra ac. 
-                            This is where you can put your main content text.
                         </p>
                         <Link to="/create-account">
-                            <button className="flex items-center justify-center gap-3 py-3 px-6 rounded-lg bg-black text-mindaro-light font-poppins text-base leading-normal transition-transform hover:scale-105 hover:opacity-60 ml-s mr-m mb-xxl">
+                            <button className="w-[148px] h-[34px] sm:w-[148px] sm:h-[34px] md:w-[166px] md:h-[41px] lg:w-[192px] lg:h-[48px] flex items-center justify-center rounded-[4px] sm:rounded-[6px] md:rounded-[6px] lg:rounded-[8px] bg-black text-mindaro-light font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-normal transition-transform hover:scale-105 hover:opacity-60">
                                 Find me a partner
                             </button>
                         </Link>
                     </div>
 
                     {/* Divider */}
-                    <div className="absolute left-1/2 md:top-[50%] sm:top-[435px] top-[500px] md:left-1/2 md:top-[50%] transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="absolute left-1/2 top-[400px] sm:top-[330px] transform -translate-x-1/2 -translate-y-1/2">
                         <img
                             src="/Minus2.svg"
                             alt="Minus divider"
-                            className="lg:w-24 lg:h-24 w-20 h-20 rotate-6"
+                            className="md:w-32 md:h-32 w-20 h-20 rotate-6"
                         />
                     </div>
 
                     {/* Image Box */}
                     <div
-                        className="w-full md:w-1/2 flex justify-center items-center gap-[10px] flex-1 self-stretch bg-[#F3F3F4] rounded-b-2xl md:rounded-r-2xl md:rounded-b-none overflow-hidden"
-                        style={{
-                            maxWidth: '2048px',
-                            maxHeight: '2048px',
-                        }}
+                        className="w-[358px] flex justify-center items-center bg-[#F3F3F4] rounded-b-2xl md:rounded-r-2xl md:rounded-b-none overflow-hidden h-[350px] sm:h-[450px] sm:w-[696px] md:h-[650px] md:w-[608px] lg:h-[800px] lg:w-[670px]"
                     >
                         <img
                             src="/singlelocalscard.webp"
                             alt="Single locals card"
-                            className="w-full h-full object-cover"
+                            className="w-[358px] h-[350px] sm:h-[450px] sm:w-[696px] md:h-[650px] md:w-[608px] lg:h-[800px] lg:w-[670px] object-cover"
                             style={{
                                 aspectRatio: '1/1',
                                 minHeight: 0,
