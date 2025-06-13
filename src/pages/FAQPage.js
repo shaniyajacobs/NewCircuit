@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import NavBar from '../components/Navbar/NavBar';
+import Footer from '../components/Footer';
 import styles from '../components/FAQ/FAQPage.module.css';
 
 const gradients = [
@@ -131,6 +132,7 @@ const FAQPage = () => {
           ))}
         </div>
       </main>
+      <Footer />
     </>
   );
 };
