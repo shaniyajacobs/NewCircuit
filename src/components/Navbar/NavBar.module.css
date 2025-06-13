@@ -2,7 +2,9 @@
 .navContainer {
   position: sticky;
   top: 0;
-  z-index: 100;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   border-bottom: 1px solid var(--Raisin_Black, #211F20);
   background: #FAFFE7;
   backdrop-filter: blur(12px);
@@ -23,9 +25,10 @@
   align-items: center;
   gap: 16px;
   align-self: stretch;
-
   border-bottom: 1px solid var(--Raisin_Black, #211F20);
   background: var(--Raisin_Black, #211F20);
+  position: relative;
+  z-index: 1001;
 }
 
 .top_text { 
