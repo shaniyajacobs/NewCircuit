@@ -1,11 +1,12 @@
 import React from "react";
 import { FaInstagram, FaTiktok, FaLinkedin, FaXTwitter } from "react-icons/fa6";
 import logo from "../images/Cir_Secondary_RGB_Mixed Black.png";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
 
   return (
-    <footer className="bg-[#FAFFE7] text-black px-3 py-12 md:px-16 lg:px-24">
+    <footer className="bg-[#FAFFE7] text-black px-3 py-12 md:px-16 lg:px-24 border-t border-black">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div>
           <h5 className="text-xs font-semibold uppercase mb-4">Pages</h5>
@@ -22,9 +23,9 @@ const Footer = () => {
         <div>
           <h5 className="text-xs font-semibold uppercase mb-4">Legal</h5>
           <ul className="space-y-2 text-sm">
-            <li><a href="#">Privacy policy</a></li>
-            <li><a href="#">Cookie policy</a></li>
-            <li><a href="#">Terms of service</a></li>
+            <li><Link to="/privacy-policy" onClick={() => window.scrollTo(0, 0)}>Privacy policy</Link></li>
+            <li><Link to="/cookie-policy" onClick={() => window.scrollTo(0, 0)}>Cookie policy</Link></li>
+            <li><Link to="/terms-of-service" onClick={() => window.scrollTo(0, 0)}>Terms of service</Link></li>
           </ul>
         </div>
 
