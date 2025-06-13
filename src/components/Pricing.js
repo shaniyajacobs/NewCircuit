@@ -1,120 +1,136 @@
 import React, { useState } from "react";
+import styles from "./Pricing.module.css";
+import { ReactComponent as FiveDots } from "../images/5 Dots.svg";
+import { ReactComponent as Butterfly } from "../images/Butterfly.svg";
+import { ReactComponent as Ellipse } from "../images/Ellipse.svg";
+import { ReactComponent as Hole } from "../images/Hole.svg";
+import { ReactComponent as SoftFlower } from "../images/Soft Flower.svg";
+import { ReactComponent as Team } from "../images/Team.svg";
 
 const Pricing = () => {
   const [isBundle, setIsBundle] = useState(true);
 
   return (
-    <div className="flex flex-col items-center px-6 pt-16 pb-16 max-md:px-4">
-      <h2 className="text-5xl font-bold leading-tight text-center text-blue-700 max-md:text-3xl">
-        Pricing Options
-      </h2>
+    <div className={styles.container}>
+      <div className={styles.cardsRow}>
+        <h2 className={styles.SecTitle}>
+          Pricing
+        </h2>
 
-      <div className="flex gap-4 items-center mt-12 max-w-full w-[320px] max-md:mt-8">
-        <span
-          className={`text-xl font-semibold ${
-            isBundle ? "text-blue-700" : "text-black"
-          }`}
-        >
-          Bundles
-        </span>
+        <div className={`${styles.toggleContainer} ${!isBundle ? styles.invertColors : ''}`}>
+          <span
+            className={styles.toggleText}
+          >
+            Bundles
+          </span>
 
-        <button
-          onClick={() => setIsBundle(!isBundle)}
-          className="flex items-center px-4 py-1 bg-blue-700 rounded-full"
-          aria-label={`Switch to ${isBundle ? "Individual" : "Bundles"} pricing`}
-        >
-          <div
-            className={`bg-zinc-100 h-[32px] w-[32px] rounded-full transition-transform duration-300 ${
-              isBundle ? "-translate-x-4" : "translate-x-4"
-            }`}
-          />
-        </button>
+          <button 
+            onClick={() => setIsBundle(!isBundle)}
+            className={`${styles.toggleBackground} ${!isBundle ? styles.toggleBackgroundInverted : ''}`}
+            aria-label={`Switch to ${isBundle ? "Individual" : "Bundles"} pricing`}
+          >
 
-        <span
-          className={`text-xl font-semibold ${
-            !isBundle ? "text-blue-700" : "text-black"
-          }`}
-        >
-          Individual
-        </span>
-      </div>
+            <div
+              className={`transition-transform duration-300 ${styles.toggleButton} ${!isBundle ? styles.toggleButtonInverted : ''} 
+              ${isBundle ? "translate-x-0" : "translate-x-full"}`}
+              style={{ transform: isBundle ? "translateX(0%)" : "translateX(100%)" }}
+            />
+          </button>
 
-      <div className="w-full mt-12 max-md:mt-8">
-        <div className="flex flex-wrap justify-center items-stretch gap-6 max-w-screen-xl mx-auto max-md:flex-col">
-          {[
-            {
-              title: isBundle ? "The Introduction" : "Brunch",
-              features: isBundle
-                ? ["All eligible venues", "Basic Matching Algorithm", "1 Dinner"]
-                : ["12:30pm - 2:00 pm", "Advanced Matching Algorithm"],
-              subheading: isBundle ? "3 Dates" : "",
-              price: isBundle ? "$78" : "$28",
-              bg: "bg-blue-700",
-              text: "text-zinc-100",
-              btnText: "text-blue-700",
-            },
-            {
-              title: isBundle ? "The Connection" : "Happy Hour",
-              features: isBundle
-                ? ["All eligible venues", "Advanced Matching Algorithm", "2 Dinners"]
-                : ["3:00pm - 4:30pm", "Advanced Matching Algorithm"],
-              subheading: isBundle ? "6 Dates" : "",
-              price: isBundle ? "$144" : "$28",
-              bg: "bg-neutral-800",
-              text: "text-zinc-100",
-              btnText: "text-neutral-800",
-              tag: "Popular",
-            },
-            {
-              title: isBundle ? "The Adventure" : "Dinner",
-              features: isBundle
-                ? [
-                    "All eligible venues",
-                    "Advanced Matching Algorithm",
-                    "Boosted Visibility and Matching",
-                    "3 Dinners",
-                  ]
-                : ["6:00pm - 7:30pm", "Advanced Matching Algorithm"],
-              subheading: isBundle ? "10 Dates" : "",
-              price: isBundle ? "$220" : "$38",
-              bg: "bg-blue-700",
-              text: "text-zinc-100",
-              btnText: "text-blue-700",
-            },
-          ].map((card, index) => (
-            <div className="relative w-[26%] max-md:w-full" key={index}>
-              {card.tag && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-8 py-2 text-sm bg-blue-700 rounded-full text-white font-semibold shadow-md z-10">
-                  {card.tag}
+
+          <span
+            className={styles.toggleText}
+          >
+            Individual
+          </span>
+        </div>
+
+        <div className={styles.cardsContainer}>
+            {[
+              {
+                image: isBundle? Team : Ellipse,
+                subheading: isBundle ? "10 Dates" : "",
+                title: isBundle ? "The Adventure" : "Brunch",
+                oldPrice: isBundle ? "$38" : "", 
+                price: isBundle ? "$22" : "$28",
+
+                features: isBundle
+                  ? ["All eligible venues", "Advanced Matching Algorithm", "Boosted Visability and Matching", "Up to 3x Dinners"]
+                  : ["12:30pm - 2:00 pm", "Advanced Matching Algorithm"],
+                bill: isBundle ? "Billed at USD$220" : "",
+                tag: isBundle ? "BEST DEAL 🔥" : "", 
+              },
+              {
+                image: isBundle? FiveDots : Butterfly,
+                subheading: isBundle ? "6 Dates" : "",
+                title: isBundle ? "The Connection" : "Happy Hour",
+                oldPrice: isBundle ? "$38" : "", 
+                price: isBundle ? "$24" : "$28",
+                features: isBundle
+                  ? ["All eligible venues", "Advanced Matching Algorithm", "Up to 2x Dinners"]
+                  : ["3:00pm - 4:30pm", "Advanced Matching Algorithm"],
+                bill: isBundle ? "Billed at USD$144" : "",
+              },
+              {
+                image: isBundle? Hole : SoftFlower,
+                subheading: isBundle ? "3 Dates" : "",
+                title: isBundle ? "The Introduction" : "Dinner",
+                oldPrice: isBundle ? "$38" : "", 
+                price: isBundle ? "$26" : "$38",
+                features: isBundle
+                  ? [
+                      "All eligible venues",
+                      "Basic Matching Algorithm",
+                      "Up to 1x Dinner",
+                    ]
+                  : ["6:00pm - 7:30pm", "Advanced Matching Algorithm"],
+                bill: isBundle ? "Billed at USD$78" : "",
+              },
+            ].map((card, index) => (
+              <div   className={`
+                ${styles.card}
+                ${isBundle ? styles.bundleCard : styles.individualCard}
+                ${card.title === "The Adventure" ? styles.adventureCard : ""}
+              `}>
+                {card.tag && (
+                  <div className={styles.tagContainer}> 
+                    <div className={styles.tag}>{card.tag}</div>
+                  </div>
+                )}
+                <div className={styles.upperContent}>
+                  <div className={styles.PricingImageWrapper}>
+                    <card.image className={styles.PricingImage} />
+                  </div>
+                  <div className={styles.upperTextContainer}>
+                    <div className={styles.upperText}>
+                      <div className={styles.PricingSubheading}>{card.subheading}</div>
+                      <h3 className={styles.PricingTitle}>{card.title}</h3>
+                      <div className={styles.OldPrice}>{card.oldPrice}</div>
+                      <div className={styles.currPriceWrapper}>
+                        <div className={styles.Price}>{card.price}</div>
+                        <div className={styles.PricePerDate}>/Date</div>
+                      </div>
+                    </div> 
+
+                    <div className={styles.PurchaseSection}>
+                      <button className={styles.PurchaseButton}>
+                        Purchase
+                      </button>
+                      <div className={styles.bill}>{card.bill}</div>
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div
-                className={`flex flex-col items-center px-4 pt-6 pb-8 rounded-3xl shadow-md ${card.bg} ${card.text}`}
-              >
-                <h3 className="mt-4 text-2xl font-semibold text-center">
-                  {card.title}
-                </h3>
-                <ul className="mt-4 text-base list-disc text-left pl-5 leading-relaxed">
-                  {card.features.map((f, i) => (
-                    //<li key={i}>{f}</li>
-                    <React.Fragment key={i}>
-                      <li>{f}</li>
-                      {isBundle && (card.title === "The Introduction" || card.title === "The Connection") && i === card.features.length - 1 && (
-                        <li className="list-none h-6" aria-hidden="true"></li>   // This adds vertical space without a bullet
-                      )}
-                    </React.Fragment>
-                  ))}
-                </ul>
-                <div className="mt-8 text-3xl font-bold">{card.subheading}</div>
-                <div className="mt-2 text-3xl font-bold">{card.price}</div>
-                <button
-                  className={`mt-6 px-6 py-2 text-sm rounded-md bg-zinc-100 ${card.btnText} hover:bg-zinc-200 transition-colors`}
-                >
-                  Sign up now
-                </button>
+
+                <div className={styles.featuresWrapper}>
+                  <ul className={styles.features}>
+                    {card.features.map((f, i) => (
+                      <li key={i}>{f}</li>
+                    ))}
+                  </ul>
+                </div>
+
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
     </div>
