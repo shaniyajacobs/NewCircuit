@@ -279,6 +279,13 @@
     font-weight: 500;
     line-height: 110%; /* 22px */
 }
+
+.toggleBackgroundInverted {
+  background: var(--Mindaro, #E2FF65);
+}
+.toggleButtonInverted {
+  background: var(--Raisin_Black, #211F20);
+}
 @media (min-width: 2560px) {
   :root {
     --H2: 48px;
@@ -451,4 +458,23 @@
   .adventureCard .PricingImageWrapper {
     margin-top: 12px;
   }
-} 
+}
+
+.fade {
+  transition: opacity 0.4s ease;
+}
+.fade-enter {
+  opacity: 0;
+}
+.fade-enter-active {
+  opacity: 1;
+}
+.fade-exit {
+  opacity: 1;
+}
+.fade-exit-active {
+  opacity: 0;
+}
+
+
+

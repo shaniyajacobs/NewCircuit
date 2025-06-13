@@ -3,18 +3,19 @@ import { FaInstagram, FaTiktok, FaLinkedin, FaXTwitter } from "react-icons/fa6";
 import logo from "../images/Cir_Secondary_RGB_Mixed Black.png";
 
 const Footer = () => {
+
   return (
     <footer className="bg-[#FAFFE7] text-black px-3 py-12 md:px-16 lg:px-24">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div>
           <h5 className="text-xs font-semibold uppercase mb-4">Pages</h5>
           <ul className="space-y-2 text-sm">
-            <li><a href="#">Get started</a></li>
-            <li><a href="#">Homepage</a></li>
+            <li><a href="/create-account" onClick={() => window.scrollTo(0, 0)}>Get started</a></li>
+            <li><a href="/" onClick={() => window.scrollTo(0, 0)}>Homepage</a></li>
             <li><a href="#">How it works</a></li>
-            <li><a href="#">Pricing</a></li>
-            <li><a href="#">FAQ</a></li>
-            <li><a href="#">Contact</a></li>
+            <li><a href="/pricing" onClick={() => window.scrollTo(0, 0)}>Pricing</a></li>
+            <li><a href="/faq" onClick={() => window.scrollTo(0, 0)}>FAQ</a></li>
+            <li><a href="/contact" onClick={() => window.scrollTo(0, 0)}>Contact</a></li>
           </ul>
         </div>
 

@@ -23,7 +23,7 @@ export function ThirdDatesOnUs() {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full bg-[#FAFFE7] flex flex-col items-center px-[48px] py-[100px] gap-[16px] sm:gap-[20px] md:gap-[24px] lg:gap-[32px] sm:px-[48px] px-[24px] sm:py-[100px] py-[60px]">
+    <div className="w-full bg-[#FAFFE7] flex flex-col items-center gap-[16px] sm:gap-[20px] md:gap-[24px] lg:gap-[32px]">
       {/* Title */}
       <h2
         style={{

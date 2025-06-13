@@ -1,5 +1,6 @@
 import React from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip } from "react-leaflet";
+import { useNavigate } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -11,11 +12,16 @@ const customIcon = new L.Icon({
 });
 
 const Map = ({ cities, filter }) => {
+  const navigate = useNavigate();
   const filteredCities = filter
     ? cities.filter((city) =>
         city.name.toLowerCase().includes(filter.toLowerCase())
       )
     : cities;
+
+  const handleMarkerClick = () => {
+    navigate('/create-account');
+  };
 
   return (
     <MapContainer
@@ -33,9 +39,24 @@ const Map = ({ cities, filter }) => {
         attribution="&copy; OpenStreetMap contributors"
       />
     
-      {filteredCities.map((city, index) => ( //need to add nav here
-        <Marker key={index} position={city.position} icon={customIcon}>
-          <Popup>{city.name}</Popup> 
+      {filteredCities.map((city, index) => (
+        <Marker 
+          key={index} 
+          position={city.position} 
+          icon={customIcon}
+          eventHandlers={{
+            click: handleMarkerClick
+          }}
+        >
+          <Tooltip 
+            permanent={false}
+            direction="top"
+            offset={[0, -10]}
+            opacity={1}
+            className="custom-tooltip"
+          >
+            {city.name}
+          </Tooltip>
         </Marker>
       ))}
     </MapContainer>
