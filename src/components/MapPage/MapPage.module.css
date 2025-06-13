@@ -1,0 +1,123 @@
+.mapBar {
+  display: flex;
+  padding: var(--TopBottom-M, 16px) 0px;
+  justify-content: center;
+  align-items: center;
+  gap: var(--Gap-S, 24px);
+  align-self: stretch;
+  border-top: 1px solid var(--Raisin_Black, #211F20);
+  border-bottom: 1px solid var(--Raisin_Black, #211F20);
+  background: var(--Palatinate_Blue, #1C50D8);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mapBarText {
+  color: var(--Mindaro_Light, #FAFFE7);
+  text-align: center;
+  font-family: Poppins, sans-serif;
+  font-size: var(--Body-M-Med, 20px);
+  font-style: normal;
+  font-weight: 500;
+  line-height: 110%; /* 22px */
+  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.marqueeContainer {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.marqueeTrack {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: mapBarMarquee 30s linear infinite;
+}
+
+@keyframes mapBarMarquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.mapBackground {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+  padding: var(--TopBottom-M, 100px) 0px;
+  background: var(--Mindaro_Light, #FAFFE7);
+  position: relative;
+  z-index: 1;
+}
+
+/* Custom styles for Leaflet tooltip */
+:global(.leaflet-tooltip) {
+  font-family: "Bricolage Grotesque", sans-serif !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  background: var(--Mindaro_Light, #FAFFE7) !important;
+  border: 1px solid #211F20 !important;
+  border-radius: 4px !important;
+  color: #211F20 !important;
+  padding: 4px 8px !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+:global(.leaflet-tooltip-top:before) {
+  border-top-color: #211F20 !important;
+}
+
+:global(.leaflet-tooltip-bottom:before) {
+  border-bottom-color: #211F20 !important;
+}
+
+/* Map controls and search bar */
+:global(.leaflet-control-zoom),
+:global(.leaflet-control-attribution) {
+  pointer-events: auto !important;
+  z-index: 1000 !important;
+}
+
+:global(.leaflet-control-zoom a) {
+  pointer-events: auto !important;
+  background-color: var(--Mindaro_Light, #FAFFE7) !important;
+  color: #211F20 !important;
+  border: 1px solid #211F20 !important;
+}
+
+:global(.leaflet-control-zoom a:hover) {
+  background-color: #E2FF65 !important;
+}
+
+/* Search bar container */
+:global(.search-bar-container) {
+  position: absolute;
+  top: 65px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: auto !important;
+}
+
+/* Map container */
+:global(.leaflet-container) {
+  pointer-events: auto !important;
+}
+
+:global(.leaflet-pane) {
+  pointer-events: none !important;
+}
+
+:global(.leaflet-marker-icon) {
+  pointer-events: auto !important;
+} 

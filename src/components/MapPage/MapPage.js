@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import SearchBar from "./SearchBar";
 import Map from "./Map";
+import styles from './MapPage.module.css';
+import MapHeroSection from "./MapHeroSection";
 
 const cities = [
   { name: "Atlanta", state: "Georgia", position: [33.749, -84.388] },
@@ -31,44 +33,38 @@ const MapPage = () => {
   };
 
   return (
-    <div style={{ position: "relative", height: "100vh" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
-          height: "115px",
-          backgroundColor: "#85A2F2",
-        }}
-      >
-        <h1
+    <div className={styles.mapBackground}>
+      <MapHeroSection />
+      <div style={{ position: "relative", width: "100%" }}>
+        <div className={styles.mapBar}>
+          <div className={styles.marqueeContainer}>
+            <div className={styles.marqueeTrack}>
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+              {/* Duplicate for seamless loop */}
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
+            </div>
+          </div>
+        </div>
+        <Map cities={cities} filter={filter} />
+        <div
           style={{
-            fontFamily: "'Poppins', sans-serif",
-            fontWeight: "700",
-            fontStyle: "normal",
-            fontSize: "50px",
-            lineHeight: "60px",
-            letterSpacing: "-2.7px",
-            color: "#ECECEC",
+            position: "absolute",
+            top: "0px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
           }}
         >
-          Click on Location to Get Started
-        </h1>
-      </div>
-
-      <Map cities={cities} filter={filter} />
-
-      <div
-        style={{
-          position: "absolute",
-          top: "115px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 1000,
-        }}
-      >
-        <SearchBar cities={cities} onSearch={handleSearch} />
+          <SearchBar cities={cities} onSearch={handleSearch} />
+        </div>
       </div>
     </div>
   );
