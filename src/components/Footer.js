@@ -3,12 +3,6 @@ import { FaInstagram, FaTiktok, FaLinkedin, FaXTwitter } from "react-icons/fa6";
 import logo from "../images/Cir_Secondary_RGB_Mixed Black.png";
 
 const Footer = () => {
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
 
   return (
     <footer className="bg-[#FAFFE7] text-black px-3 py-12 md:px-16 lg:px-24">
@@ -16,11 +10,11 @@ const Footer = () => {
         <div>
           <h5 className="text-xs font-semibold uppercase mb-4">Pages</h5>
           <ul className="space-y-2 text-sm">
-            <li><a href="#">Get started</a></li>
-            <li><a href="#">Homepage</a></li>
+            <li><a href="/create-account" onClick={() => window.scrollTo(0, 0)}>Get started</a></li>
+            <li><a href="/" onClick={() => window.scrollTo(0, 0)}>Homepage</a></li>
             <li><a href="#">How it works</a></li>
             <li><a href="#">Pricing</a></li>
-            <li><a href="#">FAQ</a></li>
+            <li><a href="/faq" onClick={() => window.scrollTo(0, 0)}>FAQ</a></li>
             <li><a href="/contact" onClick={() => window.scrollTo(0, 0)}>Contact</a></li>
           </ul>
         </div>

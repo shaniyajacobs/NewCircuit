@@ -32,7 +32,10 @@ const NavBar = () => {
     }, []);
 
     const handleMenuToggle = () => setMenuOpen((open) => !open);
-    const handleLinkClick = () => setMenuOpen(false);
+    const handleLinkClick = () => {
+        setMenuOpen(false);
+        window.scrollTo(0, 0);
+    };
 
     return (
         <>
@@ -43,7 +46,7 @@ const NavBar = () => {
         </div>
         <nav className={styles.navContainer}>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center' }} onClick={() => window.scrollTo(0, 0)}>
                             <img 
                                 src={logo} 
                                 alt="Circuit Logo" 
@@ -52,13 +55,13 @@ const NavBar = () => {
                         </Link>
                 {/* Desktop nav links/buttons */}
                 <div className={styles.desktopNavLinks}>
-                  <Link to="/how-it-works" className={styles.linkButton}>How it works</Link>
-                  <Link to="/pricing" className={styles.linkButton}>Pricing</Link>
-                  <Link to="/faq" className={styles.linkButton}>FAQ</Link>
-                  <Link to="/contact" className={styles.linkButton}>Contact</Link>
+                  <Link to="/how-it-works" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>How it works</Link>
+                  <Link to="/pricing" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>Pricing</Link>
+                  <Link to="/faq" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>FAQ</Link>
+                  <Link to="/contact" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>Contact</Link>
                   <div className={styles.buttonGroup}>
-                    <Link to="/login" className={styles.outlinedButton}>Sign in</Link>
-                    <Link to="/create-account" className={styles.filledButton}>Get started</Link>
+                    <Link to="/login" className={styles.outlinedButton} onClick={() => window.scrollTo(0, 0)}>Sign in</Link>
+                    <Link to="/create-account" className={styles.filledButton} onClick={() => window.scrollTo(0, 0)}>Get started</Link>
                   </div>
                     </div>
                 {/* Hamburger/X icon for tablet/mobile */}
@@ -89,7 +92,7 @@ const NavBar = () => {
                 id="navbar-menu"
             >
                 <div className={styles.menuHeader}>
-                  <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+                  <Link to="/" style={{ display: 'flex', alignItems: 'center' }} onClick={handleLinkClick}>
                     <img 
                         src={logo} 
                         alt="Circuit Logo" 
