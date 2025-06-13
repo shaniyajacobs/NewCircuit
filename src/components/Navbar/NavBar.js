@@ -32,7 +32,10 @@ const NavBar = () => {
     }, []);
 
     const handleMenuToggle = () => setMenuOpen((open) => !open);
-    const handleLinkClick = () => setMenuOpen(false);
+    const handleLinkClick = () => {
+        setMenuOpen(false);
+        window.scrollTo(0, 0);
+    };
 
     return (
         <>
@@ -43,26 +46,26 @@ const NavBar = () => {
         </div>
         <nav className={styles.navContainer}>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
-                    <img 
-                        src={logo} 
-                        alt="Circuit Logo" 
+                <Link to="/" style={{ display: 'flex', alignItems: 'center' }} onClick={() => window.scrollTo(0, 0)}>
+                            <img 
+                                src={logo} 
+                                alt="Circuit Logo" 
                         className={styles.logo}
-                    />
-                </Link>
+                            />
+                        </Link>
                 {/* Desktop nav links/buttons */}
                 <div className={styles.desktopNavLinks}>
-                  <Link to="/how-it-works" className={styles.linkButton}>How it works</Link>
-                  <Link to="/pricing" className={styles.linkButton}>Pricing</Link>
-                  <Link to="/faq" className={styles.linkButton}>FAQ</Link>
-                  <Link to="/contact" className={styles.linkButton}>Contact</Link>
+                  <Link to="/how-it-works" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>How it works</Link>
+                  <Link to="/pricing" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>Pricing</Link>
+                  <Link to="/faq" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>FAQ</Link>
+                  <Link to="/contact" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>Contact</Link>
                   <div className={styles.buttonGroup}>
-                    <Link to="/login" className={styles.outlinedButton}>Sign in</Link>
-                    <Link to="/create-account" className={styles.filledButton}>Get started</Link>
+                    <Link to="/login" className={styles.outlinedButton} onClick={() => window.scrollTo(0, 0)}>Sign in</Link>
+                    <Link to="/create-account" className={styles.filledButton} onClick={() => window.scrollTo(0, 0)}>Get started</Link>
                   </div>
-                </div>
+                    </div>
                 {/* Hamburger/X icon for tablet/mobile */}
-                <button
+                        <button 
                     className={styles.hamburger}
                     aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                     aria-expanded={menuOpen}
@@ -78,7 +81,7 @@ const NavBar = () => {
                         <span className={styles.hamburgerBar}></span>
                       </>
                     )}
-                </button>
+                        </button>
             </div>
             <div
                 className={
@@ -89,7 +92,7 @@ const NavBar = () => {
                 id="navbar-menu"
             >
                 <div className={styles.menuHeader}>
-                  <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+                  <Link to="/" style={{ display: 'flex', alignItems: 'center' }} onClick={handleLinkClick}>
                     <img 
                         src={logo} 
                         alt="Circuit Logo" 
@@ -111,7 +114,7 @@ const NavBar = () => {
                     <a href="https://tiktok.com" aria-label="TikTok" target="_blank" rel="noopener noreferrer"><FaTiktok size={28} /></a>
                     <a href="https://linkedin.com" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer"><FaLinkedin size={28} /></a>
                     <a href="https://twitter.com" aria-label="X" target="_blank" rel="noopener noreferrer"><FaXTwitter size={28} /></a>
-                  </div>
+                    </div>
                 </div>
             </div>
         </nav>

@@ -17,7 +17,7 @@ export function Values() {
           background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.00) 0%, rgba(0, 0, 0, 0.75) 100%), url(<path-to-image>) lightgray 50% / cover no-repeat',
           backgroundBlendMode: 'normal, soft-light',
         }}
-        className="flex w-[358px] min-h-[350px] sm:w-[696px] sm:min-h-[450px] md:w-[592px] md:min-h-[690px] lg:w-[645px] lg:min-h-[923px] p-[16px] sm:p-[24px] md:p-[32px] lg:p-[50px] flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] relative overflow-hidden"
+        className="order-last md:order-none flex w-[358px] min-h-[350px] sm:w-[696px] sm:min-h-[450px] md:w-[592px] md:min-h-[690px] lg:min-w-[645px] lg:min-h-[800px] p-[16px] sm:p-[24px] md:p-[32px] lg:p-[50px] flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] relative overflow-hidden"
       >
         {/* Video Background */}
         <video
