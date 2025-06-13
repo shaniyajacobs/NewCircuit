@@ -3,6 +3,13 @@ import { FaInstagram, FaTiktok, FaLinkedin, FaXTwitter } from "react-icons/fa6";
 import logo from "../images/Cir_Secondary_RGB_Mixed Black.png";
 
 const Footer = () => {
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   return (
     <footer className="bg-[#FAFFE7] text-black px-3 py-12 md:px-16 lg:px-24">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
@@ -14,7 +21,7 @@ const Footer = () => {
             <li><a href="#">How it works</a></li>
             <li><a href="#">Pricing</a></li>
             <li><a href="#">FAQ</a></li>
-            <li><a href="#">Contact</a></li>
+            <li><a href="/contact" onClick={() => window.scrollTo(0, 0)}>Contact</a></li>
           </ul>
         </div>
 
