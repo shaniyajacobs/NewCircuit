@@ -17,7 +17,7 @@ const Pricing = () => {
           Pricing
         </h2>
 
-        <div className={styles.toggleContainer}>
+        <div className={`${styles.toggleContainer} ${!isBundle ? styles.invertColors : ''}`}>
           <span
             className={styles.toggleText}
           >
@@ -26,15 +26,17 @@ const Pricing = () => {
 
           <button 
             onClick={() => setIsBundle(!isBundle)}
-            className={styles.toggleBackground}
+            className={`${styles.toggleBackground} ${!isBundle ? styles.toggleBackgroundInverted : ''}`}
             aria-label={`Switch to ${isBundle ? "Individual" : "Bundles"} pricing`}
           >
+
             <div
-              className={`transition-transform duration-300 ${styles.toggleButton} 
+              className={`transition-transform duration-300 ${styles.toggleButton} ${!isBundle ? styles.toggleButtonInverted : ''} 
               ${isBundle ? "translate-x-0" : "translate-x-full"}`}
               style={{ transform: isBundle ? "translateX(0%)" : "translateX(100%)" }}
             />
           </button>
+
 
           <span
             className={styles.toggleText}
@@ -51,6 +53,7 @@ const Pricing = () => {
                 title: isBundle ? "The Adventure" : "Brunch",
                 oldPrice: isBundle ? "$38" : "", 
                 price: isBundle ? "$22" : "$28",
+
                 features: isBundle
                   ? ["All eligible venues", "Advanced Matching Algorithm", "Boosted Visability and Matching", "Up to 3x Dinners"]
                   : ["12:30pm - 2:00 pm", "Advanced Matching Algorithm"],
@@ -88,7 +91,7 @@ const Pricing = () => {
                 ${styles.card}
                 ${isBundle ? styles.bundleCard : styles.individualCard}
                 ${card.title === "The Adventure" ? styles.adventureCard : ""}
-              `} key={index}>
+              `}>
                 {card.tag && (
                   <div className={styles.tagContainer}> 
                     <div className={styles.tag}>{card.tag}</div>
