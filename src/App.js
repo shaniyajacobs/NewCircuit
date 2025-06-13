@@ -28,6 +28,7 @@ import EnterpriseVerifyEmail from './pages/EnterpriseVerifyEmail';
 import EnterpriseDash from './pages/EnterpriseDash';
 import PricingPage from './pages/Pricing';
 import FAQPage from './pages/FAQPage';
+import HowItWorks from './pages/HowItWorks';
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ProfileProvider } from './contexts/ProfileContext';
@@ -144,6 +145,7 @@ function App() {
             <Route path="/enterprise-dash/*" element={<EnterpriseDash />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/faq" element={<FAQPage />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/privacy-policy" element={<Legal />} />
             <Route path="/cookie-policy" element={<Legal />} />
             <Route path="/terms-of-service" element={<Legal />} />
