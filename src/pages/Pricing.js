@@ -145,7 +145,18 @@ function FAQSection() {
       </div>
       <section className="w-full flex flex-col md:flex-row items-stretch justify-center min-h-[300px] md:min-h-[400px] py-12 px-4 md:px-12 gap-0">
         <div
-          className="flex flex-col justify-end items-start gap-4 flex-1 min-h-[200px] md:min-h-[260px] p-4 md:p-6 rounded-tl-[8px] md:rounded-l-[8px] rounded-tr-[8px] md:rounded-r-none rounded-bl-none md:rounded-bl-[8px] rounded-br-none md:rounded-br-none relative overflow-hidden"
+          //className="flex flex-col justify-end items-start gap-4 flex-1 min-h-[200px] md:min-h-[260px] p-4 md:p-6 rounded-tl-[8px] md:rounded-l-[8px] rounded-tr-[8px] md:rounded-r-none rounded-bl-none md:rounded-bl-[8px] rounded-br-none md:rounded-br-none relative overflow-hidden"
+          className="
+            flex flex-col justify-end items-start
+            flex-1
+            min-h-[200px] md:min-h-[260px]
+            px-[50px] md:px-[32px] sm:px-[24px] xs:px-[16px]
+            pb-[50px] md:pb-[32px] sm:pb-[24px] xs:pb-[16px]
+            gap-[32px] md:gap-[24px] sm:gap-[20px] xs:gap-[16px]
+            rounded-tl-[8px] md:rounded-l-[8px] rounded-tr-[8px] md:rounded-r-none
+            rounded-bl-none md:rounded-bl-[8px] rounded-br-none md:rounded-br-none
+            relative overflow-hidden
+          "
           style={{
             background: 'url(/lamp.jpg) center center / cover no-repeat',
           }}
@@ -163,22 +174,40 @@ function FAQSection() {
               pointerEvents: 'none',
             }}
           />
-          <div style={{position: 'relative', zIndex: 5, width: '100%', paddingTop: '180px'}}>
+          <div 
+            className="flex flex-col gap-[32px] md:gap-[24px] sm:gap-[20px] xs:gap-[16px]"
+            style={{position: 'relative', zIndex: 5, width: '100%', paddingTop: '180px'}}>
             <h1
-              className="w-fit max-w-[500px] sm:max-w-[600px] md:max-w-[700px] text-[40px] text-left mb-4 drop-shadow-lg"
+              className="w-fit max-w-[500px] sm:max-w-[600px] md:max-w-[700px] text-[40px] text-left drop-shadow-lg"
               style={{
                 color: '#FAFFE7',
                 fontFamily: 'Bricolage Grotesque, sans-serif',
                 fontWeight: 520,
                 lineHeight: '120%',
-                marginBottom: '8px',
               }}
             >
               Got questions? Let's plug you in.
             </h1>
             <button
-              className="flex px-2 py-3 justify-center items-center gap-1 rounded-[6px] bg-[#E2FF65] text-[#211F20] font-poppins text-[11px] font-medium leading-normal shadow-md border-none outline-none hover:opacity-80 transition"
-              style={{ fontFamily: 'Poppins, sans-serif', fontSize: '11px', padding: '8px 8px', gap: '4px', marginBottom: '8px', marginTop: '8px' }}
+              className="
+                w-fit flex justify-center items-center gap-1 rounded-[6px] 
+                bg-[#E2FF65] text-[#211F20] font-poppins font-medium leading-normal 
+                shadow-md border-none outline-none hover:opacity-80 transition
+
+                text-[12px]        /* default smallest */
+                xs:text-[12px]
+                sm:text-[14px]
+                md:text-[16px]
+
+                md:py-[12px] md:px-[24px]
+                sm:py-[10px] sm:px-[20px]
+                xs:py-[8px] xs:px-[20px]
+                py-[8px] px-[20px]
+              "
+              style={{
+                fontFamily: 'Poppins, sans-serif',
+                gap: '4px',
+              }}
             >
               See full FAQ
             </button>
@@ -298,10 +327,7 @@ function FAQSection() {
         </div>
       </section>
       {/* Edge-to-edge thick black line before footer/legal stuff */}
-      <div style={{ width: '100vw', margin: '80px 0 0 0', position: 'relative', left: '50%', right: '50%', transform: 'translateX(-50%)', padding: 0 }}>
-        <div style={{ width: '100vw', borderTop: '1px solid #211F20', height: 0, margin: 0, padding: 0 }} />
-        <div style={{ height: '20px' }} />
-      </div>
+      <div style={{ width: '100vw', margin: '80px 0 0 0', position: 'relative', left: '50%', right: '50%', transform: 'translateX(-50%)', padding: 0 }}> </div>
     </div>
   );
 }

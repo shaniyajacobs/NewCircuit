@@ -280,12 +280,6 @@
     line-height: 110%; /* 22px */
 }
 
-.toggleBackgroundInverted {
-  background: var(--Mindaro, #E2FF65);
-}
-.toggleButtonInverted {
-  background: var(--Raisin_Black, #211F20);
-}
 @media (min-width: 2560px) {
   :root {
     --H2: 48px;
