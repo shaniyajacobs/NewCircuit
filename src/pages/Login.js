@@ -241,10 +241,14 @@ const Login = () => {
       const adminDoc = await getDoc(doc(db, 'adminUsers', userCredential.user.uid));
       if (adminDoc.exists()) {
         navigate('/admin-dashboard');
+<<<<<<< Updated upstream
         console.log('Admin logged in');
         return;
       } else {
         console.log('User is not admin');
+=======
+        return;
+>>>>>>> Stashed changes
       }
 
       // If not admin, continue with regular user flow

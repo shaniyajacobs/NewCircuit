@@ -29,6 +29,7 @@ import EnterpriseDash from './pages/EnterpriseDash';
 import AdminDashboard from './pages/AdminDashboard';
 import PricingPage from './pages/Pricing';
 import FAQPage from './pages/FAQPage';
+import AdminDashboard from './pages/AdminDashboard';
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ProfileProvider } from './contexts/ProfileContext';
@@ -149,6 +150,7 @@ function App() {
             <Route path="/privacy-policy" element={<Legal />} />
             <Route path="/cookie-policy" element={<Legal />} />
             <Route path="/terms-of-service" element={<Legal />} />
+            <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
           </Routes>
         </ScrollToTop>
       </Router>
