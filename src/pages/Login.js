@@ -237,6 +237,17 @@ const Login = () => {
       // Sign in user
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
+      // First check if user is admin
+      const adminDoc = await getDoc(doc(db, 'adminUsers', userCredential.user.uid));
+      if (adminDoc.exists()) {
+        navigate('/admin-dashboard');
+        console.log('Admin logged in');
+        return;
+      } else {
+        console.log('User is not admin');
+      }
+
+      // If not admin, continue with regular user flow
       // Check if email is verified
       if (!userCredential.user.emailVerified) {
         await signOut(auth);
