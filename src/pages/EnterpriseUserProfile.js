@@ -169,7 +169,6 @@ const EnterpriseUserProfile = () => {
         <Logo href="/">
           <img src={circuitLogo} alt="Circuit Logo" />
         </Logo>
-        <h1>Complete Your User Profile</h1>
 
         {error && (
           <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>
@@ -200,7 +199,7 @@ const EnterpriseUserProfile = () => {
             />
           </InputGroup>
 
-          <InputGroup>
+          {/* <InputGroup>
             <Label>Phone Number</Label>
             <Input
               type="tel"
@@ -239,7 +238,7 @@ const EnterpriseUserProfile = () => {
               onChange={(e) => handleFileChange(e, 'proofOfAuth')}
               accept=".pdf,.jpg,.jpeg,.png"
             />
-          </InputGroup>
+          </InputGroup> */}
 
           <Button type="submit" disabled={loading}>
             {loading ? "Creating Account..." : "Create Business Account"}

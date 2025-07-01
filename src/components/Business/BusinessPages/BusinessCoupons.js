@@ -6,9 +6,9 @@ import { FaPlus, FaEdit, FaTrash, FaChartLine } from 'react-icons/fa';
 
 const BusinessCoupons = () => {
   const [coupons, setCoupons] = useState([]);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  //const [showAddModal, setShowAddModal] = useState(false);
+  //const [showEditModal, setShowEditModal] = useState(false);
+  //const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [newCoupon, setNewCoupon] = useState({
@@ -41,7 +41,7 @@ const BusinessCoupons = () => {
     }
   };
 
-  const handleAddCoupon = async (e) => {
+  /* const handleAddCoupon = async (e) => {
     e.preventDefault();
     try {
       const couponData = {
@@ -92,11 +92,11 @@ const BusinessCoupons = () => {
     } catch (error) {
       console.error('Error deleting coupon:', error);
     }
-  };
+  }; */
 
   return (
     <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-semibold text-indigo-950">Coupons</h1>
         <button
           onClick={() => setShowAddModal(true)}
@@ -105,7 +105,7 @@ const BusinessCoupons = () => {
           <FaPlus />
           Add New Coupon
         </button>
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {coupons.map((coupon) => (
@@ -125,7 +125,7 @@ const BusinessCoupons = () => {
                 <button
                   onClick={() => {
                     setSelectedCoupon(coupon);
-                    setShowEditModal(true);
+                    //setShowEditModal(true);
                   }}
                   className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
                 >
@@ -134,7 +134,7 @@ const BusinessCoupons = () => {
                 <button
                   onClick={() => {
                     setSelectedCoupon(coupon);
-                    setShowDeleteModal(true);
+                    //setShowDeleteModal(true);
                   }}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                 >
@@ -158,7 +158,7 @@ const BusinessCoupons = () => {
       </div>
 
       {/* Add Coupon Modal */}
-      {showAddModal && (
+      {/* {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4">
             <h2 className="text-2xl font-semibold mb-6">Add New Coupon</h2>
@@ -232,7 +232,7 @@ const BusinessCoupons = () => {
             </form>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Other Modals for Edit, Delete, and Analytics can follow a similar structure */}
     </div>
