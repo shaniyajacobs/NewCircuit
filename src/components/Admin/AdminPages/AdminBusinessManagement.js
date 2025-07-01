@@ -59,7 +59,7 @@ const AdminBusinessManagement = () => {
   };
 
   const filteredBusinesses = businesses.filter(business => 
-    business.businessName?.toLowerCase().includes(searchTerm.toLowerCase())
+    business.legalBusinessName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -97,7 +97,7 @@ const AdminBusinessManagement = () => {
             ) : filteredBusinesses.map(business => (
               <tr key={business.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {business.businessName}
+                  {business.legalBusinessName}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {business.email}
@@ -134,7 +134,7 @@ const AdminBusinessManagement = () => {
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <h2 className="text-2xl font-semibold mb-4">Delete Business</h2>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete {selectedBusiness?.businessName}? 
+              Are you sure you want to delete {selectedBusiness?.legalBusinessName}? 
               This action cannot be undone and will remove all associated data.
             </p>
             <div className="flex justify-end gap-4">

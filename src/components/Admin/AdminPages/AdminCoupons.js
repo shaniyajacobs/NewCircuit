@@ -35,7 +35,6 @@ const AdminCoupons = () => {
       const businessesList = businessesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-<<<<<<< Updated upstream
       }))
       // Only show active businesses that have a business name (same criteria as the management table)
       .filter(business => 
@@ -43,9 +42,6 @@ const AdminCoupons = () => {
         business.businessName && 
         business.businessName.trim() !== ''
       );
-=======
-      }));
->>>>>>> Stashed changes
       setBusinesses(businessesList);
     } catch (error) {
       console.error('Error fetching businesses:', error);
