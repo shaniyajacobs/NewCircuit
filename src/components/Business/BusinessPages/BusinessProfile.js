@@ -5,18 +5,10 @@ import { db } from '../../../pages/firebaseConfig';
 import { FaEdit, FaSave } from 'react-icons/fa';
 
 const BusinessProfile = () => {
-  const [isEditing, setIsEditing] = useState(false);
+  //const [isEditing, setIsEditing] = useState(false);
   const [businessData, setBusinessData] = useState({
     businessName: '',
     email: '',
-    phone: '',
-    address: '',
-    description: '',
-    logo: '',
-    website: '',
-    cuisine: '',
-    openingHours: '',
-    priceRange: ''
   });
 
   const auth = getAuth();
@@ -39,7 +31,7 @@ const BusinessProfile = () => {
     }
   };
 
-  const handleInputChange = (e) => {
+  /* const handleInputChange = (e) => {
     const { name, value } = e.target;
     setBusinessData(prev => ({
       ...prev,
@@ -56,7 +48,7 @@ const BusinessProfile = () => {
     } catch (error) {
       console.error('Error updating business data:', error);
     }
-  };
+  }; */
 
   const ProfileField = ({ label, name, type = 'text', value, onChange, disabled }) => (
     <div className="mb-6">
@@ -69,6 +61,7 @@ const BusinessProfile = () => {
           disabled={disabled}
           rows="4"
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+          readOnly
         />
       ) : (
         <input
@@ -78,6 +71,7 @@ const BusinessProfile = () => {
           onChange={onChange}
           disabled={disabled}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+          readOnly
         />
       )}
     </div>
@@ -87,7 +81,7 @@ const BusinessProfile = () => {
     <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 min-h-screen">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-semibold text-indigo-950">Business Profile</h1>
-        <button
+        {/* <button
           onClick={() => setIsEditing(!isEditing)}
           className="flex items-center gap-2 px-6 py-3 bg-[#0043F1] text-white rounded-xl hover:bg-[#0034BD] transition-colors"
         >
@@ -102,13 +96,13 @@ const BusinessProfile = () => {
               Edit Profile
             </>
           )}
-        </button>
+        </button> */}
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-2xl">
+      <div className="max-w-2xl">
         <div className="mb-8">
           <div className="flex items-center gap-6 mb-6">
-            <div className="w-32 h-32 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
+            {/* <div className="w-32 h-32 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
               {businessData.logo ? (
                 <img
                   src={businessData.logo}
@@ -118,8 +112,8 @@ const BusinessProfile = () => {
               ) : (
                 <span className="text-gray-400">No logo</span>
               )}
-            </div>
-            {isEditing && (
+            </div> */}
+            {/* {isEditing && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Upload Logo
@@ -135,85 +129,29 @@ const BusinessProfile = () => {
                     hover:file:bg-[#0034BD]"
                 />
               </div>
-            )}
+            )} */}
           </div>
         </div>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ProfileField
             label="Business Name"
             name="businessName"
             value={businessData.businessName}
-            onChange={handleInputChange}
-            disabled={!isEditing}
+            //onChange={handleInputChange}
+            //disabled={!isEditing}
           />
           <ProfileField
             label="Email"
             name="email"
             type="email"
             value={businessData.email}
-            onChange={handleInputChange}
-            disabled={true}
+            //onChange={handleInputChange}
+            //disabled={true}
           />
-          <ProfileField
-            label="Phone"
-            name="phone"
-            type="tel"
-            value={businessData.phone}
-            onChange={handleInputChange}
-            disabled={!isEditing}
-          />
-          <ProfileField
-            label="Website"
-            name="website"
-            type="url"
-            value={businessData.website}
-            onChange={handleInputChange}
-            disabled={!isEditing}
-          />
-          <ProfileField
-            label="Cuisine Type"
-            name="cuisine"
-            value={businessData.cuisine}
-            onChange={handleInputChange}
-            disabled={!isEditing}
-          />
-          <ProfileField
-            label="Price Range"
-            name="priceRange"
-            value={businessData.priceRange}
-            onChange={handleInputChange}
-            disabled={!isEditing}
-          />
-        </div>
 
-        <ProfileField
-          label="Address"
-          name="address"
-          value={businessData.address}
-          onChange={handleInputChange}
-          disabled={!isEditing}
-        />
-
-        <ProfileField
-          label="Description"
-          name="description"
-          type="textarea"
-          value={businessData.description}
-          onChange={handleInputChange}
-          disabled={!isEditing}
-        />
-
-        <ProfileField
-          label="Opening Hours"
-          name="openingHours"
-          type="textarea"
-          value={businessData.openingHours}
-          onChange={handleInputChange}
-          disabled={!isEditing}
-        />
-
-        {isEditing && (
+        {/* {isEditing && (
           <div className="flex justify-end gap-4 mt-6">
             <button
               type="button"
@@ -229,8 +167,8 @@ const BusinessProfile = () => {
               Save Changes
             </button>
           </div>
-        )}
-      </form>
+        )} */}
+      </div>
     </div>
   );
 };

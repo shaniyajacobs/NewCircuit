@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import AOS from 'aos';
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import "aos/dist/aos.css";
 import './index.css';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate
-} from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 // All pages
 import Home from './pages/Home';
 import Contact from './pages/Contact';
@@ -29,6 +26,9 @@ import EnterpriseProfile from './pages/EnterpriseProfile';
 import EnterpriseUserProfile from './pages/EnterpriseUserProfile';
 import EnterpriseVerifyEmail from './pages/EnterpriseVerifyEmail';
 import EnterpriseDash from './pages/EnterpriseDash';
+import AdminDashboard from './pages/AdminDashboard';
+import PricingPage from './pages/Pricing';
+import FAQPage from './pages/FAQPage';
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ProfileProvider } from './contexts/ProfileContext';
@@ -38,6 +38,9 @@ import Dashboard from './pages/Dashboard';
 import NavBar from './components/Navbar/NavBar';
 import FinalQuizPage from './pages/finalQuizPage';
 import PreferencePage from './pages/preferencePage';
+import Legal from './pages/Legal';
+
+const stripePromise = loadStripe("pk_test_51RHbstPpnLZEC8ZQlHoFbnmUGkkKT52aCLMYlMN6fgzmWnVFEPVv8mulHh1PJJaQJRN5yghwIJTfTgumFXt0H3Y400P8jrINGs");
 
 // Preload function
 const preloadImages = () => {
@@ -114,7 +117,9 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/dashboard/*" element={
               <PrivateRoute>
-                <Dashboard />
+                <Elements stripe={stripePromise}>
+                  <Dashboard />
+                </Elements>
               </PrivateRoute>
             } />
             <Route path = "/preferencePage" element={<PreferencePage/>}/>
@@ -138,6 +143,12 @@ function App() {
             <Route path="/enterprise-user-profile" element={<EnterpriseUserProfile />} />
             <Route path="/enterprise-verify-email" element={<EnterpriseVerifyEmail />} />
             <Route path="/enterprise-dash/*" element={<EnterpriseDash />} />
+            <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/faq" element={<FAQPage />} />
+            <Route path="/privacy-policy" element={<Legal />} />
+            <Route path="/cookie-policy" element={<Legal />} />
+            <Route path="/terms-of-service" element={<Legal />} />
           </Routes>
         </ScrollToTop>
       </Router>

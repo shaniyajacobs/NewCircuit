@@ -5,6 +5,7 @@ import DashHome from "../components/Dashboard/DashboardPages/DashHome";
 import { Route, Routes, useLocation } from "react-router-dom";
 import DashMyConnections from "../components/Dashboard/DashboardPages/DashMyConnections";
 import DashDateCalendar from "../components/Dashboard/DashboardPages/DashDateCalendar";
+import DashCheckout from "../components/Dashboard/DashboardPages/DashCheckout";
 import DashMyCoupons from "../components/Dashboard/DashboardPages/DashMyCoupons";
 import DashMyProfile from "../components/Dashboard/DashboardPages/DashMyProfile";
 import DashSettings from "../components/Dashboard/DashboardPages/DashSettings";
@@ -38,6 +39,7 @@ const Dashboard = () => {
             <Route path="/" element={<DashHome />}/> 
             <Route path="dashMyConnections" element={<DashMyConnections />}/> 
             <Route path="dashDateCalendar" element={<DashDateCalendar />} /> 
+            <Route path="dashCheckout" element={<DashCheckout />} />
             <Route path="dashMyCoupons" element={<DashMyCoupons />} />
             <Route path="dashSettings" element={<DashSettings />} /> 
             <Route path="dashChangePassword" element={<DashChangePassword />} />
