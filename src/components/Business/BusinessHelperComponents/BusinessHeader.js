@@ -7,18 +7,20 @@ import { IoPersonCircle } from 'react-icons/io5';
 const BusinessHeader = (props) => {
   const auth = getAuth();
   const user = auth.currentUser;
-  const [businessData, setBusinessData] = useState();
+  const [businessData, setBusinessData] = useState(null);
 
   useEffect(() => {
     async function getBusinessData() {
-      const businessTable = collection(db, "businesses");
-      const businessQuery = query(businessTable, where("email", "==", user.email));
-      const loggedInBusinessQuery = await getDocs(businessQuery);
-      const loggedInBusinessData = loggedInBusinessQuery;
-      setBusinessData(loggedInBusinessData.docs.at(0));
+      if (user) {
+        const businessTable = collection(db, "businesses");
+        const businessQuery = query(businessTable, where("email", "==", user.email));
+        const loggedInBusinessQuery = await getDocs(businessQuery);
+        const loggedInBusinessData = loggedInBusinessQuery.docs.at(0);
+        setBusinessData(loggedInBusinessData);
+      }
     }
     getBusinessData();
-  }, [user.email]);
+  }, [user?.email]);
 
   const PathTitleMappings = {
     "/enterprise-dash": "Home",

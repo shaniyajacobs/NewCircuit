@@ -1,192 +1,263 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { auth, db, storage } from '../../../pages/firebaseConfig';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  updateDoc,
+  getDoc
+} from 'firebase/firestore';
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
+} from 'firebase/storage';
 
-const DashMyCoupons = () => {
-  const [date1Photos, setDate1Photos] = useState({
-    user: null,
-    partner: null
-  });
-  const [date2Photos, setDate2Photos] = useState({
-    user: null,
-    partner: null
-  });
+export default function DashMyCoupons() {
+  const me = auth.currentUser.uid;
+
+  const [conversations, setConversations] = useState([]);
+  const [acceptedDates, setAcceptedDates] = useState([]);
+  const [usersMap, setUsersMap] = useState({});
+
+  // local preview + persisted URL
+  const [date1Url, setDate1Url] = useState('');
+  const [date2Url, setDate2Url] = useState('');
+  const [preview1, setPreview1] = useState(null);
+  const [preview2, setPreview2] = useState(null);
+
+  const [sel1, setSel1] = useState('');
+  const [sel2, setSel2] = useState('');
   const [error, setError] = useState('');
+  const [loading1, setLoading1] = useState(false);
+  const [loading2, setLoading2] = useState(false);
 
-  const handlePhotoUpload = (dateNum, person, event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (dateNum === 1) {
-          setDate1Photos(prev => ({
-            ...prev,
-            [person]: e.target.result
-          }));
-        } else {
-          setDate2Photos(prev => ({
-            ...prev,
-            [person]: e.target.result
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    setSel1('');
+    setSel2('');
+    setDate1Url('');
+    setDate2Url('');
+    setPreview1(null);
+    setPreview2(null);
+  }, [me]);
+
+  // 1️⃣ subscribe & extract
+  useEffect(() => {
+    const q = query(
+      collection(db, 'conversations'),
+      where('userIds', 'array-contains', me)
+    );
+    return onSnapshot(q, snap => {
+      const convos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setConversations(convos);
+      const dates = convos.flatMap(c =>
+        (c.dates || [])
+          .filter(d => d.status === 'accepted')
+          .map(d => ({
+            ...d,
+            convoId: c.id,
+            partnerId: c.userIds.find(u => u !== me)
+          }))
+      );
+      setAcceptedDates(dates);
+    });
+  }, [me]);
+
+  // 2️⃣ fetch partner names
+  useEffect(() => {
+  acceptedDates.forEach(d => {
+    const uid = String(d.partnerId); // force string
+    if (!uid || usersMap[uid]) return;
+
+    getDoc(doc(db, 'users', uid)).then(uDoc => {
+      if (uDoc.exists()) {
+        const { firstName, lastName } = uDoc.data();
+        setUsersMap(m => ({ ...m, [uid]: `${firstName} ${lastName}`.trim() }));
+      } else {
+        setUsersMap(m => ({ ...m, [uid]: uid }));
+      }
+    });
+  });
+}, [acceptedDates]);
+  
+
+  // 3️⃣ whenever sel1 changes, reset slot1 state unless that date really has a URL
+  useEffect(() => {
+    const d = acceptedDates.find(d => d.id === sel1);
+    if (d?.photos?.[me]?.uploaded) {
+      setDate1Url(d.photos[me].url);
+      setPreview1(null);
+    } else {
+      setDate1Url('');
+      setPreview1(null);
     }
+  }, [sel1, acceptedDates, me]);
+
+  // 4️⃣ same for slot2
+  useEffect(() => {
+    const d = acceptedDates.find(d => d.id === sel2);
+    if (d?.photos?.[me]?.uploaded) {
+      setDate2Url(d.photos[me].url);
+      setPreview2(null);
+    } else {
+      setDate2Url('');
+      setPreview2(null);
+    }
+  }, [sel2, acceptedDates, me]);
+
+  const onFile = (slot, e) => {
+    setError('');
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      slot === 1 ? setPreview1(ev.target.result) : setPreview2(ev.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleSubmit = () => {
+  const upload = async slot => {
     setError('');
-    
-    if (!date1Photos.user || !date1Photos.partner || !date2Photos.user || !date2Photos.partner) {
-      setError('Please upload all required photos before submitting');
-      return;
-    }
+    const selected = slot === 1 ? sel1 : sel2;
+    const preview  = slot === 1 ? preview1 : preview2;
+    const setLoading = slot === 1 ? setLoading1 : setLoading2;
+    if (!selected) { setError(`Select date ${slot}`); return; }
+    if (!preview)  { setError(`Upload your photo for date ${slot}`); return; }
 
-    // Handle successful submission here
-    console.log('All photos uploaded, proceeding with submission');
-    // Add your submission logic here
+    setLoading(true);
+    try {
+      const d = acceptedDates.find(x => x.id === selected);
+      const path = `datePictures/${d.convoId}/${d.id}/${me}`;
+      const ref  = storageRef(storage, path);
+      const blob = await fetch(preview).then(r => r.blob());
+      await uploadBytes(ref, blob);
+      const url = await getDownloadURL(ref);
+
+      // update Firestore
+      const convoRef = doc(db, 'conversations', d.convoId);
+      const snap     = await getDoc(convoRef);
+      const data     = snap.data();
+      const updated  = (data.dates || []).map(x =>
+        x.id === d.id
+          ? {
+              ...x,
+              photos: {
+                ...x.photos,
+                [me]: { uploaded: true, url }
+              }
+            }
+          : x
+      );
+      await updateDoc(convoRef, { dates: updated });
+
+      // persist locally
+      if (slot === 1) {
+        setDate1Url(url);
+        setPreview1(null);
+      } else {
+        setDate2Url(url);
+        setPreview2(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Upload failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-md:p-5">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-[#151D48]">How it Works:</h2>
-        <div className="px-4 py-2 bg-yellow-100 rounded-lg">
-          <span className="text-gray-700">Status: Pending</span>
-        </div>
-      </div>
+    <div className="p-7 bg-white rounded shadow-lg">
+      <h2 className="text-2xl mb-4">My Coupons</h2>
+      {error && <div className="mb-4 text-red-500">{error}</div>}
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-[#85A2F2] rounded-lg p-4 flex items-center">
-          <div className="w-10 h-10 bg-[#151D48] rounded-full flex items-center justify-center text-white font-bold mr-3">
-            1
-          </div>
-          <p className="text-[#151D48] font-medium">
-            Upload your pictures for 2 dates
-          </p>
-        </div>
+      {[1,2].map(slot => {
+        const sel       = slot===1 ? sel1      : sel2;
+        const setSel    = slot===1 ? setSel1    : setSel2;
+        const preview   = slot===1 ? preview1   : preview2;
+        const persisted = slot===1 ? date1Url   : date2Url;
+        const otherSel  = slot===1 ? sel2       : sel1;
+        const loading   = slot===1 ? loading1   : loading2;
+        const dateObj = acceptedDates.find(d => String(d.id) === sel);
+        const partnerId = dateObj?.partnerId;
+        const partner = partnerId ? usersMap[String(partnerId)] || partnerId : null;
+        return (
+          <div key={slot} className="mb-8">
+            <h3 className="font-semibold mb-2">
+            {partner ? `Date with ${partner}` : `Date ${slot}`}
+            </h3>
+            <select
+              className="border p-2 rounded w-full mb-4"
+              value={sel}
+              onChange={e => setSel(e.target.value)}
+            >
+              <option value="">Select a scheduled date…</option>
+              {acceptedDates
+                .filter(d => d.id !== otherSel)
+                .map(d => {
+                  const name = usersMap[String(d.partnerId)] || d.partnerId;
+                  return (
+                    <option key={d.id} value={d.id}>
+                      {new Date(d.timestamp.toDate()).toLocaleString()}{' '}
+                      — with {name} at {d.location}
+                    </option>
+                  );
+                })}
+            </select>
 
-        <div className="bg-[#85A2F2] rounded-lg p-4 flex items-center">
-          <div className="w-10 h-10 bg-[#151D48] rounded-full flex items-center justify-center text-white font-bold mr-3">
-            2
-          </div>
-          <p className="text-[#151D48] font-medium">
-            Once approved, receive your special 3rd date coupon by email!
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-[#151D48] mb-3">Date 1:</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhotoUpload(1, 'user', e)}
-                  className="hidden"
-                  id="date1-user"
-                />
-                <label htmlFor="date1-user" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                  {date1Photos.user ? (
-                    <img src={date1Photos.user} alt="Your photo" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <>
-                      <div className="text-4xl mb-2 text-[#85A2F2]">+</div>
-                      <p className="text-[#151D48]">Your photo</p>
-                    </>
-                  )}
-                </label>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {/* YOU */}
+              <div className="border-2 border-dashed rounded h-48 flex items-center justify-center">
+                {persisted ? (
+                  <img src={persisted} className="w-full h-full object-cover rounded" />
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id={`you-${slot}`}
+                      className="hidden"
+                      onChange={e => onFile(slot, e)}
+                    />
+                    <label
+                      htmlFor={`you-${slot}`}
+                      className="w-full h-full flex flex-col items-center justify-center cursor-pointer"
+                    >
+                      {preview
+                        ? <img src={preview} className="w-full h-full object-cover rounded" />
+                        : <>
+                            <div className="text-4xl text-gray-400">+</div>
+                            <span>Your photo</span>
+                          </>}
+                    </label>
+                  </>
+                )}
+              </div>
+              {/* PARTNER */}
+              <div className="border-2 border-dashed rounded h-48 flex items-center justify-center text-gray-400">
+                {persisted ? 'Waiting for partner' : 'Your upload locks this slot'}
               </div>
             </div>
 
-            <div>
-              <div className="border-2  border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhotoUpload(1, 'partner', e)}
-                  className="hidden"
-                  id="date1-partner"
-                />
-                <label  className="w-full h-full flex flex-col items-center justify-center">
-                  {(
-                    <>
-                     
-                      <p className="text-[#151D48]"> My match's photo </p>
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
+            <button
+              onClick={() => upload(slot)}
+              disabled={loading || !!persisted}
+              className={`w-full py-2 text-white rounded ${
+                persisted
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : loading
+                    ? 'bg-indigo-300'
+                    : 'bg-indigo-600 hover:bg-indigo-800'
+              }`}
+            >
+              {persisted ? 'Submitted ✅' : loading ? 'Uploading…' : `Submit Date ${slot}`}
+            </button>
           </div>
-        </div>
+        );
+      })}
 
-        <div>
-          <h3 className="text-lg font-semibold text-[#151D48] mb-3">Date 2:</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="border-2 border-dashed border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:border-[#151D48] hover:bg-blue-50 transition-all">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhotoUpload(2, 'user', e)}
-                  className="hidden"
-                  id="date2-user"
-                />
-                <label htmlFor="date2-user" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                  {date2Photos.user ? (
-                    <img src={date2Photos.user} alt="Your photo" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <>
-                      <div className="text-4xl mb-2 text-[#85A2F2]">+</div>
-                      <p className="text-[#151D48]">Your photo</p>
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <div className="border-2  border-[#85A2F2] rounded-lg p-4 h-48 flex flex-col items-center justify-center">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhotoUpload(2, 'partner', e)}
-                  className="hidden"
-                  id="date2-partner"
-                />
-                <label className="w-full h-full flex flex-col items-center justify-center">
-                  { (
-                    <>
-          
-                      <p className="text-[#151D48]"> My match's photo</p>
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {error && (
-          <div className="text-red-500 text-center font-medium mt-4 bg-red-50 p-3 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          className="w-full py-4 bg-[#85A2F2] text-[#151D48] font-semibold rounded-lg hover:bg-[#7491e0] transition-all mt-6 flex items-center justify-center space-x-2"
-        >
-          <span>Submit Photos</span>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
-          </svg>
-        </button>
-      </div>
     </div>
   );
-};
-
-export default DashMyCoupons;
+}

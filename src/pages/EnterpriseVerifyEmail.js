@@ -4,7 +4,7 @@ import { FooterShapes } from './Login';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth, db, storage } from './firebaseConfig';
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -84,31 +84,50 @@ const EnterpriseVerifyEmail = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
-  const auth = getAuth();
 
   useEffect(() => {
     if (!userData) {
       navigate('/enterprise-create-account');
       return;
     }
+
+    // If the user is already signed in and not verified, keep emailSent true so resend button shows
+    if (auth.currentUser && !auth.currentUser.emailVerified) {
+      setEmailSent(true);
+    }
   }, [userData, navigate]);
 
   const createUserAndSendVerification = async () => {
     try {
       setLoading(true);
-      setError('');
 
-      // Create user with email and password
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        userData.email,
-        userData.password
-      );
+      let userCredential;
 
-      // Send verification email
+      try {
+        // Attempt to create the user first
+        userCredential = await createUserWithEmailAndPassword(
+          auth,
+          userData.email,
+          userData.password
+        );
+      } catch (createErr) {
+        // If the account already exists, sign in instead
+        if (createErr.code === 'auth/email-already-in-use') {
+          userCredential = await signInWithEmailAndPassword(
+            auth,
+            userData.email,
+            userData.password
+          );
+        } else {
+          throw createErr; // Re-throw other errors
+        }
+      }
+
+      // Send verification email (whether newly created or just signed in)
       await sendEmailVerification(userCredential.user);
 
       // Upload files if they exist
+      console.log('About to handle file uploads');
       let governmentIdUrl = null;
       let proofOfAuthUrl = null;
 
@@ -127,9 +146,9 @@ const EnterpriseVerifyEmail = () => {
       // Create flattened business document in Firestore
       await setDoc(doc(db, "businesses", userCredential.user.uid), {
         // Business data fields
-        businessName: userData.businessData.businessName,
+        //businessName: userData.businessData.businessName,
         legalBusinessName: userData.businessData.legalBusinessName,
-        businessType: userData.businessData.businessType,
+        /* businessType: userData.businessData.businessType,
         websiteUrl: userData.businessData.websiteUrl,
         businessDescription: userData.businessData.businessDescription,
         countryOfRegistration: userData.businessData.countryOfRegistration,
@@ -139,15 +158,15 @@ const EnterpriseVerifyEmail = () => {
         city: userData.businessData.city,
         state: userData.businessData.state,
         zipCode: userData.businessData.zipCode,
-        country: userData.businessData.country,
+        country: userData.businessData.country, */
 
         // User profile fields
         firstName: userData.userProfile.firstName,
         lastName: userData.userProfile.lastName,
-        phoneNumber: userData.userProfile.phoneNumber,
+        /* phoneNumber: userData.userProfile.phoneNumber,
         jobTitle: userData.userProfile.jobTitle,
         governmentIdUrl,
-        proofOfAuthUrl,
+        proofOfAuthUrl, */
 
         // Additional fields
         email: userData.email,
@@ -185,6 +204,31 @@ const EnterpriseVerifyEmail = () => {
     } catch (error) {
       console.error('Error checking verification:', error);
       setError('Error checking verification status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Resend verification email without trying to create the account again
+  const resendVerificationEmail = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // If user is signed out (e.g. after reload) sign back in silently
+      if (!auth.currentUser) {
+        try {
+          await signInWithEmailAndPassword(auth, userData.email, userData.password);
+        } catch (signInErr) {
+          console.error('Error signing back in for resend:', signInErr);
+          throw signInErr;
+        }
+      }
+
+      await sendEmailVerification(auth.currentUser);
+    } catch (error) {
+      console.error('Error resending verification email:', error);
+      setError('Failed to resend verification email. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -235,7 +279,7 @@ const EnterpriseVerifyEmail = () => {
                 Didn't receive the email?
               </p>
               <ResendLink 
-                onClick={createUserAndSendVerification}
+                onClick={resendVerificationEmail}
                 disabled={loading}
               >
                 Send again

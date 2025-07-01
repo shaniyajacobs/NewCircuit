@@ -116,9 +116,9 @@ const EnterpriseProfile = () => {
   const [error, setError] = useState('');
 
   const [formData, setFormData] = useState({
-    businessName: '',
+    //businessName: '',
     legalBusinessName: '',
-    businessType: '',
+    /*businessType: '',
     websiteUrl: '',
     businessDescription: '',
     countryOfRegistration: '',
@@ -128,7 +128,7 @@ const EnterpriseProfile = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: ''
+    country: ''*/
   });
 
   const businessTypes = [
@@ -171,7 +171,6 @@ const EnterpriseProfile = () => {
         <Logo href="/">
           <img src={circuitLogo} alt="Circuit Logo" />
         </Logo>
-        <h1>Complete Your Business Profile</h1>
 
         {error && (
           <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>
@@ -180,7 +179,7 @@ const EnterpriseProfile = () => {
         )}
 
         <LoginForm onSubmit={handleSubmit}>
-          <InputGroup>
+          {/* <InputGroup>
             <Label>Business Name</Label>
             <Input
               type="text"
@@ -189,10 +188,10 @@ const EnterpriseProfile = () => {
               placeholder="e.g., LockerRoom Inc."
               required
             />
-          </InputGroup>
+          </InputGroup> */}
 
           <InputGroup>
-            <Label>Legal Business Name (if different)</Label>
+            <Label>Legal Business Name</Label>
             <Input
               type="text"
               value={formData.legalBusinessName}
@@ -201,7 +200,7 @@ const EnterpriseProfile = () => {
             />
           </InputGroup>
 
-          <InputGroup>
+          {/* <InputGroup>
             <Label>Business Type</Label>
             <Select
               value={formData.businessType}
@@ -311,7 +310,7 @@ const EnterpriseProfile = () => {
               onChange={(e) => setFormData({...formData, zipCode: e.target.value})}
               required
             />
-          </InputGroup>
+          </InputGroup> */}
 
           <Button type="submit" disabled={loading}>
             {loading ? "Processing..." : "Continue"}

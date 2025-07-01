@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import SearchBar from "./SearchBar";
 import Map from "./Map";
+import styles from './MapPage.module.css';
+import MapHeroSection from "./MapHeroSection";
+import SlidingBar from '../SlidingBar';
 
 const cities = [
   { name: "Atlanta", state: "Georgia", position: [33.749, -84.388] },
@@ -25,50 +28,64 @@ const cities = [
 
 const MapPage = () => {
   const [filter, setFilter] = useState("");
+  const marqueeContainerRef = useRef(null);
+  const marqueeContentRef = useRef(null);
+  const [repeatCount, setRepeatCount] = useState(2);
 
   const handleSearch = (query) => {
     setFilter(query);
   };
 
+  // Dynamically calculate how many times to repeat the content
+  useEffect(() => {
+    function updateRepeatCount() {
+      if (!marqueeContainerRef.current || !marqueeContentRef.current) return;
+      const containerWidth = marqueeContainerRef.current.offsetWidth;
+      const contentWidth = marqueeContentRef.current.offsetWidth;
+      if (contentWidth === 0) return;
+      // Ensure at least 2x container width for seamless looping
+      const minWidth = containerWidth * 2;
+      const count = Math.ceil(minWidth / contentWidth) + 1;
+      setRepeatCount(count);
+    }
+    updateRepeatCount();
+    window.addEventListener('resize', updateRepeatCount);
+    return () => window.removeEventListener('resize', updateRepeatCount);
+  }, []);
+
+  const marqueePhrase = (
+    <span className={styles.mapBarText}>
+      Pick your city and get started <span role="img" aria-label="location pin">📍</span>
+    </span>
+  );
+
+  // Render the phrase once for measurement, then repeat as needed
   return (
-    <div style={{ position: "relative", height: "100vh" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
-          height: "115px",
-          backgroundColor: "#85A2F2",
-        }}
-      >
-        <h1
+    <div className={styles.mapBackground}>
+      <MapHeroSection />
+      <SlidingBar 
+        phrase={
+          <span className={styles.mapBarText}>
+            Pick your city and get started <span role="img" aria-label="location pin">📍</span>
+          </span>
+        }
+        background="#1C50D8"
+        textColor="#FAFFE7"
+        heartColor="#FAFFE7"
+      />
+      <div style={{ position: "relative", width: "100%" }}>
+        <Map cities={cities} filter={filter} />
+        <div
           style={{
-            fontFamily: "'Poppins', sans-serif",
-            fontWeight: "700",
-            fontStyle: "normal",
-            fontSize: "50px",
-            lineHeight: "60px",
-            letterSpacing: "-2.7px",
-            color: "#ECECEC",
+            position: "absolute",
+            top: "0px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
           }}
         >
-          Click on Location to Get Started
-        </h1>
-      </div>
-
-      <Map cities={cities} filter={filter} />
-
-      <div
-        style={{
-          position: "absolute",
-          top: "115px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 1000,
-        }}
-      >
-        <SearchBar cities={cities} onSearch={handleSearch} />
+          <SearchBar cities={cities} onSearch={handleSearch} />
+        </div>
       </div>
     </div>
   );
