@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import { FooterShapes } from './Login';
 import { useNavigate, Link } from 'react-router-dom';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 const Container = styled.div`
   display: flex;
@@ -87,16 +88,25 @@ const ContentWrapper = styled.div`
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
-  const navigate = useNavigate();
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const auth = getAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted');
-  
-    // Use navigate function correctly
-    navigate('/reenter-password', { replace: true });
+    setMessage('');
+    setError('');
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMessage('A password reset email has been sent. Please check your inbox.');
+    } catch (err) {
+      setError(err.message || 'Failed to send password reset email.');
+    } finally {
+      setLoading(false);
+    }
   };
-  
 
   return (
     <Container>
@@ -107,17 +117,22 @@ const ForgotPassword = () => {
         </Logo>
         <Card>
           <Title>Password Recovery</Title>
-          <Label htmlFor="email">Enter Your Email</Label>
+          <form onSubmit={handleSubmit}>
+            <Label htmlFor="email">Enter Your Email</Label>
             <Input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
             />
-            <Button onClick={() => navigate('/reenter-password')}>Submit Email</Button>
-
-          
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Sending...' : 'Submit Email'}
+            </Button>
+          </form>
+          {message && <div style={{ color: 'green', marginTop: '1rem', textAlign: 'center' }}>{message}</div>}
+          {error && <div style={{ color: 'red', marginTop: '1rem', textAlign: 'center' }}>{error}</div>}
         </Card>
       </ContentWrapper>
     </Container>
