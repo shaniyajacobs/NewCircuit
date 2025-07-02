@@ -6,40 +6,32 @@ import RemoEvent from "../DashboardHelperComponents/RemoEvent";
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
+import { auth } from "../../../firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
 
 const DashHome = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [firebaseEvents, setFirebaseEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userGender, setUserGender] = useState(null);
+  const [datesRemaining, setDatesRemaining] = useState(100);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
 
-
-  const upcomingEvents = [
-    {
-      title: "25-34 yrs old SF",
-      date: "01/24/25",
-      time: "5:00pm",
-      status: "10/10 sign ups",
-      action: "Join Now",
-      isActive: false,
-    },
-    {
-      title: "35-44 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      status: "10/10 sign ups",
-      action: "Join in 24 hours",
-      isActive: true,
-    },
-    {
-      title: "45-55 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      status: "10/10 sign ups",
-      action: "Join in 24 hours",
-      isActive: false,
-    },
-  ];
+  // Fetch user gender and datesRemaining from Firestore
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setUserGender(userDoc.data().gender);
+          setDatesRemaining(userDoc.data().datesRemaining);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const signUpEvents = [
     {
@@ -103,18 +95,8 @@ const DashHome = () => {
           console.log("eventData for doc", docSnapshot.id, eventData);
           if (eventData) {
             const transformedEvent = {
-              ageRange: eventData.ageRange,
-              date: eventData.date,
-              eventType: eventData.eventType,
-              location: eventData.location,
-              menSignupCount: eventData.menSignupCount,
-              menSpots: eventData.menSpots,
-              time: eventData.time,
-              timeZone: eventData.timeZone,
-              title: eventData.title,
-              womenSignupCount: eventData.womenSignupCount,
-              womenSpots: eventData.womenSpots,
-              remo: eventData.remo
+              ...eventData,
+              eventID: docSnapshot.id,
             };
             eventsList.push(transformedEvent);
           }
@@ -225,6 +207,48 @@ const getEventData = async (eventID) => {
   }
 };
 
+  // Handle sign up logic
+  const handleSignUp = async (event) => {
+    if (datesRemaining <= 0) return;
+    setDatesRemaining(prev => prev - 1);
+
+    const user = auth.currentUser;
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, { datesRemaining: datesRemaining - 1 }, { merge: true });
+    }
+
+    // Update event signup count in Firestore
+    const eventDocRef = doc(db, 'events', event.eventID);
+    const eventDoc = await getDoc(eventDocRef);
+    let updatedEvents = [...firebaseEvents];
+    if (eventDoc.exists()) {
+      const data = eventDoc.data();
+      if (userGender && userGender.toLowerCase() === 'male') {
+        const newMenSignupCount = (Number(data.menSignupCount) || 0) + 1;
+        await setDoc(eventDocRef, { menSignupCount: newMenSignupCount }, { merge: true });
+        // Update local state
+        updatedEvents = updatedEvents.map(ev =>
+          ev.eventID === event.eventID
+            ? { ...ev, menSignupCount: (Number(ev.menSignupCount) || 0) + 1 }
+            : ev
+        );
+      } else if (userGender && userGender.toLowerCase() === 'female') {
+        const newWomenSignupCount = (Number(data.womenSignupCount) || 0) + 1;
+        await setDoc(eventDocRef, { womenSignupCount: newWomenSignupCount }, { merge: true });
+        // Update local state
+        updatedEvents = updatedEvents.map(ev =>
+          ev.eventID === event.eventID
+            ? { ...ev, womenSignupCount: (Number(ev.womenSignupCount) || 0) + 1 }
+            : ev
+        );
+      }
+      // Move the event to upcomingEvents
+      const eventToMove = updatedEvents.find(ev => ev.eventID === event.eventID);
+      setUpcomingEvents(prev => [...prev, eventToMove]);
+      setFirebaseEvents(updatedEvents.filter(ev => ev.eventID !== event.eventID));
+    }
+  };
 
   const handleMatchesClick = () => {
     navigate('myMatches');
@@ -261,8 +285,15 @@ const getEventData = async (eventID) => {
         </div>
         
         <div className="flex bg-white rounded-xl">
-          {upcomingEvents.map((event, index) => (
-            <EventCard key={index} event={event} type="upcoming" />
+          {upcomingEvents.map((event) => (
+            <EventCard
+              key={event.eventID}
+              event={event}
+              type="upcoming"
+              userGender={userGender}
+              datesRemaining={datesRemaining}
+              onSignUp={handleSignUp}
+            />
           ))}
         </div>
         <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
@@ -270,7 +301,7 @@ const getEventData = async (eventID) => {
               <div className="mb-6 text-xl font-semibold text-[#05004E]">
                 Sign-Up for Dates
               </div>
-              <div className="text-right font-semibold text-[#05004E]">Dates Remaining: 3</div>
+              <div className="text-right font-semibold text-[#05004E]">Dates Remaining: {datesRemaining}</div>
             </div>
             <div className="flex bg-white rounded-xl">
               {loading ? (
@@ -278,8 +309,15 @@ const getEventData = async (eventID) => {
                   <div className="text-lg text-gray-600">Loading events...</div>
                 </div>
               ) : firebaseEvents.length > 0 ? (
-                firebaseEvents.map((event, index) => (
-                  <EventCard key={index} event={event} type="signup" />
+                firebaseEvents.map((event) => (
+                  <EventCard
+                    key={event.eventID}
+                    event={event}
+                    type="signup"
+                    userGender={userGender}
+                    datesRemaining={datesRemaining}
+                    onSignUp={() => handleSignUp(event)}
+                  />
                 ))
               ) : (
                 <div className="flex items-center justify-center w-full p-8">

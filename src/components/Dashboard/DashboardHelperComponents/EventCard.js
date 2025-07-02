@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 function getDateParts(dateString) {
   if (!dateString) return { dayOfWeek: '', day: '', month: '' };
@@ -10,7 +10,9 @@ function getDateParts(dateString) {
   return { dayOfWeek, day, month };
 }
 
-const EventCard = ({ event, type }) => {
+const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
+  const [signUpClicked, setSignUpClicked] = useState(false);
+  console.log('EventCard received userGender:', userGender, 'event:', event);
   const { dayOfWeek, day, month } = getDateParts(event.date);
   return (
     <div
@@ -55,26 +57,77 @@ const EventCard = ({ event, type }) => {
         <br />
         <span>Open Spots for Women: {event.womenSignupCount ?? "-"}/{event.womenSpots ?? "-"}</span>
       </div>
-      {/* Sign Up / Wait List Button */}
-      {(() => {
+      {/* Sign Up / Wait List Button or Join Now for Upcoming */}
+      {type === 'upcoming' ? (
+        <button
+          className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl w-full"
+          disabled={false}
+        >
+          Join Now
+        </button>
+      ) : (() => {
         // Parse numbers for comparison
         const menCount = Number(event.menSignupCount);
         const menMax = Number(event.menSpots);
         const womenCount = Number(event.womenSignupCount);
         const womenMax = Number(event.womenSpots);
-        const hasSpace = (menCount < menMax) || (womenCount < womenMax);
-        if (hasSpace) {
-          return (
-            <div className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl">
-              Sign Up
-            </div>
-          );
+        // Use userGender prop for logic
+        if (typeof userGender === 'string' && userGender.toLowerCase() === 'female') {
+          if (womenMax > 0 && womenCount < womenMax) {
+            return (
+              <button
+                className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={datesRemaining === 0 || signUpClicked}
+                onClick={() => { onSignUp(event); setSignUpClicked(true); }}
+              >
+                Sign Up
+              </button>
+            );
+          } else {
+            return (
+              <div className="text-xs mt-5 p-1 text-center text-blue-500 bg-white rounded-xl w-full opacity-50 cursor-not-allowed">
+                Join Wait List
+              </div>
+            );
+          }
+        } else if (typeof userGender === 'string' && userGender.toLowerCase() === 'male') {
+          if (menMax > 0 && menCount < menMax) {
+            return (
+              <button
+                className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={datesRemaining === 0 || signUpClicked}
+                onClick={() => { onSignUp(event); setSignUpClicked(true); }}
+              >
+                Sign Up
+              </button>
+            );
+          } else {
+            return (
+              <div className="text-xs mt-5 p-1 text-center text-blue-500 bg-white rounded-xl w-full opacity-50 cursor-not-allowed">
+                Join Wait List
+              </div>
+            );
+          }
         } else {
-          return (
-            <div className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl">
-              Join Wait List
-            </div>
-          );
+          // fallback: allow sign up if either has space
+          const hasSpace = (menMax > 0 && menCount < menMax) || (womenMax > 0 && womenCount < womenMax);
+          if (hasSpace) {
+            return (
+              <button
+                className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={datesRemaining === 0 || signUpClicked}
+                onClick={() => { onSignUp(event); setSignUpClicked(true); }}
+              >
+                Sign Up
+              </button>
+            );
+          } else {
+            return (
+              <div className="text-xs mt-5 p-1 text-center text-blue-500 bg-white rounded-xl w-full opacity-50 cursor-not-allowed">
+                Join Wait List
+              </div>
+            );
+          }
         }
       })()}
     </div>
