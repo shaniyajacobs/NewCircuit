@@ -3,7 +3,7 @@ import React from 'react';
 const MapHeroSection = () => {
   return (
     <div 
-        className="max-w-[1280px] mx-auto flex flex-col lg:flex-row-reverse justify-center items-center gap-[18px] sm:gap-[24px] md:gap-[32px] lg:gap-[50px] w-full px-4 sm:px-6 md:px-10 lg:px-[100px] pb-[100px] bg-[#FAFFE7] min-h-screen"
+        className="max-w-[1280px] mx-auto flex md:flex-row-reverse flex-col justify-center items-center gap-[18px] sm:gap-[24px] md:gap-[32px] lg:gap-[50px] w-full px-4 sm:px-6 md:px-10 lg:px-[100px] pb-[100px] bg-[#FAFFE7] min-h-screen"
     >
       {/* Image Rectangle */}
       <div
@@ -15,7 +15,7 @@ const MapHeroSection = () => {
           flex: '0.8 0 0',
           alignSelf: 'center',
         }}
-        className="order-last md:order-none flex w-full sm:w-full md:w-[592px] md:min-h-[690px] lg:min-w-[645px] min-h-[350px] sm:min-h-[450px] lg:min-h-[800px] p-[16px] sm:p-[24px] md:p-[32px] lg:p-[50px] flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] relative overflow-hidden"
+        className="order-last md:order-none flex w-full sm:w-full md:w-[592px] md:min-h-[690px] lg:min-w-[645px] min-h-[350px] sm:min-h-[450px] lg:min-h-[800px] p-[16px] sm:p-[24px] md:p-[32px] lg:p-[50px] justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] relative overflow-hidden"
       >
         {/* Background Image */}
         <div
@@ -90,10 +90,10 @@ const MapHeroSection = () => {
       </div>
 
       {/* Restaurant Cards Container */}
-      <div className="flex flex-col gap-[18px] sm:gap-[24px] md:gap-[32px] lg:gap-[50px] flex-1  max-h-[800px]">
+      <div className="flex flex-col w-full gap-[18px] sm:gap-[24px] md:gap-[32px] lg:gap-[50px] flex-1  max-h-[800px]">
         {/* Dietary restrictions */}
         <div
-            className="flex w-full sm:w-full md:w-[592px] h-[172px] sm:h-[135px] md:h-[170px] lg:w-[645px] lg:h-[225px] p-[20px] sm:p-[30px] flex-col items-start gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] bg-[radial-gradient(50%_50%_at_50%_50%,_#8EFF7A_0%,_#D7FFF8_100%)]"
+            className="flex md:w-[592px] h-[172px] sm:h-[135px] md:h-[170px] lg:w-[645px] lg:h-[225px] p-[20px] sm:p-[30px] flex-col items-start gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] bg-[radial-gradient(50%_50%_at_50%_50%,_#8EFF7A_0%,_#D7FFF8_100%)]"
         >
             <h2 
                 style={{
