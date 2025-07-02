@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
 import { auth } from "../../../firebaseConfig";
@@ -16,6 +16,7 @@ const DashHome = () => {
   const [loading, setLoading] = useState(true);
   const [userGender, setUserGender] = useState(null);
   const [datesRemaining, setDatesRemaining] = useState(100);
+  const [userProfile, setUserProfile] = useState(null);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
 
   // Fetch user gender and datesRemaining from Firestore
@@ -25,8 +26,10 @@ const DashHome = () => {
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          setUserGender(userDoc.data().gender);
-          setDatesRemaining(userDoc.data().datesRemaining);
+          const data = userDoc.data();
+          setUserGender(data.gender);
+          setDatesRemaining(data.datesRemaining);
+          setUserProfile(data);
         }
       }
     });
@@ -96,7 +99,7 @@ const DashHome = () => {
           if (eventData) {
             const transformedEvent = {
               ...eventData,
-              eventID: docSnapshot.id,
+              firestoreID: docSnapshot.id,
             };
             eventsList.push(transformedEvent);
           }
@@ -215,11 +218,43 @@ const getEventData = async (eventID) => {
     const user = auth.currentUser;
     if (user) {
       const userDocRef = doc(db, 'users', user.uid);
+      // Update remaining dates for the user
       await setDoc(userDocRef, { datesRemaining: datesRemaining - 1 }, { merge: true });
+
+      // 1. Add a document in the user's sub-collection
+      await setDoc(
+        doc(db, 'users', user.uid, 'signedUpEvents', event.firestoreID),
+        {
+          eventID: event.eventID,
+          signUpTime: serverTimestamp(),
+          eventTitle: event.title || null,
+          eventDate: event.date || null,
+          eventTime: event.time || null,
+          eventLocation: event.location || null,
+          eventAgeRange: event.ageRange || null,
+          eventType: event.eventType || null,
+        },
+        { merge: true }
+      );
+
+      // 2. Add a document in the event's sub-collection
+      await setDoc(
+        doc(db, 'events', event.firestoreID, 'signedUpUsers', user.uid),
+        {
+          userID: user.uid,
+          userName: userProfile && userProfile.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : (user.displayName || null),
+          userEmail: user.email || null,
+          userPhoneNumber: (userProfile && userProfile.phoneNumber) || user.phoneNumber || null,
+          userGender: userGender || null,
+          userLocation: (userProfile && userProfile.location) || null,
+          signUpTime: serverTimestamp(),
+        },
+        { merge: true }
+      );
     }
 
     // Update event signup count in Firestore
-    const eventDocRef = doc(db, 'events', event.eventID);
+    const eventDocRef = doc(db, 'events', event.firestoreID);
     const eventDoc = await getDoc(eventDocRef);
     let updatedEvents = [...firebaseEvents];
     if (eventDoc.exists()) {
@@ -229,7 +264,7 @@ const getEventData = async (eventID) => {
         await setDoc(eventDocRef, { menSignupCount: newMenSignupCount }, { merge: true });
         // Update local state
         updatedEvents = updatedEvents.map(ev =>
-          ev.eventID === event.eventID
+          ev.firestoreID === event.firestoreID
             ? { ...ev, menSignupCount: (Number(ev.menSignupCount) || 0) + 1 }
             : ev
         );
@@ -238,15 +273,15 @@ const getEventData = async (eventID) => {
         await setDoc(eventDocRef, { womenSignupCount: newWomenSignupCount }, { merge: true });
         // Update local state
         updatedEvents = updatedEvents.map(ev =>
-          ev.eventID === event.eventID
+          ev.firestoreID === event.firestoreID
             ? { ...ev, womenSignupCount: (Number(ev.womenSignupCount) || 0) + 1 }
             : ev
         );
       }
       // Move the event to upcomingEvents
-      const eventToMove = updatedEvents.find(ev => ev.eventID === event.eventID);
+      const eventToMove = updatedEvents.find(ev => ev.firestoreID === event.firestoreID);
       setUpcomingEvents(prev => [...prev, eventToMove]);
-      setFirebaseEvents(updatedEvents.filter(ev => ev.eventID !== event.eventID));
+      setFirebaseEvents(updatedEvents.filter(ev => ev.firestoreID !== event.firestoreID));
     }
   };
 
@@ -287,7 +322,7 @@ const getEventData = async (eventID) => {
         <div className="flex bg-white rounded-xl">
           {upcomingEvents.map((event) => (
             <EventCard
-              key={event.eventID}
+              key={event.firestoreID}
               event={event}
               type="upcoming"
               userGender={userGender}
@@ -311,7 +346,7 @@ const getEventData = async (eventID) => {
               ) : firebaseEvents.length > 0 ? (
                 firebaseEvents.map((event) => (
                   <EventCard
-                    key={event.eventID}
+                    key={event.firestoreID}
                     event={event}
                     type="signup"
                     userGender={userGender}
