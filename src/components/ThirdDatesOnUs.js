@@ -23,7 +23,7 @@ export function ThirdDatesOnUs() {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full bg-[#FAFFE7] flex flex-col items-center gap-[16px] sm:gap-[20px] md:gap-[24px] lg:gap-[32px]">
+    <div className="w-full px-4 bg-[#FAFFE7] flex flex-col items-center gap-[16px] sm:gap-[20px] md:gap-[24px] lg:gap-[32px]">
       {/* Title */}
       <h2
         style={{
@@ -44,15 +44,15 @@ export function ThirdDatesOnUs() {
       <div className="flex flex-col items-center w-full gap-[16px]
         sm:flex-col sm:items-center sm:justify-center sm:gap-[20px] sm:mx-auto
         md:flex-row md:items-stretch md:justify-center md:gap-[24px] md:max-w-[1216px]
-        lg:flex-row lg:items-stretch lg:justify-between lg:gap-[32px] lg:max-w-[1340px]">
+        lg:flex-row lg:items-stretch lg:justify-center lg:gap-[32px] lg:max-w-[1340px]">
         {thirdDateSteps.map((card, index) => (
           <div
             key={index}
-            className="w-[358px] h-[202px] sm:w-[690px] sm:h-[246px] md:w-[380px] md:h-[350px] lg:w-[426px] lg:h-[450px] flex flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] border-[1.5px] border-[#211F20] bg-[#FAFFE7] relative p-[12px] sm:p-[16px] md:p-[20px] lg:p-[24px] shrink-0"
+            className="w-full sm:w-full md:w-[380px] lg:w-[426px] h-[202px] sm:h-[246px] md:h-[350px] lg:h-[450px] flex flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] border-[1.5px] border-[#211F20] bg-[#FAFFE7] relative p-[12px] sm:p-[16px] md:p-[20px] lg:p-[24px] shrink-0"
           >
             {/* Icon container in top left corner */}
             <div
-              className="absolute top-[12px] left-[12px] sm:top-[16px] sm:left-[16px] md:top-[20px] md:left-[20px] lg:top-[24px] lg:left-[24px] flex items-center justify-center w-[50px] h-[50px] sm:w-[75px] sm:h-[75px] lg:w-[100px] lg:h-[100px]"
+              className="absolute top-[12px] left-[12px] sm:top-[16px] sm:left-[16px] md:top-[20px] md:left-[20px] lg:top-[24px] lg:left-[24px] flex items-center justify-center w-[50px] h-[50px] sm:w-[75px] sm:h-[75px] md:w-[85px] md:h-[85px] lg:w-[100px] lg:h-[100px]"
             >
               {index === 0 && (
                 <svg
@@ -137,7 +137,7 @@ export function ThirdDatesOnUs() {
       </div>
       {/* Image Section */}
       <div
-        className="w-[358px] h-[259px] sm:w-[696px] sm:h-[217px] md:w-[1216px] md:h-[350px] lg:w-[1340px] lg:h-[450px] relative flex flex-col justify-end items-end overflow-hidden rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px]"
+        className="w-full md:max-w-[1188px] lg:max-w-[1340px] h-[259px] sm:h-[217px] md:h-[350px] lg:h-[450px] relative flex flex-col justify-end items-end overflow-hidden rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] mx-auto"
       >
         {/* Background image with overlays */}
         <div className="absolute inset-0">

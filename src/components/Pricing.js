@@ -26,12 +26,12 @@ const Pricing = () => {
 
           <button 
             onClick={() => setIsBundle(!isBundle)}
-            className={`${styles.toggleBackground} ${!isBundle ? styles.toggleBackgroundInverted : ''}`}
+            className={`${styles.toggleBackground} `}
             aria-label={`Switch to ${isBundle ? "Individual" : "Bundles"} pricing`}
           >
 
             <div
-              className={`transition-transform duration-300 ${styles.toggleButton} ${!isBundle ? styles.toggleButtonInverted : ''} 
+              className={`transition-transform duration-300 ${styles.toggleButton}  
               ${isBundle ? "translate-x-0" : "translate-x-full"}`}
               style={{ transform: isBundle ? "translateX(0%)" : "translateX(100%)" }}
             />
