@@ -3,7 +3,7 @@ import React from 'react';
 export function Values() {
   return (
     <div 
-      className="w-full bg-[#FAFFE7] flex flex-col md:flex-row justify-center items-center gap-[18px] sm:gap-[24px] md:gap-[32px] lg:gap-[50px] px-[16px] sm:px-[24px] md:px-[32px] lg:px-[50px] py-[100px] min-h-screen"
+      className="w-full max-w-[1280px] mx-auto bg-[#FAFFE7] flex flex-col md:flex-row justify-center items-center gap-[18px] sm:gap-[24px] md:gap-[32px] lg:gap-[50px] px-[16px] sm:px-[24px] md:px-[32px] lg:px-[50px] py-[100px] min-h-screen"
     >
 
       {/* Video Rectangle */}
@@ -13,12 +13,10 @@ export function Values() {
           flexDirection: 'column',
           justifyContent: 'flex-end',
           alignItems: 'flex-start',
-          flex: '0.8 0 0',
-          alignSelf: 'center',
           background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.00) 0%, rgba(0, 0, 0, 0.75) 100%), url(<path-to-image>) lightgray 50% / cover no-repeat',
           backgroundBlendMode: 'normal, soft-light',
         }}
-        className="order-first md:order-none flex w-full sm:w-full md:max-w-[592px] lg:max-w-[645px] min-h-[350px] sm:min-h-[450px] md:min-h-[690px] lg:min-h-[800px] p-[16px] sm:p-[24px] md:p-[32px] lg:p-[50px] flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] relative overflow-hidden"
+        className="order-first md:order-none flex w-full sm:w-full md:w-1/2 lg:w-1/2 flex-1 min-h-[350px] sm:min-h-[450px] md:min-h-[690px] lg:min-h-[800px] p-[16px] sm:p-[24px] md:p-[32px] lg:p-[50px] flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] relative overflow-hidden"
       >
         {/* Video Background */}
         <video
@@ -96,7 +94,7 @@ export function Values() {
       </div>
 
       {/* Value Boxes Container */}
-      <div className="flex flex-col gap-[18px] sm:gap-[24px] md:gap-[32px] lg:gap-[50px] flex-1 max-h-[800px] w-full md:max-w-[592px] lg:max-w-[645px] mx-auto">
+      <div className="flex flex-col gap-[18px] sm:gap-[24px] md:gap-[32px] lg:gap-[50px] flex-1 max-h-[800px] w-full md:w-1/2 lg:w-1/2 mx-auto">
         {/* Value 01 */}
         <div className="flex w-full h-[137px] sm:h-[135px] md:h-[170px] lg:h-[225px] p-[20px] sm:p-[30px] flex-col items-start gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] bg-[radial-gradient(50%_50%_at_50%_50%,_#E2FF65_0%,_#D2FFD7_100%)]">
           <h2 
