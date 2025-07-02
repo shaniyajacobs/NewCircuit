@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 const Footer = () => {
 
   return (
-    <footer className="bg-[#FAFFE7] text-black px-3 py-12 md:px-16 lg:px-24 border-t border-black">
+    <footer className="bg-[#FAFFE7] text-black px-3 py-12 md:px-16 lg:px-24 border-t border-black overflow-x-hidden">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div>
           <h5 className="text-xs font-semibold uppercase mb-4">Pages</h5>
@@ -39,11 +39,12 @@ const Footer = () => {
         </div>
       </div>
 
-      <div className="w-full flex justify-center">
+      {/* LOGO: perfectly edge-to-edge full width on desktop, normal on mobile */}
+      <div className="w-screen relative left-1/2 -translate-x-1/2 flex justify-center items-center">
         <img
           src={logo}
           alt="Circuit Logo"
-          className="w-full max-w-[1600px] h-auto object-contain"
+          className="w-full h-auto object-contain"
           style={{ maxHeight: '400px' }}
         />
       </div>
