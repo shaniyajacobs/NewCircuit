@@ -23,6 +23,11 @@ const AdminEvents = () => {
     eventType: '',
     eventID: ''
   });
+  const [showUsersModal, setShowUsersModal] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [eventUsers, setEventUsers] = useState([]);
+  const [maleUsers, setMaleUsers] = useState([]);
+  const [femaleUsers, setFemaleUsers] = useState([]);
 
   const LOCATION_OPTIONS = [
     'Atlanta',
@@ -61,6 +66,23 @@ const AdminEvents = () => {
   const handleEditEvent = (event) => {
     setSelectedEvent(event);
     setShowEditModal(true);
+  };
+
+  const handleShowUsers = async (event) => {
+    setSelectedEvent(event);
+    setShowUsersModal(true);
+    setLoadingUsers(true);
+    try {
+      const usersSnap = await getDocs(collection(db, 'events', event.id, 'signedUpUsers'));
+      const usersList = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setEventUsers(usersList);
+      setMaleUsers(usersList.filter(u => (u.userGender || '').toLowerCase() === 'male'));
+      setFemaleUsers(usersList.filter(u => (u.userGender || '').toLowerCase() === 'female'));
+    } catch (error) {
+      console.error('Error fetching signed up users:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
   };
 
   const confirmDelete = async () => {
@@ -138,8 +160,7 @@ const AdminEvents = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Zone</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Men</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Women</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sign Ups</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age Range</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -157,8 +178,14 @@ const AdminEvents = () => {
                 <td className="px-6 py-4 whitespace-nowrap">{evt.time}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{evt.timeZone}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{evt.location}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{(evt.menSignupCount ?? 0)} / {evt.menSpots}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{(evt.womenSignupCount ?? 0)} / {evt.womenSpots}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <button
+                    onClick={() => handleShowUsers(evt)}
+                    className="px-3 py-1 bg-[#0043F1] text-white text-sm rounded-lg hover:bg-[#0034BD] transition-colors"
+                  >
+                    Users
+                  </button>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">{evt.eventType}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{evt.ageRange}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -476,6 +503,88 @@ const AdminEvents = () => {
                 <button type="submit" className="px-4 py-2 bg-[#0043F1] text-white rounded-lg hover:bg-[#0034BD] transition-colors">Update Event</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Users Overview Modal */}
+      {showUsersModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-5xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <h2 className="text-2xl font-semibold mb-4">Users for {selectedEvent?.title}</h2>
+            {loadingUsers ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : eventUsers.length === 0 ? (
+              <div className="text-center py-8 text-gray-600">No users have signed up yet.</div>
+            ) : (
+              <div className="space-y-10">
+                {/* Male Users Table */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Male Users</h3>
+                  {maleUsers.length === 0 ? (
+                    <div className="text-gray-600">No male users have signed up.</div>
+                  ) : (
+                    <table className="min-w-full text-sm table-fixed">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Name</th>
+                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Signed Up At</th>
+                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Email</th>
+                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Phone</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {maleUsers.map(u => (
+                          <tr key={u.id}>
+                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userName || '-'}</td>
+                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.signUpTime && u.signUpTime.toDate ? u.signUpTime.toDate().toLocaleString() : '-'}</td>
+                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userEmail || '-'}</td>
+                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userPhoneNumber || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                {/* Female Users Table */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Female Users</h3>
+                  {femaleUsers.length === 0 ? (
+                    <div className="text-gray-600">No female users have signed up.</div>
+                  ) : (
+                    <table className="min-w-full text-sm table-fixed">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Name</th>
+                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Signed Up At</th>
+                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Email</th>
+                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Phone</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {femaleUsers.map(u => (
+                          <tr key={u.id}>
+                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userName || '-'}</td>
+                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.signUpTime && u.signUpTime.toDate ? u.signUpTime.toDate().toLocaleString() : '-'}</td>
+                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userEmail || '-'}</td>
+                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userPhoneNumber || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end mt-6">
+              <button
+                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                onClick={() => setShowUsersModal(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
