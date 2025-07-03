@@ -1,19 +1,59 @@
 import React, { useState } from "react";
+import { DateTime } from 'luxon';
 
-function getDateParts(dateString) {
-  if (!dateString) return { dayOfWeek: '', day: '', month: '' };
-  const dateObj = new Date(dateString);
-  if (isNaN(dateObj)) return { dayOfWeek: '', day: '', month: '' };
-  const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-  const day = dateObj.getDate();
-  const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-  return { dayOfWeek, day, month };
+function getDateParts(dateString, timeString, timeZone) {
+  const normalizedTime = timeString ? timeString.replace(/am|pm/i, match => match.toUpperCase()).trim() : '';
+  const cleanDate = dateString ? dateString.trim() : '';
+  const eventZoneMap = {
+    'PST': 'America/Los_Angeles',
+    'EST': 'America/New_York',
+    'CST': 'America/Chicago',
+    'MST': 'America/Denver',
+  };
+  const eventZone = eventZoneMap[timeZone] || timeZone || 'UTC';
+
+  // Try ISO format first
+  let eventDateTime = DateTime.fromFormat(
+    `${cleanDate} ${normalizedTime}`,
+    'yyyy-MM-dd h:mma',
+    { zone: eventZone }
+  );
+  if (!eventDateTime.isValid) {
+    eventDateTime = DateTime.fromFormat(
+      `${cleanDate} ${normalizedTime}`,
+      'yyyy-MM-dd H:mm',
+      { zone: eventZone }
+    );
+  }
+  // Try MM/dd/yy format if still invalid
+  if (!eventDateTime.isValid) {
+    eventDateTime = DateTime.fromFormat(
+      `${cleanDate} ${normalizedTime}`,
+      'MM/dd/yy h:mma',
+      { zone: eventZone }
+    );
+  }
+  if (!eventDateTime.isValid) {
+    eventDateTime = DateTime.fromFormat(
+      `${cleanDate} ${normalizedTime}`,
+      'MM/dd/yy H:mm',
+      { zone: eventZone }
+    );
+  }
+  console.log('Parsing date:', cleanDate, 'time:', normalizedTime, 'zone:', eventZone, 'result:', eventDateTime.toString());
+  if (!eventDateTime.isValid) return { dayOfWeek: '', day: '', month: '' };
+
+  return {
+    dayOfWeek: eventDateTime.toFormat('ccc').toUpperCase(),
+    day: eventDateTime.toFormat('d'),
+    month: eventDateTime.toFormat('LLL').toUpperCase(),
+  };
 }
 
 const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
   console.log('EventCard received userGender:', userGender, 'event:', event);
-  const { dayOfWeek, day, month } = getDateParts(event.date);
+  const { dayOfWeek, day, month } = getDateParts(event.date, event.time, event.timeZone);
   return (
     <div
       className={
