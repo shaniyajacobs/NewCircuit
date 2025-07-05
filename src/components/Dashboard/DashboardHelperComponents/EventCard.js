@@ -93,9 +93,17 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
       </div>
       {/* Spots Info */}
       <div className="text-base text-slate-600 text-center mt-2">
-        <span>Open Spots for Men: {event.menSignupCount ?? "-"}/{event.menSpots ?? "-"}</span>
+        <span>Open Spots for Men: {(() => {
+          const total = Number(event.menSpots) || 0;
+          const signedUp = Number(event.menSignupCount) || 0;
+          return `${Math.max(total - signedUp, 0)}/${total}`;
+        })()}</span>
         <br />
-        <span>Open Spots for Women: {event.womenSignupCount ?? "-"}/{event.womenSpots ?? "-"}</span>
+        <span>Open Spots for Women: {(() => {
+          const total = Number(event.womenSpots) || 0;
+          const signedUp = Number(event.womenSignupCount) || 0;
+          return `${Math.max(total - signedUp, 0)}/${total}`;
+        })()}</span>
       </div>
       {/* Sign Up / Wait List Button or Join Now for Upcoming */}
       {type === 'upcoming' ? (
