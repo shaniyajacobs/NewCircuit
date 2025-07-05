@@ -5,6 +5,7 @@ import { deleteUser, getAuth, signInWithEmailAndPassword, EmailAuthProvider, rea
 import { FaSearch, FaTrash, FaUserShield } from 'react-icons/fa';
 import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import AdminUserDetailModal from './AdminUserDetailModal';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -14,6 +15,8 @@ const AdminUserManagement = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -136,7 +139,7 @@ const AdminUserManagement = () => {
               </tr>
             ) : filteredUsers.map(user => (
               <tr key={user.id} className={user.id === auth.currentUser?.uid ? 'bg-blue-50' : ''}>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap cursor-pointer text-blue-700 hover:underline" onClick={() => { setSelectedUserDetail(user); setShowUserDetailModal(true); }}>
                   {user.firstName} {user.lastName}
                   {user.id === auth.currentUser?.uid && (
                     <span className="ml-2 text-xs text-blue-600">(Me)</span>
@@ -239,6 +242,14 @@ const AdminUserManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showUserDetailModal && selectedUserDetail && (
+        <AdminUserDetailModal
+          isOpen={showUserDetailModal}
+          onClose={() => setShowUserDetailModal(false)}
+          user={selectedUserDetail}
+        />
       )}
     </div>
   );
