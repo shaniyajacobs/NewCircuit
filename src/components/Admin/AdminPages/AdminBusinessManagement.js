@@ -92,7 +92,7 @@ const AdminBusinessManagement = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan="5" className="text-center py-4">Loading...</td>
+                <td colSpan="4" className="text-center py-4">Loading...</td>
               </tr>
             ) : filteredBusinesses.map(business => (
               <tr key={business.id}>
