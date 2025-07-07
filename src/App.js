@@ -149,6 +149,7 @@ function App() {
             <Route path="/privacy-policy" element={<Legal />} />
             <Route path="/cookie-policy" element={<Legal />} />
             <Route path="/terms-of-service" element={<Legal />} />
+            <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
           </Routes>
         </ScrollToTop>
       </Router>
