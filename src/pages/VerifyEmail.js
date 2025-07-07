@@ -54,7 +54,7 @@ const VerifyEmail = () => {
                     image: userData.image,
                     isActive: true,
                     location: userData.location,
-                    datesRemaining: 100 // Set initial dates remaining
+                    datesRemaining: 50 // TODO: change this number when finished testing
                 });
 
             } catch (createErr) {
