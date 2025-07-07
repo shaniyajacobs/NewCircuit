@@ -1,0 +1,66 @@
+[debug] [2025-07-07T19:32:09.248Z] ----------------------------------------------------------------------
+[debug] [2025-07-07T19:32:09.249Z] Command:       /Users/mikxvii/.nvm/versions/node/v23.11.0/bin/node /Users/mikxvii/.nvm/versions/node/v23.11.0/bin/firebase functions:shell
+[debug] [2025-07-07T19:32:09.250Z] CLI Version:   14.9.0
+[debug] [2025-07-07T19:32:09.250Z] Platform:      darwin
+[debug] [2025-07-07T19:32:09.250Z] Node Version:  v23.11.0
+[debug] [2025-07-07T19:32:09.250Z] Time:          Mon Jul 07 2025 12:32:09 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-07-07T19:32:09.250Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-07-07T19:32:09.321Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-07T19:32:09.321Z] > authorizing via signed-in user (michael.guerrero0704@gmail.com)
+[debug] [2025-07-07T19:32:09.321Z] [iam] checking project circuit-eb73c for permissions ["firebase.projects.get"]
+[debug] [2025-07-07T19:32:09.322Z] Checked if tokens are valid: true, expires at: 1751919140330
+[debug] [2025-07-07T19:32:09.322Z] Checked if tokens are valid: true, expires at: 1751919140330
+[debug] [2025-07-07T19:32:09.322Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/circuit-eb73c:testIamPermissions [none]
+[debug] [2025-07-07T19:32:09.322Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/circuit-eb73c:testIamPermissions x-goog-quota-user=projects/circuit-eb73c
+[debug] [2025-07-07T19:32:09.322Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/circuit-eb73c:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-07-07T19:32:09.448Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/circuit-eb73c:testIamPermissions 200
+[debug] [2025-07-07T19:32:09.448Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/circuit-eb73c:testIamPermissions {"permissions":["firebase.projects.get"]}
+[warn] ⚠  functions: Functions Emulator unable to start on port 5000, starting on 5001 instead. {"metadata":{"emulator":{"name":"functions"},"message":"Functions Emulator unable to start on port 5000, starting on 5001 instead."}}
+[debug] [2025-07-07T19:32:09.546Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-07-07T19:32:09.550Z] defaultcredentials: writing to file /Users/mikxvii/.config/firebase/michael_guerrero0704_gmail.com_application_default_credentials.json
+[debug] [2025-07-07T19:32:09.552Z] DEBUG: Setting GAC to /Users/mikxvii/.config/firebase/michael_guerrero0704_gmail.com_application_default_credentials.json
+[debug] [2025-07-07T19:32:09.552Z] Checked if tokens are valid: true, expires at: 1751919140330
+[debug] [2025-07-07T19:32:09.552Z] Checked if tokens are valid: true, expires at: 1751919140330
+[debug] [2025-07-07T19:32:09.552Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/circuit-eb73c/adminSdkConfig [none]
+[debug] [2025-07-07T19:32:09.848Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/circuit-eb73c/adminSdkConfig 200
+[debug] [2025-07-07T19:32:09.848Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/circuit-eb73c/adminSdkConfig {"projectId":"circuit-eb73c","databaseURL":"https://circuit-eb73c-default-rtdb.firebaseio.com","storageBucket":"circuit-eb73c.firebasestorage.app"}
+[debug] [2025-07-07T19:32:09.862Z] [functions] Watching "/Users/mikxvii/Circuit_Summer2025/NewCircuit/functions" for Cloud Functions...
+[debug] [2025-07-07T19:32:09.865Z] Validating nodejs source
+[debug] [2025-07-07T19:32:10.354Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.3.2",
+    "luxon": "^3.6.1",
+    "stripe": "^18.0.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2025-07-07T19:32:10.355Z] Building nodejs source
+[debug] [2025-07-07T19:32:10.355Z] Failed to find version of module node: reached end of search path /Users/mikxvii/Circuit_Summer2025/NewCircuit/functions/node_modules
+[warn] ⚠  functions: Your requested "node" version "22" doesn't match your global version "23". Using node@23 from host. 
+[debug] [2025-07-07T19:32:10.356Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-07-07T19:32:10.359Z] Found firebase-functions binary at '/Users/mikxvii/Circuit_Summer2025/NewCircuit/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8102
+
+[debug] [2025-07-07T19:32:10.648Z] Got response from /__/functions.yaml {"endpoints":{"createPaymentIntent":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"secretEnvironmentVariables":[{"key":"STRIPE_SECRET"}],"labels":{},"callableTrigger":{},"entryPoint":"createPaymentIntent"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{},"params":[{"type":"secret","name":"STRIPE_SECRET"}]}
+[debug] [2025-07-07T19:32:14.672Z] [functions] Loaded functions definitions from source: createPaymentIntent.
+[debug] [2025-07-07T19:32:14.673Z] [functions[us-central1-createPaymentIntent]] http function initialized (http://127.0.0.1:5001/circuit-eb73c/us-central1/createPaymentIntent).
+[info] i  functions: Loaded functions: createPaymentIntent 
+[warn] ⚠  functions: The following emulators are not running, calls to these services will affect production: firestore, database, pubsub, storage, eventarc, tasks 
