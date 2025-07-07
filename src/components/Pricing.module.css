@@ -402,6 +402,14 @@
     padding-top: 10px;
     margin-bottom: 40px;
   }
+  .container {
+    width: 100%;
+    padding-left: var(--Sec-LeftRight-S);
+    padding-right: var(--Sec-LeftRight-S);
+  }
+  .cardsContainer {
+    max-width: 100%;
+  }
 }
 @media (max-width: 744px) {
   :root {
