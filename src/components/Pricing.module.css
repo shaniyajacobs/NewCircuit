@@ -280,12 +280,6 @@
     line-height: 110%; /* 22px */
 }
 
-.toggleBackgroundInverted {
-  background: var(--Mindaro, #E2FF65);
-}
-.toggleButtonInverted {
-  background: var(--Raisin_Black, #211F20);
-}
 @media (min-width: 2560px) {
   :root {
     --H2: 48px;
@@ -407,6 +401,14 @@
   .PricingImageWrapper {
     padding-top: 10px;
     margin-bottom: 40px;
+  }
+  .container {
+    width: 100%;
+    padding-left: var(--Sec-LeftRight-S);
+    padding-right: var(--Sec-LeftRight-S);
+  }
+  .cardsContainer {
+    max-width: 100%;
   }
 }
 @media (max-width: 744px) {
