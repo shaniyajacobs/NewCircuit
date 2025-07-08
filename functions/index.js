@@ -55,6 +55,7 @@ exports.getRemoJoinUrl = onCall(
   {
     region: 'us-central1',
     secrets: [remoSecret],
+    invoker: 'public',
   },
   async (data, context) => {
     const eventId = data?.eventId;
