@@ -59,12 +59,12 @@ const Sidebar = () => {
       icon: <FaIcons.FaCalendar />,
       cName: "nav-text",
     },
-    {
-      title: "My Coupons",
-      path: "/dashboard/dashMyCoupons",
-      icon: <RiIcons.RiCoupon3Line />,
-      cName: "nav-text",
-    },
+    // {
+    //   title: "My Coupons",
+    //   path: "/dashboard/dashMyCoupons",
+    //   icon: <RiIcons.RiCoupon3Line />,
+    //   cName: "nav-text",
+    // },
     {
       title: "My Profile",
       path: "/dashboard/DashMyProfile",
