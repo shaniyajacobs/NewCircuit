@@ -185,9 +185,17 @@ const DashHome = () => {
       );
     }
     if (!eventDateTime.isValid) return true;
-    if (addMinutes) eventDateTime = eventDateTime.plus({ minutes: addMinutes });
+
+    // Extend the threshold: event is considered "past" only 24 hours after it started
+    let eventThreshold = eventDateTime;
+    if (addMinutes) {
+      eventThreshold = eventThreshold.plus({ minutes: addMinutes });
+    }
+    // Keep the event visible for an extra day
+    eventThreshold = eventThreshold.plus({ days: 1 });
+
     const now = DateTime.now().setZone(eventZone);
-    return eventDateTime <= now;
+    return eventThreshold <= now;
   }
 
   // Fetch events and signed-up status on page load and after sign-up
