@@ -45,8 +45,8 @@ const AdminDashboard = () => {
       <div className="flex flex-col flex-1 gap-8">
         <AdminHeader path={currPath} />
         <Routes>
-          <Route path="/" element={<AdminCoupons />} />
-          <Route path="/coupons/*" element={<AdminCoupons />} />
+          {/* <Route path="/" element={<AdminCoupons />} /> */}
+          {/* <Route path="/coupons/*" element={<AdminCoupons />} /> */}
           <Route path="/users/*" element={<AdminUserManagement />} />
           <Route path="/businesses/*" element={<AdminBusinessManagement />} />
           <Route path="/events/*" element={<AdminEvents />} />
