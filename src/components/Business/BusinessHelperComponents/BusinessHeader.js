@@ -24,7 +24,7 @@ const BusinessHeader = (props) => {
 
   const PathTitleMappings = {
     "/enterprise-dash": "Home",
-    "/enterprise-dash/coupons": "Coupons",
+    // "/enterprise-dash/coupons": "Coupons",
     "/enterprise-dash/analytics": "Analytics",
     "/enterprise-dash/profile": "Business Profile",
     "/enterprise-dash/settings": "Settings"
