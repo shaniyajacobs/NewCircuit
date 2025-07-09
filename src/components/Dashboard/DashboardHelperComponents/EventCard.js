@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { DateTime } from 'luxon';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 function getDateParts(dateString, timeString, timeZone) {
   const normalizedTime = timeString ? timeString.replace(/am|pm/i, match => match.toUpperCase()).trim() : '';
@@ -52,6 +53,7 @@ function getDateParts(dateString, timeString, timeZone) {
 
 const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
+  const [joining, setJoining] = useState(false);
   console.log('EventCard received userGender:', userGender, 'event:', event);
   const { dayOfWeek, day, month } = getDateParts(event.date, event.time, event.timeZone);
   return (
@@ -108,10 +110,33 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
       {/* Sign Up / Wait List Button or Join Now for Upcoming */}
       {type === 'upcoming' ? (
         <button
-          className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl w-full"
-          disabled={false}
+          className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={joining}
+          onClick={async () => {
+            if (!event?.eventID) {
+              alert('Missing event ID');
+              return;
+            }
+            try {
+              setJoining(true);
+              const functions = getFunctions();
+              const getJoinLink = httpsCallable(functions, 'getRemoJoinUrl');
+              const res = await getJoinLink({ eventId: event.eventID });
+              const { joinUrl } = res.data || {};
+              if (joinUrl) {
+                window.open(joinUrl, '_blank');
+              } else {
+                alert('Join link not available yet.');
+              }
+            } catch (err) {
+              console.error('Error fetching join URL:', err);
+              alert('Unable to fetch join link. Please try again later.');
+            } finally {
+              setJoining(false);
+            }
+          }}
         >
-          Join Now
+          {joining ? 'Loading…' : 'Join Now'}
         </button>
       ) : (() => {
         // Parse numbers for comparison
