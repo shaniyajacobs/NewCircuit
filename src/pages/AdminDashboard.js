@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Route, Routes, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { auth, db } from "./firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
-import AdminCoupons from "../components/Admin/AdminPages/AdminCoupons";
+// import AdminCoupons from "../components/Admin/AdminPages/AdminCoupons";
 import AdminUserManagement from "../components/Admin/AdminPages/AdminUserManagement";
 import AdminBusinessManagement from "../components/Admin/AdminPages/AdminBusinessManagement";
 import AdminAnalytics from "../components/Admin/AdminPages/AdminAnalytics";
@@ -19,18 +19,24 @@ const AdminDashboard = () => {
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (!auth.currentUser) {
-        navigate('/login');
+        navigate('/login/');
         return;
       }
 
       const adminDoc = await getDoc(doc(db, 'adminUsers', auth.currentUser.uid));
       if (!adminDoc.exists()) {
-        navigate('/login');
+        navigate('/login/');
       }
     };
 
     checkAdminStatus();
   }, [navigate]);
+
+  useEffect(() => {
+    if (location.pathname === "/admin-dashboard" || location.pathname === "/admin-dashboard/") {
+      navigate("/admin-dashboard/events", { replace: true });
+    }
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     const path = location.pathname;
