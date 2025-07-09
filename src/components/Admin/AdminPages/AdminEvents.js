@@ -32,7 +32,7 @@ const AdminEvents = () => {
     'Los Angeles',
     'Miami',
     'New York City',
-    'San Francisco',
+    'San Francisco / Bay Area',
     'Seattle',
     'Washington D.C.'
   ];
