@@ -120,10 +120,13 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
             try {
               setJoining(true);
               const functions = getFunctions();
+              console.log('About to call getRemoJoinUrl');
               const getJoinLink = httpsCallable(functions, 'getRemoJoinUrl');
               // Some older Firestore docs may not have an explicit `eventID` field;
               // fall back to the document ID (`firestoreID`) when necessary.
-              const res = await getJoinLink({ eventId: event.eventID || event.firestoreID });
+              console.log('got here');
+              const res = await getJoinLink({ eventId: event.eventID });
+              console.log('getRemoJoinUrl response:', res);
               const { joinUrl } = res.data || {};
               if (joinUrl) {
                 window.open(joinUrl, '_blank');
