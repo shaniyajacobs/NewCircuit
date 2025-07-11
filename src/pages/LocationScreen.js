@@ -29,7 +29,7 @@ const cities = [
     { name: 'Miami', image: miamiImg },
     { name: 'New York City', image: newYorkImg },
     { name: 'Sacramento', image: sacramentoImg },
-    { name: 'San Francisco', image: sanfranciscoImg },
+    { name: 'San Francisco / Bay Area', image: sanfranciscoImg },
     { name: 'Seattle', image: seattleImg },
     { name: 'Washington D.C.', image: washingtonDCImg }
 ];

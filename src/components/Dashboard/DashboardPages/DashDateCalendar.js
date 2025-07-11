@@ -101,7 +101,7 @@ const DashDateCalendar = () => {
   };
 
   const datePlans = [
-    { title: "Brunch", time: "12:30pm - 2:00pm", venue: "San Francisco", price: "$28" },
+    { title: "Brunch", time: "12:30pm - 2:00pm", venue: "San Francisco / Bay Area", price: "$28" },
     { title: "Happy Hour", time: "3:00pm - 4:30pm", venue: "New York City", price: "$28" },
     { title: "Dinner", time: "6:00pm - 7:30pm", venue: "Los Angeles", price: "$38" },
   ];
@@ -111,7 +111,7 @@ const DashDateCalendar = () => {
       title: "The Introduction",
       features: ["All eligible venues", "Basic Matching Algorithm", "1 Dinner"],
       dates: 3,
-      venue: "San Francisco",
+      venue: "San Francisco / Bay Area",
       price: "$78",
     },
     {

@@ -32,12 +32,12 @@ const AdminSidebar = () => {
   };
 
   const SidebarData = [
-    {
-      title: "Coupons",
-      path: "/admin-dashboard/coupons",
-      icon: <RiIcons.RiCoupon3Line />,
-      cName: "nav-text",
-    },
+    // {
+    //   title: "Coupons",
+    //   path: "/admin-dashboard/coupons",
+    //   icon: <RiIcons.RiCoupon3Line />,
+    //   cName: "nav-text",
+    // },
     {
       title: "Events Management",
       path: "/admin-dashboard/events",

@@ -14,7 +14,7 @@ const cities = [
   { name: "Miami", state: "Florida", position: [25.7617, -80.1918] },
   { name: "New York City", state: "New York", position: [40.7128, -74.006] },
   {
-    name: "San Francisco",
+    name: "San Francisco / Bay Area",
     state: "California",
     position: [37.7749, -122.4194],
   },
