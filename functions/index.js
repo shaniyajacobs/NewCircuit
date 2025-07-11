@@ -7,6 +7,7 @@ const util = require('util');
 
 const stripeSecret = defineSecret("STRIPE_SECRET");
 const remoSecret = defineSecret('REMO_API_KEY');
+const remoCompanyIdSecret = defineSecret('REMO_COMPANY_ID');
 
 admin.initializeApp();
 
@@ -55,7 +56,7 @@ exports.createPaymentIntent = onCall(
 exports.getRemoJoinUrl = onCall(
   {
     region: 'us-central1',
-    secrets: [remoSecret],
+    secrets: [remoSecret, remoCompanyIdSecret],
   },
   async (data, context) => {
     // Log only the payload the client sent. data.data contains the body for v2 callable
@@ -72,6 +73,7 @@ exports.getRemoJoinUrl = onCall(
     // Build request URL with optional include parameter for extra data (e.g. registrationQuestions)
     const url = new URL(`https://live.remo.co/api/v1/events/${eventId}`);
     url.searchParams.set('include', 'registrationQuestions');
+    url.searchParams.set('companyId', remoCompanyIdSecret.value());
 
     const response = await fetch(url.toString(), {
       method: 'GET',
