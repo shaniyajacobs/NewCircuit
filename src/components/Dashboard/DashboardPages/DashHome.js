@@ -9,6 +9,17 @@ import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
 import { auth } from "../../../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 
+// Add a hook to detect window width
+function useResponsiveEventLimit() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return isMobile ? 4 : 6;
+}
+
 const DashHome = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
@@ -18,6 +29,8 @@ const DashHome = () => {
   const [datesRemaining, setDatesRemaining] = useState(100);
   const [userProfile, setUserProfile] = useState(null);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [showAllSignUp, setShowAllSignUp] = useState(false);
 
   // Fetch user gender and datesRemaining from Firestore
   useEffect(() => {
@@ -293,6 +306,9 @@ const getEventData = async (eventID) => {
     navigate('dashMyConnections');
   };
 
+  const eventLimit = useResponsiveEventLimit();
+  // Use the same event limit for sign-up events
+  const signUpEventLimit = eventLimit;
 
   return (
     <div>
@@ -317,10 +333,18 @@ const getEventData = async (eventID) => {
               Upcoming Events
             </div>
           </div>
+          {/* See All button for Upcoming Events */}
+          <button
+            className="border border-gray-400 rounded-lg px-4 py-2 text-sm font-medium text-gray-800 bg-white hover:bg-gray-100 transition-colors ml-4"
+            onClick={() => setShowAllUpcoming(true)}
+          >
+            See all
+          </button>
         </div>
         
-        <div className="flex bg-white rounded-xl">
-          {upcomingEvents.map((event) => (
+        {/* Responsive grid for upcoming events */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white rounded-xl">
+          {(upcomingEvents.slice(0, eventLimit)).map((event) => (
             <EventCard
               key={event.firestoreID}
               event={event}
@@ -330,21 +354,64 @@ const getEventData = async (eventID) => {
               onSignUp={handleSignUp}
             />
           ))}
+          {loading && (
+            <div className={`col-span-${eventLimit} flex items-center justify-center w-full p-8`}>
+              <div className="text-lg text-gray-600">Loading events...</div>
+            </div>
+          )}
+          {!loading && upcomingEvents.length === 0 && (
+            <div className={`col-span-${eventLimit} flex items-center justify-center w-full p-8`}>
+              <div className="text-lg text-gray-600">No events available</div>
+            </div>
+          )}
         </div>
+        {/* Modal overlay for all upcoming events */}
+        {showAllUpcoming && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowAllUpcoming(false)} />
+            <div className="relative bg-white rounded-2xl shadow-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto p-8 z-10">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">All Upcoming Events</h2>
+                <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowAllUpcoming(false)}>&times;</button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {upcomingEvents.map((event) => (
+                  <EventCard
+                    key={event.firestoreID}
+                    event={event}
+                    type="upcoming"
+                    userGender={userGender}
+                    datesRemaining={datesRemaining}
+                    onSignUp={handleSignUp}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
-            <div className="flex justify-between">
-              <div className="mb-6 text-xl font-semibold text-[#05004E]">
+            <div className="flex justify-between items-center mb-6">
+              <div className="text-xl font-semibold text-[#05004E]">
                 Sign-Up for Dates
               </div>
-              <div className="text-right font-semibold text-[#05004E]">Dates Remaining: {datesRemaining}</div>
+              <div className="flex items-center gap-4">
+                <button
+                  className="border border-gray-400 rounded-lg px-4 py-2 text-sm font-medium text-gray-800 bg-white hover:bg-gray-100 transition-colors"
+                  onClick={() => setShowAllSignUp(true)}
+                >
+                  See all
+                </button>
+                <div className="text-right font-semibold text-[#05004E]">Dates Remaining: {datesRemaining}</div>
+              </div>
             </div>
-            <div className="flex bg-white rounded-xl">
+            {/* Responsive grid for sign-up events */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white rounded-xl">
               {loading ? (
-                <div className="flex items-center justify-center w-full p-8">
+                <div className={`col-span-${signUpEventLimit} flex items-center justify-center w-full p-8`}>
                   <div className="text-lg text-gray-600">Loading events...</div>
                 </div>
               ) : firebaseEvents.length > 0 ? (
-                firebaseEvents.map((event) => (
+                firebaseEvents.slice(0, signUpEventLimit).map((event) => (
                   <EventCard
                     key={event.firestoreID}
                     event={event}
@@ -355,18 +422,36 @@ const getEventData = async (eventID) => {
                   />
                 ))
               ) : (
-                <div className="flex items-center justify-center w-full p-8">
+                <div className={`col-span-${signUpEventLimit} flex items-center justify-center w-full p-8`}>
                   <div className="text-lg text-gray-600">No events available</div>
                 </div>
               )}
             </div>
-            <Link 
-              to="dashDateCalendar"
-              className="mt-5 text-xs text-center text-blue-500 cursor-pointer block"
-            >
-              Purchase More Dates
-            </Link>
           </div>
+          {/* Modal overlay for all sign-up events */}
+          {showAllSignUp && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowAllSignUp(false)} />
+              <div className="relative bg-white rounded-2xl shadow-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto p-8 z-10">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">All Sign-Up Events</h2>
+                  <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowAllSignUp(false)}>&times;</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {firebaseEvents.map((event) => (
+                    <EventCard
+                      key={event.firestoreID}
+                      event={event}
+                      type="signup"
+                      userGender={userGender}
+                      datesRemaining={datesRemaining}
+                      onSignUp={() => handleSignUp(event)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
             <div className="mb-6 text-xl font-semibold text-indigo-950">
               Current Connections

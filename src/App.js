@@ -39,6 +39,7 @@ import NavBar from './components/Navbar/NavBar';
 import FinalQuizPage from './pages/finalQuizPage';
 import PreferencePage from './pages/preferencePage';
 import Legal from './pages/Legal';
+import AllDates from './components/Dashboard/DashboardPages/AllDates';
 
 const stripePromise = loadStripe("pk_test_51RHbstPpnLZEC8ZQlHoFbnmUGkkKT52aCLMYlMN6fgzmWnVFEPVv8mulHh1PJJaQJRN5yghwIJTfTgumFXt0H3Y400P8jrINGs");
 
@@ -122,6 +123,7 @@ function App() {
                 </Elements>
               </PrivateRoute>
             } />
+            <Route path="/all-dates" element={<AllDates />} />
             <Route path = "/preferencePage" element={<PreferencePage/>}/>
             <Route path ="/finalQuizPage" element={<FinalQuizPage/>}/>
             <Route path="/contact" element={<Contact />} />
