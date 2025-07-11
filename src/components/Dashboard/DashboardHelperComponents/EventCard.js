@@ -1,19 +1,61 @@
 import React, { useState } from "react";
+import { DateTime } from 'luxon';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
-function getDateParts(dateString) {
-  if (!dateString) return { dayOfWeek: '', day: '', month: '' };
-  const dateObj = new Date(dateString);
-  if (isNaN(dateObj)) return { dayOfWeek: '', day: '', month: '' };
-  const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-  const day = dateObj.getDate();
-  const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-  return { dayOfWeek, day, month };
+function getDateParts(dateString, timeString, timeZone) {
+  const normalizedTime = timeString ? timeString.replace(/am|pm/i, match => match.toUpperCase()).trim() : '';
+  const cleanDate = dateString ? dateString.trim() : '';
+  const eventZoneMap = {
+    'PST': 'America/Los_Angeles',
+    'EST': 'America/New_York',
+    'CST': 'America/Chicago',
+    'MST': 'America/Denver',
+  };
+  const eventZone = eventZoneMap[timeZone] || timeZone || 'UTC';
+
+  // Try ISO format first
+  let eventDateTime = DateTime.fromFormat(
+    `${cleanDate} ${normalizedTime}`,
+    'yyyy-MM-dd h:mma',
+    { zone: eventZone }
+  );
+  if (!eventDateTime.isValid) {
+    eventDateTime = DateTime.fromFormat(
+      `${cleanDate} ${normalizedTime}`,
+      'yyyy-MM-dd H:mm',
+      { zone: eventZone }
+    );
+  }
+  // Try MM/dd/yy format if still invalid
+  if (!eventDateTime.isValid) {
+    eventDateTime = DateTime.fromFormat(
+      `${cleanDate} ${normalizedTime}`,
+      'MM/dd/yy h:mma',
+      { zone: eventZone }
+    );
+  }
+  if (!eventDateTime.isValid) {
+    eventDateTime = DateTime.fromFormat(
+      `${cleanDate} ${normalizedTime}`,
+      'MM/dd/yy H:mm',
+      { zone: eventZone }
+    );
+  }
+  console.log('Parsing date:', cleanDate, 'time:', normalizedTime, 'zone:', eventZone, 'result:', eventDateTime.toString());
+  if (!eventDateTime.isValid) return { dayOfWeek: '', day: '', month: '' };
+
+  return {
+    dayOfWeek: eventDateTime.toFormat('ccc').toUpperCase(),
+    day: eventDateTime.toFormat('d'),
+    month: eventDateTime.toFormat('LLL').toUpperCase(),
+  };
 }
 
 const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
+  const [joining, setJoining] = useState(false);
   console.log('EventCard received userGender:', userGender, 'event:', event);
-  const { dayOfWeek, day, month } = getDateParts(event.date);
+  const { dayOfWeek, day, month } = getDateParts(event.date, event.time, event.timeZone);
   return (
     <div
       className={
@@ -52,17 +94,53 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
       </div>
       {/* Spots Info */}
       <div className="text-base text-slate-600 text-center mt-2">
-        <span>Open Spots for Men: {event.menSignupCount ?? "-"}/{event.menSpots ?? "-"}</span>
+        <span>Open Spots for Men: {(() => {
+          const total = Number(event.menSpots) || 0;
+          const signedUp = Number(event.menSignupCount) || 0;
+          return `${Math.max(total - signedUp, 0)}/${total}`;
+        })()}</span>
         <br />
-        <span>Open Spots for Women: {event.womenSignupCount ?? "-"}/{event.womenSpots ?? "-"}</span>
+        <span>Open Spots for Women: {(() => {
+          const total = Number(event.womenSpots) || 0;
+          const signedUp = Number(event.womenSignupCount) || 0;
+          return `${Math.max(total - signedUp, 0)}/${total}`;
+        })()}</span>
       </div>
       {/* Sign Up / Wait List Button or Join Now for Upcoming */}
       {type === 'upcoming' ? (
         <button
-          className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl w-full"
-          disabled={false}
+          className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={joining}
+          onClick={async () => {
+            if (!event?.eventID) {
+              alert('Missing event ID');
+              return;
+            }
+            try {
+              setJoining(true);
+              const functions = getFunctions();
+              console.log('About to call getRemoJoinUrl');
+              const getJoinLink = httpsCallable(functions, 'getRemoJoinUrl');
+              // Some older Firestore docs may not have an explicit `eventID` field;
+              // fall back to the document ID (`firestoreID`) when necessary.
+              console.log('got here');
+              const res = await getJoinLink({ eventId: event.eventID });
+              console.log('getRemoJoinUrl response:', res);
+              const { joinUrl } = res.data || {};
+              if (joinUrl) {
+                window.open(joinUrl, '_blank');
+              } else {
+                alert('Join link not available yet.');
+              }
+            } catch (err) {
+              console.error('Error fetching join URL:', err);
+              alert('Unable to fetch join link. Please try again later.');
+            } finally {
+              setJoining(false);
+            }
+          }}
         >
-          Join Now
+          {joining ? 'Loading…' : 'Join Now'}
         </button>
       ) : (() => {
         // Parse numbers for comparison

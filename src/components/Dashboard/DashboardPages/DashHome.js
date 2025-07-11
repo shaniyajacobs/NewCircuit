@@ -1,13 +1,79 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, getCountFromServer } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
 import { auth } from "../../../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
+import { DateTime } from 'luxon';
+
+// Helper: map city to IANA time zone
+const cityToTimeZone = {
+  'Atlanta': 'America/New_York',
+  'Chicago': 'America/Chicago',
+  'Dallas': 'America/Chicago',
+  'Houston': 'America/Chicago',
+  'Los Angeles': 'America/Los_Angeles',
+  'Miami': 'America/New_York',
+  'New York City': 'America/New_York',
+  'San Francisco': 'America/Los_Angeles',
+  'Seattle': 'America/Los_Angeles',
+  'Washington D.C.': 'America/New_York',
+};
+
+// Helper: map event timeZone field to IANA
+const eventZoneMap = {
+  'PST': 'America/Los_Angeles',
+  'EST': 'America/New_York',
+  'CST': 'America/Chicago',
+  'MST': 'America/Denver',
+  // Add more as needed
+};
+
+// Updated isEventUpcoming function
+function isEventUpcoming(event, userLocation) {
+  if (!event.date || !event.time || !event.timeZone) return false;
+
+  // Parse event time zone
+  let eventZone = eventZoneMap[event.timeZone] || event.timeZone || 'UTC';
+
+  // Normalize time string to uppercase AM/PM
+  const normalizedTime = event.time ? event.time.replace(/am|pm/i, match => match.toUpperCase()) : '';
+  console.log('Original event.time:', event.time, '| Normalized:', normalizedTime);
+
+  // Combine date and time (assume time is like '6:00pm' or '18:00')
+  // Try both 12-hour and 24-hour formats
+  let eventDateTime = DateTime.fromFormat(
+    `${event.date} ${normalizedTime}`,
+    'yyyy-MM-dd h:mma',
+    { zone: eventZone }
+  );
+  if (!eventDateTime.isValid) {
+    eventDateTime = DateTime.fromFormat(
+      `${event.date} ${normalizedTime}`,
+      'yyyy-MM-dd H:mm',
+      { zone: eventZone }
+    );
+  }
+  if (!eventDateTime.isValid) return false;
+
+  // Add 90 minutes for event duration
+  const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+
+  // Get user's time zone from location or fallback to browser local zone
+  const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
+  const now = DateTime.now().setZone(userZone);
+
+  // Compare event end time (converted to user's zone) with now
+  console.log(
+    `[isEventUpcoming] Event: ${event.title} | Date: ${event.date} | Time: ${event.time} | Normalized: ${normalizedTime} | EventZone: ${eventZone} | UserZone: ${userZone}\n` +
+    `Parsed Start: ${eventDateTime.toString()} | Parsed End: ${eventEndDateTime.setZone(userZone).toString()} | Now: ${now.toString()}`
+  );
+  return eventEndDateTime.setZone(userZone) > now;
+}
 
 // Add a hook to detect window width
 function useResponsiveEventLimit() {
@@ -31,6 +97,15 @@ const DashHome = () => {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [showAllSignUp, setShowAllSignUp] = useState(false);
+  const [allEvents, setAllEvents] = useState([]);
+  const [signedUpEventIds, setSignedUpEventIds] = useState(new Set());
+
+  // Filter events to only show upcoming ones
+  const getUpcomingEvents = (eventsList, userLocation) => {
+    const filtered = eventsList.filter(event => isEventUpcoming(event, userLocation));
+    console.log('Filtering events, input size:', eventsList.length, 'output size:', filtered.length);
+    return filtered;
+  };
 
   // Fetch user gender and datesRemaining from Firestore
   useEffect(() => {
@@ -94,9 +169,70 @@ const DashHome = () => {
     },
   ];
 
+  // Helper to check if user is signed up for an event
+  const fetchSignedUpEventIds = async (eventsList, userId) => {
+    const signedUpIds = new Set();
+    for (const event of eventsList) {
+      const signedUpUserDoc = await getDoc(doc(db, 'events', event.firestoreID, 'signedUpUsers', userId));
+      if (signedUpUserDoc.exists()) {
+        signedUpIds.add(event.firestoreID);
+      }
+    }
+    return signedUpIds;
+  };
+
+  // Helper to check if event is past (for sign-up: event start; for upcoming: event start + 90min)
+  function isEventPast(event, addMinutes = 0) {
+    if (!event.date || !event.time || !event.timeZone) return true;
+    let eventZone = eventZoneMap[event.timeZone] || event.timeZone || 'UTC';
+    const normalizedTime = event.time ? event.time.replace(/am|pm/i, match => match.toUpperCase()) : '';
+    let eventDateTime = DateTime.fromFormat(
+      `${event.date} ${normalizedTime}`,
+      'yyyy-MM-dd h:mma',
+      { zone: eventZone }
+    );
+    if (!eventDateTime.isValid) {
+      eventDateTime = DateTime.fromFormat(
+        `${event.date} ${normalizedTime}`,
+        'yyyy-MM-dd H:mm',
+        { zone: eventZone }
+      );
+    }
+    if (!eventDateTime.isValid) return true;
+
+    // Extend the threshold: event is considered "past" only 24 hours after it started
+    let eventThreshold = eventDateTime;
+    if (addMinutes) {
+      eventThreshold = eventThreshold.plus({ minutes: addMinutes });
+    }
+    // Keep the event visible for an extra day
+    eventThreshold = eventThreshold.plus({ days: 1 });
+
+    const now = DateTime.now().setZone(eventZone);
+    return eventThreshold <= now;
+  }
+
+  // Fetch events and signed-up status on page load and after sign-up
   useEffect(() => {
-    fetchEventsFromFirebase();
-  }, []);
+    const fetchAll = async () => {
+      setLoading(true);
+      const eventsList = [];
+      const querySnapshot = await getDocs(collection(db, "events"));
+      for (const docSnapshot of querySnapshot.docs) {
+        const eventData = await getEventData(docSnapshot.id);
+        if (eventData) {
+          eventsList.push({ ...eventData, firestoreID: docSnapshot.id });
+        }
+      }
+      setAllEvents(eventsList);
+      if (auth.currentUser) {
+        const signedUpIds = await fetchSignedUpEventIds(eventsList, auth.currentUser.uid);
+        setSignedUpEventIds(signedUpIds);
+      }
+      setLoading(false);
+    };
+    fetchAll();
+  }, [userProfile]);
 
   const fetchEventsFromFirebase = async () => {
     try {
@@ -131,8 +267,10 @@ const DashHome = () => {
         }
       }
       
-      setFirebaseEvents(eventsList);
-      setEvents(eventsList);
+      setAllEvents(eventsList); // store all fetched events
+      const upcomingEventsList = getUpcomingEvents(eventsList, userProfile?.location);
+      setFirebaseEvents(upcomingEventsList);
+      setEvents(upcomingEventsList);
     } catch (error) {
       console.error('Error fetching events from Firebase:', error);
       setFirebaseEvents([{
@@ -291,10 +429,12 @@ const getEventData = async (eventID) => {
             : ev
         );
       }
-      // Move the event to upcomingEvents
-      const eventToMove = updatedEvents.find(ev => ev.firestoreID === event.firestoreID);
-      setUpcomingEvents(prev => [...prev, eventToMove]);
-      setFirebaseEvents(updatedEvents.filter(ev => ev.firestoreID !== event.firestoreID));
+    }
+
+    // Re-fetch signed-up status
+    if (auth.currentUser) {
+      const signedUpIds = await fetchSignedUpEventIds(allEvents, auth.currentUser.uid);
+      setSignedUpEventIds(signedUpIds);
     }
   };
 
@@ -309,6 +449,18 @@ const getEventData = async (eventID) => {
   const eventLimit = useResponsiveEventLimit();
   // Use the same event limit for sign-up events
   const signUpEventLimit = eventLimit;
+  // Filter for upcoming and sign-up events
+  // const upcomingEvents = useMemo(() => {
+  //   return allEvents.filter(event =>
+  //     signedUpEventIds.has(event.firestoreID) && !isEventPast(event, 90)
+  //   );
+  // }, [allEvents, signedUpEventIds]);
+
+  const upcomingSignupEvents = useMemo(() => {
+    return allEvents.filter(event =>
+      !signedUpEventIds.has(event.firestoreID) && !isEventPast(event, 0)
+    );
+  }, [allEvents, signedUpEventIds]);
 
   return (
     <div>
@@ -410,8 +562,8 @@ const getEventData = async (eventID) => {
                 <div className={`col-span-${signUpEventLimit} flex items-center justify-center w-full p-8`}>
                   <div className="text-lg text-gray-600">Loading events...</div>
                 </div>
-              ) : firebaseEvents.length > 0 ? (
-                firebaseEvents.slice(0, signUpEventLimit).map((event) => (
+              ) : upcomingSignupEvents.length > 0 ? (
+                upcomingSignupEvents.map((event) => (
                   <EventCard
                     key={event.firestoreID}
                     event={event}
@@ -422,8 +574,8 @@ const getEventData = async (eventID) => {
                   />
                 ))
               ) : (
-                <div className={`col-span-${signUpEventLimit} flex items-center justify-center w-full p-8`}>
-                  <div className="text-lg text-gray-600">No events available</div>
+                <div className="flex items-center justify-center w-full p-8">
+                  <div className="text-lg text-gray-600">No upcoming events available</div>
                 </div>
               )}
             </div>

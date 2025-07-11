@@ -80,7 +80,8 @@
 }
 
 .stepcard {
-  width: var(--card-maxwidth);
+  width: 100%;
+  max-width: var(--card-maxwidth); /* allows it to shrink on small screens */
   height: var(--card-total-height);
   border-radius: var(--card-radius);
   border: var(--card-border-width) solid #211F20;
@@ -126,7 +127,7 @@
   border-top-left-radius: var(--card-radius);
   border-top-right-radius: var(--card-radius);
   overflow: hidden;
-  border: var(--card-border-width) solid #211F20;
+  
 }
 
 .stepcardContent {
@@ -323,8 +324,8 @@
     --section-bottom: 50px;
     --section-side: 24px;
     --section-minheight: 350px;
-    --card-maxwidth: 696px;
-    --card-minwidth: 696px;
+    --card-maxwidth: 100%;
+    --card-minwidth: 0;
     --cards-row-maxwidth: 800px;
     --card-radius: 10px;
     --card-border-width: 1px;
@@ -356,8 +357,8 @@
   }
   .howitworks-card-wrapper {
     width: 100% !important;
-    min-width: unset !important;
-    max-width: var(--card-maxwidth) !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     margin-bottom: var(--gap-m);
   }
   .howitworksBtn {
@@ -392,8 +393,8 @@
     --section-bottom: 32px;
     --section-side: 16px;
     --section-minheight: 250px;
-    --card-maxwidth: 358px;
-    --card-minwidth: 358px;
+    --card-maxwidth: 100%;
+    --card-minwidth: 0;
     --cards-row-maxwidth: 350px;
     --card-radius: 8px;
     --card-padding: 16px;
