@@ -1,0 +1,48 @@
+.sliding-bar {
+  width: 100vw;
+  background: #211F20;
+  overflow: hidden;
+  position: relative;
+  padding: 16px 0;
+  margin: 0;
+}
+
+.sliding-bar__marquee {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.sliding-bar__track {
+  display: inline-block;
+  white-space: nowrap;
+  animation: slide-left 40s linear infinite;
+}
+
+.sliding-bar__text {
+  display: inline-block;
+  color: #F3F3F3;
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 110%;
+  white-space: nowrap;
+}
+
+.sliding-bar__heart {
+  color: #0E49E8;
+  margin: 0 12px;
+  font-size: 20px;
+  vertical-align: middle;
+}
+
+@keyframes slide-left {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+} 

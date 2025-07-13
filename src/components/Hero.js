@@ -1,48 +1,156 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import NavBar from '../components/Navbar/NavBar';
-import heroImg from '../images/web-dev.svg';
+import styles from './Hero.module.css';
+import SlidingBar from './SlidingBar';
+import Info from './Info';
+import {HowItWorks} from './CircuitHowItWorks';
+
+const LightningIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="22" viewBox="0 0 12 22" fill="none" className="inline-block mr-2 align-middle">
+    <path d="M9.35664 0.5L0 12.2866H4.31606L2.64336 21.5L12 9.71344H7.68394L9.35664 0.5Z" fill="#211F20" />
+  </svg>
+);
 
 const Hero = () => {
-    return (
-        <>
-            <div className="hero" id='hero'>
-                <div>
-                    <NavBar />
-                </div>
-                
-                <div className="m-auto overflow-hidden mx-4 mt-8 lg:mt-4 p-2 md:p-12 h-5/6" data-aos="zoom-in">
+  const marqueeContainerRef = useRef(null);
+  const marqueeContentRef = useRef(null);
+  const [repeatCount, setRepeatCount] = useState(2);
 
-                    <div id='hero' className="flex flex-col lg:flex-row py-8 justify-between text-center lg:text-left">
-                        <div className="lg:w-1/2 flex flex-col justify-center" data-aos="zoom-in" data-aos-delay="200">
-                            <h1 className="mb-5 md:text-5xl text-3xl font-bold text-blue-900">
-                            {/* We build digital solutions to help businesses scale */}
-                                Bespoke software solutions for your unique business needs
-                            </h1>
-                            <div className="text-xl font-semibold tracking-tight mb-5 text-gray-500">We are a team of highly motivated and skilled developers dedicated to delivering only the best software.</div>
-                            <div className="mb-4 space-x-0 md:space-x-2 md:mb-8">
-                                <Link to="/contact" className="text-white bg-blue-900 hover:bg-blue-800 inline-flex items-center justify-center w-full px-6 py-3 my-4 text-lg shadow-xl rounded-2xl sm:w-auto sm:mb-0">
-                                    Learn more
-                                    <svg className="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd"></path></svg>
-                                </Link>
-                                {/* <Link to="/contact" className="text-white bg-blue-900 hover:bg-blue-800 inline-flex items-center justify-center w-full px-6 py-3 my-4 text-lg shadow-xl rounded-2xl sm:w-auto sm:mb-0">
-                                    Get Started
-                                    <svg className="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd"></path></svg>
-                                </Link> */}
-                                {/* <a href="#_" className="inline-flex items-center justify-center w-full px-6 py-3 my-4 text-lg text-white bg-gray-500 hover:bg-gray-400 shadow-xl rounded-2xl sm:w-auto sm:mb-0">
-                                    Learn More
-                                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
-                                </a> */}
-                            </div>
-                        </div>
-                        <div className="flex lg:justify-end w-full lg:w-1/2" data-aos="fade-up" data-aos-delay="700">
-                            <img alt="card img" className="rounded-t float-right duration-1000 w-full" src={heroImg} />
-                        </div>
+  // Testimonial card JSX
+  const testimonialCard = (
+    <div className={styles['testimonial-card']}>
+      <div className={styles['testimonial-message']}>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+      </div>
+      <div className={styles['testimonial-profile']}>
+        <img className={styles['testimonial-avatar']} src="https://randomuser.me/api/portraits/women/44.jpg" alt="Audrey M." />
+        <div className={styles['testimonial-info']}>
+          <div className={styles['testimonial-name']}>Audrey M.</div>
+          <div className={styles['testimonial-location']}>Chicago, 20</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  useEffect(() => {
+    function updateRepeatCount() {
+      if (!marqueeContainerRef.current || !marqueeContentRef.current) return;
+      const containerWidth = marqueeContainerRef.current.offsetWidth;
+      const contentWidth = marqueeContentRef.current.offsetWidth;
+      if (contentWidth === 0) return;
+      // Ensure at least 2x container width for seamless looping
+      const minWidth = containerWidth * 2;
+      const count = Math.ceil(minWidth / contentWidth) + 1;
+      setRepeatCount(count);
+    }
+    updateRepeatCount();
+    window.addEventListener('resize', updateRepeatCount);
+    return () => window.removeEventListener('resize', updateRepeatCount);
+  }, []);
+
+  return (
+    <div className="w-full overflow-hidden relative">
+      {/* Video Background */}
+      <video
+        data-testid="hero-video-bg"
+        className="absolute top-0 left-0 w-full h-[890px] object-cover z-0"
+        src="/Hero_Animation.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+      {/* Hero Content */}
+      <div className="w-full h-[800px] flex items-center justify-center relative pt-[96px]">
+        <div className="container mx-auto flex flex-col items-center justify-center h-full">
+          <div className="w-full h-full flex flex-col items-center justify-center space-y-8 text-center mt-16">
+            <h1
+              className="font-semibold"
+              style={{
+                color: '#FAFFE7',
+                textAlign: 'center',
+                fontFamily: '"Bricolage Grotesque", sans-serif',
+                fontSize: '72px',
+                fontWeight: 600,
+                lineHeight: '110%',
+                alignSelf: 'stretch',
+              }}
+            >
+              Creating <span style={{ color: '#E2FF65' }}>Sparks</span> That Last<br />
+              a Lifetime
+            </h1>
+            <p
+              className="text-2xl"
+              style={{
+                color: '#FAFFE7',
+                textAlign: 'center',
+                fontFamily: 'Poppins, sans-serif',
+                fontSize: '20px',
+                fontWeight: 400,
+                lineHeight: '130%',
+                alignSelf: 'stretch',
+              }}
+            >
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis<br />
+              metus neque, ac hendrerit risus pharetra ac.
+            </p>
+            <Link to="/create-account" className="inline-block">
+              <button
+                style={{
+                  background: '#E2FF65',
+                  borderRadius: '8px',
+                  color: '#211F20',
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: '16px',
+                  fontWeight: 500,
+                  lineHeight: 'normal',
+                  padding: '12px 28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 'none',
+                  textAlign: 'center',
+                  boxShadow: 'none',
+                  gap: '8px',
+                  transition: 'all 0.3s',
+                  cursor: 'pointer',
+                }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '0.6'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+                className="transition-colors hover:scale-110 transition-transform"
+              >
+                <LightningIcon />
+                Spark your connection
+              </button>
+            </Link>
+          </div>
+        </div>
+      </div>
+      {/* Sliding Bar: directly below hero, above testimonials */}
+      <div className="w-full z-20 mt-12">
+        <SlidingBar />
+      </div>
+      <Info />
+      <HowItWorks />
+            {/* Testimonials Section */}
+            <section className={styles['testimonials-section']}>
+                <div className={styles['testimonials-container']}>
+                    <h2 className={styles['testimonials-heading']}>What they're saying</h2>
+                    <div className={styles['testimonials-list-marquee']} ref={marqueeContainerRef}>
+                      {/* Hidden for measurement only */}
+                      <div style={{ display: 'inline-block', visibility: 'hidden', position: 'absolute', left: 0, top: 0 }} ref={marqueeContentRef}>
+                        {testimonialCard}
+                      </div>
+                      <div className={styles['marquee-track']}>
+                        {Array.from({ length: repeatCount }).map((_, i) => (
+                          <React.Fragment key={i}>{testimonialCard}</React.Fragment>
+                        ))}
+                      </div>
                     </div>
                 </div>
-            </div>
-        </>
-    )
-}
-
+                <div className={styles['testimonials-bottom-gap']}></div>
+            </section>
+    </div>
+  );
+};
 export default Hero;

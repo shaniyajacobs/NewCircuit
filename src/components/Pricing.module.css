@@ -1,0 +1,482 @@
+:root {
+    --H2: 48px;
+    --H3: 40px;
+    --H6: 32px;
+    --H8: 16px;
+    --Body-M-Reg: 20px;
+    --Gap-XS: 16px;
+    --Gap-XXS: 12px;
+    --Comp-TopBottom-S: 12px;
+    --Comp-Left-Right-M: 24px;
+    --Radius-S: 8px;
+    --Body-S-Med: 16px;
+    --Body-S-Reg: 16px;
+    --Gap-M: 32px;
+    --Radius-M: 16px;
+    --Margins: 24px;
+    --Body-M-Med: 20px;
+    --Gap-S: 24px;
+    --Sec-TopBottom-M: 100px;
+    --Sec-LeftRight-S: 50px;
+    --Gap-Xl: 75px;
+    --toggle-knob-size: 32px;
+    --Max-Width-M: 1340px;
+    --Min-Height-M: 650px;
+  }
+.container{
+    color: var(--Raisin_Black, #211F20);
+    background-color: var(--Mindaro_Light, #FAFFE7);
+    display: flex;
+    padding: var(--Sec-TopBottom-M, 100px) var(--Sec-LeftRight-S, 50px);
+    flex-direction: column;
+    align-items: center;
+    gap: var(--Gap-Xl, 75px); 
+    align-self: stretch;
+}
+
+.SecTitle {
+  align-self: stretch;
+  text-align: center;
+  /* H2 */
+  font-family: "Bricolage Grotesque";
+  font-size: var(--H2, 48px);
+  font-style: normal;
+  font-weight: 600;
+  line-height: 110%; /* 52.8px */
+  padding-bottom: var(--Gap-Xl, 75px);
+}
+.cardsContainer {
+    display: flex;
+    max-width: var(--Max-Width-M, 1340px);
+    min-height: var(--Min-Height-M, 650px);
+    align-items: flex-start;
+    gap: var(--Gap-M, 32px);
+    align-self: stretch;
+    flex-direction: column;
+}
+.card {
+    width: var(--Card-Width, 425.333px);
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    align-self: stretch;
+    overflow: visible; 
+    position: relative;
+}
+.upperContent {
+    display: flex;
+    padding: var(--card-top, 72px) var(--Margins, 24px) var(--Margins, 24px) var(--Margins, 24px);
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex: 1 0 0;
+    align-self: stretch;
+    border-radius: var(--Radius-M, 16px) var(--Radius-M, 16px) 0px 0px;
+    border-top: 1px solid var(--Raisin_Black, #211F20);
+    border-right: 1px solid var(--Raisin_Black, #211F20);
+    border-left: 1px solid var(--Raisin_Black, #211F20);
+    z-index: 2;
+}
+.PricingImageWrapper {
+        /* fixed width */
+  height: var(--Pricing-Image-Height, 100px);     /* fixed height */
+  display: flex;     /* flexbox to center content */
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;  /* prevent overflow if SVG is bigger */
+}
+.PricingImage {
+  width: auto;  /* scale down to fit width */
+  max-height: 100%;   /* scale down to fit height */
+  object-fit: contain; /* keep aspect ratio */
+}
+.PricingSubheading {
+    align-self: stretch;
+    /* H8 */
+    font-family: "Bricolage Grotesque";
+    font-size: var(--H8, 16px);
+    font-style: normal;
+    font-weight: 500;
+    line-height: 130%; /* 20.8px */
+    text-transform: uppercase;
+}
+.PricingTitle {
+  align-self: stretch;
+  /* H6 */
+  font-family: "Bricolage Grotesque";
+  font-size: var(--H6);
+  font-style: normal;
+  font-weight: 500;
+  line-height: 130%; /* 41.6px */
+}
+.OldPrice {
+  align-self: stretch;
+  /* Body-M-Reg */
+  font-family: Poppins;
+  font-size: var(--Body-M-Reg, 20px);
+  font-style: normal;
+  font-weight: 400;
+  line-height: 130%; /* 26px */
+  text-decoration-line: line-through;
+  opacity: 0.75;
+}
+.Price {
+    /* H3 */
+    font-family: Poppins;
+    font-size: var(--H3, 40px);
+    font-style: normal;
+    font-weight: 500;
+    line-height: 100%; /* 40px */
+}
+.PricePerDate {
+    font-family: Poppins;
+    font-size: var(--Body-M-Reg, 20px);
+    font-style: normal;
+    font-weight: 400;
+    line-height: 130%; /* 26px */
+}
+.currPriceWrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    align-self: stretch;
+}
+.upperText {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--Gap-XXS, 12px);
+    align-self: stretch;
+}
+.PurchaseSection {
+    display: flex;
+    align-items: center;
+    gap: var(--Gap-XS, 16px);
+    align-self: stretch;
+}
+.PurchaseButton {
+    display: flex;
+    padding: var(--Comp-TopBottom-S, 12px) var(--Comp-Left-Right-M, 24px);
+    justify-content: center;
+    align-items: center;
+    gap: var(--Gap-XXS, 12px);
+    border-radius: var(--Radius-S, 8px);
+    background: var(--Raisin_Black, #211F20);
+    color: var(--Mindaro_Light, #FAFFE7);
+    /* Body-S-Med */
+    font-family: Poppins;
+    font-size: var(--Body-S-Med, 16px);
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.PurchaseButton:hover {
+    opacity: 0.6;
+    transform: scale(1.03);
+    transition: all 0.3s ;
+    cursor: pointer;
+  }
+
+.upperTextContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--Gap-M, 32px);
+    align-self: stretch;
+    position: relative; /* Add this for tag positioning */
+}
+.bill {
+    font-family: Poppins;
+    font-size: var(--Body-S-Reg, 16px);
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+}
+.features {
+    list-style-type: disc;         /* bullet style */
+    list-style-position: inside;
+    padding-left: .45rem;         /* optional spacing */
+    align-self: stretch;
+    font-family: 'Poppins';
+    font-size: var(--Body-M-Reg, 20px);
+    font-style: normal;
+    font-weight: 400;
+    line-height: 130%;
+}
+.featuresWrapper {
+    display: flex;
+    padding: var(--Margins, 24px);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    align-self: stretch;
+    border-radius: 0px 0px var(--Radius-M, 16px) var(--Radius-M, 16px);
+    border: 1px solid var(--Raisin_Black, #211F20);
+}
+.toggleBackground {
+    display: flex;
+    width: var(--toggle-background-width, 68px);
+    height: var(--toggle-background-height, 32px);
+    align-items: center;
+    justify-content: space-between; /* <-- Let toggle slide between edges */
+    padding: 0 4px;
+    border-radius: 100px;
+    background: var(--Raisin_Black, #211F20);
+  }
+.toggleText {
+    color: var(--Raisin_Black, #211F20);
+    /*width: 68px;
+    height: 40px;*/
+    /* Body-M-Med */
+    font-family: Poppins;
+    font-size: var(--Body-M-Med, 20px);
+    font-style: normal;
+    font-weight: 500;
+    line-height: 110%; /* 22px */
+}
+.toggleButton {
+    width: var(--toggle-knob-size, 32px);
+    height: var(--toggle-knob-size, 32px);
+    border-radius: 50%;
+    background: var(--Mindaro, #E2FF65);
+    display: flex;
+    padding: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.toggleContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--Gap-S, 24px);
+    padding-bottom: var(--Gap-Xl, 75px);
+}
+.tagContainer {
+    position: absolute;
+    top: -16px; /* More space above the text container */
+    left: 0; /* Align perfectly with container border */
+    right: 0; /* Align perfectly with container border */
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: var(--Radius-M, 16px) var(--Radius-M, 16px) 0px 0px; /* Only top corners rounded */
+    border: 1px solid var(--Raisin_Black, #211F20);
+    background: var(--Palatinate_Blue, #1C50D8);
+}
+.tag {
+    align-self: stretch;
+    color: var(--Sea_Salt, #F3F3F3);
+    text-align: center;
+    font-family: Poppins;
+    font-size: var(--Body-M-Med, 20px);
+    font-style: normal;
+    font-weight: 500;
+    line-height: 110%; /* 22px */
+}
+
+@media (min-width: 2560px) {
+  :root {
+    --H2: 48px;
+    --H3: 40px;
+    --H6: 32px;
+    --H8: 16px;
+    --Body-M-Reg: 20px;
+    --Gap-XS: 16px;
+    --Gap-XXS: 12px;
+    --Comp-TopBottom-S: 12px;
+    --Comp-Left-Right-M: 24px;
+    --Radius-S: 8px;
+    --Body-S-Med: 16px;
+    --Body-S-Reg: 16px;
+    --Gap-M: 32px;
+    --Radius-M: 16px;
+    --Margins: 24px;
+    --Body-M-Med: 20px;
+    --Gap-S: 24px;
+    --Sec-TopBottom-M: 100px;
+    --Sec-LeftRight-S: 50px;
+    --Gap-Xl: 75px;
+    --toggle-knob-size: 32px;
+    --Max-Width-M: 1340px;
+    --Min-Height-M: 650px;
+    --card-top: 72px;
+    --Pricing-Image-Height: 100px;
+    --toggle-background-width: 72px;
+    --toggle-background-height: 38px;
+    --Card-Width: 425.333px;
+    --Card-Height: 650px;
+  }
+  .cardsContainer {
+    flex-direction: row;
+  }
+  .tagContainer {
+    top: 0; 
+  }
+}
+@media (min-width: 1280px) and (max-width: 2560px) {
+  :root {
+    --H2: 40px;
+    --H3: 36px;
+    --H6: 28px;
+    --H8: 14px;
+    --Body-M-Reg: 16px;
+    --Gap-XS: 14px;
+    --Gap-XXS: 10px;
+    --Comp-TopBottom-S: 10px;
+    --Comp-Left-Right-M: 20px;
+    --Radius-S: 6px;
+    --Body-S-Med: 14px;
+    --Body-S-Reg: 14px;
+    --Gap-M: 24px;
+    --Radius-M: 12px;
+    --Margins: 20px;
+    --Body-M-Med: 16px;
+    --Gap-S: 20px;
+    --Sec-TopBottom-M: 75px;
+    --Sec-LeftRight-S: 32px;
+    --Gap-Xl: 50px;
+    --toggle-knob-size: 24px;
+    --Max-Width-M: 1340px;
+    --Min-Height-M: 550px;
+    --card-top: 58px;
+    --Pricing-Image-Height: 75px;
+    --toggle-background-width: 56px;
+    --toggle-background-height: 32px;
+    --Card-Width: 389.33px;
+    --Card-Height: 550px;
+  }
+  .cardsContainer {
+    flex-direction: row;
+  }
+  .tagContainer {
+    top: 0; 
+  }
+}
+@media (min-width: 744px) and (max-width: 1280px) {
+  :root {
+    --H2: 32px;
+    --H3: 30px;
+    --H6: 20px;
+    --H8: 12px;
+    --Body-M-Reg: 14px;
+    --Gap-XXS: 8px;
+    --Gap-XS: 12px;
+    --Comp-TopBottom-S: 8px;
+    --Comp-Left-Right-M: 20px;
+    --Radius-S: 6px;
+    --Body-S-Med: 12px;
+    --Body-S-Reg: 12px;
+    --Gap-M: 20px;
+    --Radius-M: 10px;
+    --Margins: 16px;
+    --Body-M-Med: 14px;
+    --Gap-S: 16px;
+    --Sec-TopBottom-M: 50px;
+    --Sec-LeftRight-S: 24px;
+    --Gap-Xl: 26px;
+    --toggle-knob-size: 16px;
+    --Max-Width-M: 1340px;
+    --Min-Height-M: 350px;
+    --card-top: 24px;
+    --Pricing-Image-Height: 75px;
+    --toggle-background-width: 40px;
+    --toggle-background-height: 24px;
+    --Card-Width: 696px;
+  }
+  .bundleCard {
+    --Card-Height: 445px;
+  }
+  .individualCard {
+    --Card-Height: 351px;
+  }
+  .toggleContainer {
+    padding-bottom: 40px;
+  }
+  .PricingImageWrapper {
+    padding-top: 10px;
+    margin-bottom: 40px;
+  }
+  .container {
+    width: 100%;
+    padding-left: var(--Sec-LeftRight-S);
+    padding-right: var(--Sec-LeftRight-S);
+  }
+  .cardsContainer {
+    max-width: 100%;
+  }
+}
+@media (max-width: 744px) {
+  :root {
+    --H2: 32px;
+    --H3: 30px;
+    --H6: 20px;
+    --H8: 12px;
+    --Body-M-Reg: 14px;
+    --Gap-XXS: 8px;
+    --Gap-XS: 12px;
+    --Comp-TopBottom-S: 8px;
+    --Comp-Left-Right-M: 20px;
+    --Radius-S: 4px;
+    --Body-S-Med: 12px;
+    --Body-S-Reg: 12px;
+    --Gap-M: 16px;
+    --Radius-M: 8px;
+    --Margins: 12px;
+    --Body-M-Med: 14px;
+    --Gap-S: 16px;
+    --Sec-TopBottom-M: 50px;
+    --Sec-LeftRight-S: 16px;
+    --Gap-Xl: 20px;
+    --toggle-knob-size: 16px;
+    --Max-Width-M: 1340px;
+    --Min-Height-M: 250px;
+    --card-top: 16px;
+    --Pricing-Image-Height: 50px;
+    --toggle-background-width: 40px;
+    --toggle-background-height: 24px;
+    --Card-Width: 358px;
+  }
+  .bundleCard {
+    --Card-Height: 339px;
+  }
+  .individualCard {
+    --Card-Height: 271px;
+  }
+  .tagContainer {
+    top: -30px;
+  }
+  .toggleContainer {
+    padding-bottom: 50px;
+  }
+  .PricingImageWrapper {
+    margin-bottom: 24px;
+  }
+  .adventureCard .PricingImageWrapper {
+    margin-top: 12px;
+  }
+}
+
+.fade {
+  transition: opacity 0.4s ease;
+}
+.fade-enter {
+  opacity: 0;
+}
+.fade-enter-active {
+  opacity: 1;
+}
+.fade-exit {
+  opacity: 1;
+}
+.fade-exit-active {
+  opacity: 0;
+}
+
+
+
