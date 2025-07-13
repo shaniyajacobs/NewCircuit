@@ -481,7 +481,7 @@ const getEventData = async (eventID) => {
               </button>
             </div>
             <div className="text-xl font-semibold text-indigo-950 mt-4">
-              Upcoming Events
+              My Upcoming Events
             </div>
           </div>
           {/* See All button for Upcoming Events */}
@@ -522,7 +522,7 @@ const getEventData = async (eventID) => {
             <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowAllUpcoming(false)} />
             <div className="relative bg-white rounded-2xl shadow-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto p-8 z-10">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">All Upcoming Events</h2>
+                <h2 className="text-2xl font-bold">All My Upcoming Events</h2>
                 <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowAllUpcoming(false)}>&times;</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -585,11 +585,11 @@ const getEventData = async (eventID) => {
               <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowAllSignUp(false)} />
               <div className="relative bg-white rounded-2xl shadow-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto p-8 z-10">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold">All Sign-Up Events</h2>
+                  <h2 className="text-2xl font-bold">All Events</h2>
                   <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowAllSignUp(false)}>&times;</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {firebaseEvents.map((event) => (
+                  {upcomingSignupEvents.map((event) => (
                     <EventCard
                       key={event.firestoreID}
                       event={event}

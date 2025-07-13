@@ -87,16 +87,16 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
           <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 32 }}>{day}</div>
           <div style={{ textAlign: 'center', fontWeight: 500, fontSize: 16 }}>{month}</div>
         </div>
+        {/* Event Title */}
+        <div className="text-xl font-medium text-center text-black mt-2 mb-1">
+          {event.title || "Event"}
+        </div>
         {/* Age Range */}
         {event.ageRange && (
-          <div className="text-lg font-semibold text-center text-gray-700 mb-1">
+          <div className="text-base font-semibold text-center text-gray-700 mt-1 mb-1">
             Ages {event.ageRange}
           </div>
         )}
-        {/* Title
-        <div className="text-2xl font-medium text-center text-black">
-          {event.title || "Event"}
-        </div>  */}
         {/* Location */}
         <div className="text-base text-slate-600 text-center mt-2">
           {event.location && <span>{event.location} <br /></span>}
