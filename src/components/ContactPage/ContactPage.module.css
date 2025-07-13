@@ -1,0 +1,321 @@
+.contactBackground {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--Gap-XXL, 100px);
+  align-self: stretch;
+  padding: var(--TopBottom-M, 100px) var(--LeftRight-S, 50px) var(--TopBottom-L, 200px) var(--LeftRight-S, 50px);
+  background: var(--Mindaro_Light, #FAFFE7);
+  min-height: 100vh;
+}
+
+.contactTitle {
+  align-self: stretch;
+  color: var(--Raisin_Black, #211F20);
+  text-align: center;
+  font-family: "Bricolage Grotesque";
+  font-size: var(--H1, 64px);
+  font-style: normal;
+  font-weight: 600;
+  line-height: 110%;
+  margin: 0 0 32px 0;
+}
+
+.contactRow {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  width: 100%;
+  max-width: 1800px;
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--Gap-M, 32px);
+  flex: 1 0 0;
+  align-self: stretch;
+  background: radial-gradient(50% 50% at 50% 50%, #B0EEFF 0%, #E7E9FF 100%);
+  border-radius: var(--Radius-M, 16px) 0 0 var(--Radius-M, 16px);
+  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.04);
+  padding-top: var(--Margins-S, 50px);
+  padding-left: var(--Margins-S, 50px);
+  padding-right: var(--Margins-S, 50px);
+  padding-bottom: var(--Margins-S, 50px);
+}
+
+.formTitle {
+  color: var(--Raisin_Black, #211F20);
+  font-family: "Bricolage Grotesque";
+  font-size: var(--H2, 48px);
+  font-style: normal;
+  font-weight: 600;
+  line-height: 110%;
+  margin-bottom: 0;
+  position: relative;
+}
+
+.formFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--Gap-S, 24px);
+  width: 100%;
+}
+
+.inputRow {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+}
+
+.inputBox {
+  flex: 1 0 0;
+  padding: var(--TopBottom-S, 12px) var(--Left-Right-S, 16px);
+  border-radius: var(--Radius-S, 8px);
+  border: 1px solid #000;
+  background: rgba(255, 255, 255, 0.24);
+  font-family: Poppins, sans-serif;
+  font-size: var(--Body-S-Reg, 16px);
+  font-weight: 400;
+  color: #000;
+  outline: none;
+}
+
+.inputBox::placeholder {
+  color: #666;
+  opacity: 1;
+}
+
+.textareaBox {
+  flex: 1 0 0;
+  align-self: stretch;
+  padding: var(--TopBottom-S, 12px) var(--Left-Right-S, 16px);
+  border-radius: var(--Radius-S, 8px);
+  border: 1px solid #000;
+  background: rgba(255, 255, 255, 0.24);
+  font-family: Poppins, sans-serif;
+  font-size: var(--Body-S-Reg, 16px);
+  font-weight: 400;
+  color: #000;
+  outline: none;
+  resize: vertical;
+  min-height: 400px;
+  max-height: 400px;
+}
+
+.textareaBox::placeholder {
+  color: #666;
+  opacity: 1;
+}
+
+.sendButton {
+  display: flex;
+  padding: 8px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: var(--Gap-XXS, 12px);
+  border-radius: var(--Radius-S, 8px);
+  background: var(--Raisin_Black, #211F20);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 16px;
+  align-self: flex-end;
+  margin-top: 16px;
+  min-width: 80px;
+  height: 40px;
+}
+
+.sendButton:hover {
+  background: #333;
+}
+
+.sendButtonText {
+  color: var(--Mindaro_Light, #FAFFE7);
+  font-family: Poppins, sans-serif;
+  font-size: var(--Body-S-Med, 16px);
+  font-weight: 500;
+}
+
+.imageContainer {
+  display: flex;
+  min-height: var(--Min-Height-L, 800px);
+  padding: var(--Margins-S, 50px);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  flex: 1 0 0;
+  align-self: stretch;
+  border-radius: 0px var(--Radius-M, 16px) var(--Radius-M, 16px) 0px;
+  /* background will be set inline in the component */
+  background-blend-mode: normal, soft-light, normal;
+  position: relative;
+  justify-content: flex-start;
+  box-sizing: border-box;
+}
+
+.getInTouch {
+  color: var(--Mindaro_Light, #FAFFE7);
+  text-align: right;
+  font-family: "Bricolage Grotesque";
+  font-size: var(--H8, 16px);
+  font-style: normal;
+  font-weight: 500;
+  line-height: 130%;
+  text-transform: uppercase;
+  padding-top: 8px;
+  padding-right: 0;
+  margin: 0;
+}
+
+.email {
+  color: var(--Mindaro_Light, #FAFFE7);
+  text-align: right;
+  font-family: "Bricolage Grotesque";
+  font-size: var(--H4, 40px);
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
+  margin: 16px 0 0 0;
+  padding-right: 0;
+}
+
+.phone {
+  color: var(--Mindaro_Light, #FAFFE7);
+  text-align: right;
+  font-family: "Bricolage Grotesque";
+  font-size: var(--H4, 40px);
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
+  margin: 0;
+  padding-right: 0;
+}
+
+.imageContainer > * {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1200px) {
+  .contactRow {
+    flex-direction: column;
+    gap: 48px;
+  }
+  .formContainer, .imageContainer {
+    border-radius: var(--Radius-M, 16px);
+    min-height: 400px;
+  }
+}
+
+.horizontalDivider {
+  border: none;
+  border-top: 1px solid #211F20;
+  width: calc(100% + 100px); /* 2x 50px padding */
+  margin: 0 0 24px -50px;
+  height: 1px;
+  background: #211F20;
+  position: relative;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+@media (max-width: 743px) {
+  .contactBackground {
+    padding: 32px 4px 32px 4px;
+    gap: 24px;
+  }
+  .contactTitle {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+  .contactRow {
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    max-width: 100vw;
+  }
+  .formContainer {
+    border-radius: 16px 16px 0 0;
+    padding: 24px 8px 24px 8px;
+    min-width: 0;
+    box-shadow: none;
+    gap: 16px;
+  }
+  .formTitle {
+    font-size: 24px;
+    margin-bottom: 0;
+  }
+  .formFields {
+    gap: 12px;
+  }
+  .inputRow {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .inputBox, .textareaBox {
+    font-size: 14px;
+    padding: 10px 12px;
+    min-width: 0;
+  }
+  .textareaBox {
+    min-height: 120px;
+    max-height: 180px;
+  }
+  .sendButton {
+    font-size: 14px;
+    padding: 8px 16px;
+    min-width: 60px;
+    height: 36px;
+    margin-top: 8px;
+  }
+  .sendButtonText {
+    font-size: 14px;
+  }
+  .imageContainer {
+    position: relative;
+    padding-top: 0;
+    padding-bottom: 24px;
+    min-height: 180px;
+    align-items: flex-end;
+    justify-content: flex-end;
+    background-position: center center !important;
+    background-size: cover !important;
+    gap: 0;
+  }
+  .contactInfoMobile {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    text-align: right;
+    z-index: 2;
+    width: auto;
+    max-width: 80%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .getInTouch {
+    font-size: 12px;
+    padding-top: 0;
+    margin: 0;
+  }
+  .email, .phone {
+    font-size: 18px;
+    margin: 4px 0 0 0;
+    text-align: right;
+    word-break: break-all;
+  }
+  .horizontalDivider {
+    width: 100vw;
+    margin: 0 0 12px -8px;
+  }
+} 
