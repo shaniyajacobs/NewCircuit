@@ -94,7 +94,7 @@ const DashHome = () => {
   const [userGender, setUserGender] = useState(null);
   const [datesRemaining, setDatesRemaining] = useState(100);
   const [userProfile, setUserProfile] = useState(null);
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  // Removed redundant state; upcoming events are derived via useMemo below
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [showAllSignUp, setShowAllSignUp] = useState(false);
   const [allEvents, setAllEvents] = useState([]);
@@ -450,16 +450,15 @@ const getEventData = async (eventID) => {
   // Use the same event limit for sign-up events
   const signUpEventLimit = eventLimit;
   // Filter for upcoming and sign-up events
-  // const upcomingEvents = useMemo(() => {
-  //   return allEvents.filter(event =>
-  //     signedUpEventIds.has(event.firestoreID) && !isEventPast(event, 90)
-  //   );
-  // }, [allEvents, signedUpEventIds]);
-
-  const upcomingSignupEvents = useMemo(() => {
+  const upcomingEvents = useMemo(() => {
     return allEvents.filter(event =>
-      !signedUpEventIds.has(event.firestoreID) && !isEventPast(event, 0)
+      signedUpEventIds.has(event.firestoreID)
     );
+  }, [allEvents, signedUpEventIds]);
+
+  // Show *all* events (regardless of date) that the user has not yet signed up for
+  const upcomingSignupEvents = useMemo(() => {
+    return allEvents.filter(event => !signedUpEventIds.has(event.firestoreID));
   }, [allEvents, signedUpEventIds]);
 
   return (
