@@ -435,14 +435,13 @@ const getEventData = async (eventID) => {
   // Filter for upcoming and sign-up events
   const upcomingEvents = useMemo(() => {
     return allEvents.filter(event =>
-      signedUpEventIds.has(event.firestoreID) && !isEventPast(event, 90)
+      signedUpEventIds.has(event.firestoreID)
     );
   }, [allEvents, signedUpEventIds]);
 
+  // Show *all* events (regardless of date) that the user has not yet signed up for
   const upcomingSignupEvents = useMemo(() => {
-    return allEvents.filter(event =>
-      !signedUpEventIds.has(event.firestoreID) && !isEventPast(event, 0)
-    );
+    return allEvents.filter(event => !signedUpEventIds.has(event.firestoreID));
   }, [allEvents, signedUpEventIds]);
 
   return (
