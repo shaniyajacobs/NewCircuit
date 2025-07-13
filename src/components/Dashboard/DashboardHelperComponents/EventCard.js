@@ -4,51 +4,64 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from '../../../pages/firebaseConfig';
 
 function getDateParts(dateString, timeString, timeZone) {
-  const normalizedTime = timeString ? timeString.replace(/am|pm/i, match => match.toUpperCase()).trim() : '';
-  const cleanDate = dateString ? dateString.trim() : '';
-  const eventZoneMap = {
+  const normalizedTime = timeString ? timeString.replace(/am|pm/i, m => m.toUpperCase()).trim() : '';
+  const cleanDate = (dateString || '').trim();
+
+  const zoneMap = {
     'PST': 'America/Los_Angeles',
     'EST': 'America/New_York',
     'CST': 'America/Chicago',
     'MST': 'America/Denver',
   };
-  const eventZone = eventZoneMap[timeZone] || timeZone || 'UTC';
+  const zone = zoneMap[timeZone] || timeZone || 'UTC';
 
-  // Try ISO format first
-  let eventDateTime = DateTime.fromFormat(
-    `${cleanDate} ${normalizedTime}`,
+  // Build candidate format strings.
+  const withTime = [
     'yyyy-MM-dd h:mma',
-    { zone: eventZone }
-  );
-  if (!eventDateTime.isValid) {
-    eventDateTime = DateTime.fromFormat(
-      `${cleanDate} ${normalizedTime}`,
-      'yyyy-MM-dd H:mm',
-      { zone: eventZone }
-    );
+    'yyyy-MM-dd H:mm',
+    'MM/dd/yyyy h:mma',
+    'MM/dd/yyyy H:mm',
+    'M/d/yyyy h:mma',
+    'M/d/yyyy H:mm',
+    'MM/dd/yy h:mma',
+    'MM/dd/yy H:mm',
+    'M/d/yy h:mma',
+    'M/d/yy H:mm',
+  ];
+  const dateOnly = [
+    'yyyy-MM-dd',
+    'MM/dd/yyyy',
+    'M/d/yyyy',
+    'MM/dd/yy',
+    'M/d/yy',
+  ];
+
+  let dt = null;
+
+  if (cleanDate) {
+    const formatsToTry = normalizedTime ? withTime : dateOnly;
+    for (const fmt of formatsToTry) {
+      dt = DateTime.fromFormat(
+        normalizedTime ? `${cleanDate} ${normalizedTime}` : cleanDate,
+        fmt,
+        { zone }
+      );
+      if (dt.isValid) break;
+    }
+    // As a last resort, let Luxon try ISO parsing.
+    if (!dt || !dt.isValid) {
+      dt = DateTime.fromISO(cleanDate, { zone });
+    }
   }
-  // Try MM/dd/yy format if still invalid
-  if (!eventDateTime.isValid) {
-    eventDateTime = DateTime.fromFormat(
-      `${cleanDate} ${normalizedTime}`,
-      'MM/dd/yy h:mma',
-      { zone: eventZone }
-    );
+
+  if (!dt || !dt.isValid) {
+    return { dayOfWeek: '', day: '', month: '' };
   }
-  if (!eventDateTime.isValid) {
-    eventDateTime = DateTime.fromFormat(
-      `${cleanDate} ${normalizedTime}`,
-      'MM/dd/yy H:mm',
-      { zone: eventZone }
-    );
-  }
-  console.log('Parsing date:', cleanDate, 'time:', normalizedTime, 'zone:', eventZone, 'result:', eventDateTime.toString());
-  if (!eventDateTime.isValid) return { dayOfWeek: '', day: '', month: '' };
 
   return {
-    dayOfWeek: eventDateTime.toFormat('ccc').toUpperCase(),
-    day: eventDateTime.toFormat('d'),
-    month: eventDateTime.toFormat('LLL').toUpperCase(),
+    dayOfWeek: dt.toFormat('ccc').toUpperCase(),
+    day: dt.toFormat('d'),
+    month: dt.toFormat('LLL').toUpperCase(),
   };
 }
 
