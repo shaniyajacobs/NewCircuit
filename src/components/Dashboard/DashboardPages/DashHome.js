@@ -4,6 +4,7 @@ import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
 import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, getCountFromServer } from "firebase/firestore";
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
 import { auth } from "../../../firebaseConfig";
@@ -170,9 +171,9 @@ const DashHome = () => {
   ];
 
   // Helper to check if user is signed up for an event
-  const fetchSignedUpEventIds = async (eventsList, userId) => {
+  const fetchSignedUpEventIds = async (userId) => {
     const signedUpIds = new Set();
-    for (const event of eventsList) {
+    for (const event of allEvents) {
       const signedUpUserDoc = await getDoc(doc(db, 'events', event.firestoreID, 'signedUpUsers', userId));
       if (signedUpUserDoc.exists()) {
         signedUpIds.add(event.firestoreID);
@@ -216,20 +217,38 @@ const DashHome = () => {
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
-      const eventsList = [];
-      const querySnapshot = await getDocs(collection(db, "events"));
-      for (const docSnapshot of querySnapshot.docs) {
-        const eventData = await getEventData(docSnapshot.id);
-        if (eventData) {
-          eventsList.push({ ...eventData, firestoreID: docSnapshot.id });
+      try {
+        const querySnapshot = await getDocs(collection(db, "events"));
+        const functionsInst = getFunctions();
+        const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
+
+        const eventsList = await Promise.all(
+          querySnapshot.docs.map(async (docSnapshot) => {
+            const docData = docSnapshot.data() || {};
+            const eventId = docData.eventID || docSnapshot.id; // fallback
+            try {
+              const res = await getEventDataCF({ eventId });
+              const remoEvent = res.data?.event;
+              if (remoEvent) {
+                return { ...remoEvent, ...docData, firestoreID: docSnapshot.id, eventID: eventId };
+              }
+            } catch (err) {
+              console.error(`Failed fetching Remo event for ${eventId}:`, err);
+            }
+            return null;
+          })
+        );
+
+        const filteredEvents = eventsList.filter(Boolean);
+        setAllEvents(filteredEvents);
+
+        if (auth.currentUser) {
+          const signedUpIds = await fetchSignedUpEventIds(auth.currentUser.uid);
+          setSignedUpEventIds(signedUpIds);
         }
+      } finally {
+        setLoading(false);
       }
-      setAllEvents(eventsList);
-      if (auth.currentUser) {
-        const signedUpIds = await fetchSignedUpEventIds(eventsList, auth.currentUser.uid);
-        setSignedUpEventIds(signedUpIds);
-      }
-      setLoading(false);
     };
     fetchAll();
   }, [userProfile]);
@@ -433,7 +452,7 @@ const getEventData = async (eventID) => {
 
     // Re-fetch signed-up status
     if (auth.currentUser) {
-      const signedUpIds = await fetchSignedUpEventIds(allEvents, auth.currentUser.uid);
+      const signedUpIds = await fetchSignedUpEventIds(auth.currentUser.uid);
       setSignedUpEventIds(signedUpIds);
     }
   };
