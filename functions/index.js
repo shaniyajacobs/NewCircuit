@@ -191,3 +191,44 @@ exports.addUserToRemoEvent = onCall(
   }
 );
 
+exports.getEventMembers = onCall(
+  {
+    region: 'us-central1',
+    secrets: [remoSecret, remoCompanyIdSecret],
+    runtime: 'nodejs18',
+  },
+  async (data, context) => {
+    const eventId = data?.data?.eventId || data?.data?.eventID || data?.eventId || data?.eventID;
+    if (!eventId) {
+      throw new functions.https.HttpsError('invalid-argument', 'Missing eventId');
+    }
+
+    const url = `https://live.remo.co/api/v1/events/${eventId}/attendees`;
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Token: ${remoSecret.value()}`,
+        },
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('Remo members fetch error:', errText);
+        throw new functions.https.HttpsError('internal', 'Failed to fetch members');
+      }
+      
+      const dataJson = await response.json();
+      return dataJson; // full object with isSuccess, attendees, etc.
+      
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new functions.https.HttpsError('deadline-exceeded', 'Remo API timeout');
+      }
+      throw error;
+    }
+  }
+);
+

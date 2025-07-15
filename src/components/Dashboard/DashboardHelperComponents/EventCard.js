@@ -65,14 +65,28 @@ function getDateParts(dateString, timeString, timeZone) {
   };
 }
 
+// Helper for Remo epoch timestamps
+function getDatePartsFromMillis(millis) {
+  if (!millis) return { dayOfWeek: '', day: '', month: '' };
+  const dt = DateTime.fromMillis(Number(millis));
+  return {
+    dayOfWeek: dt.toFormat('ccc').toUpperCase(),
+    day: dt.toFormat('d'),
+    month: dt.toFormat('LLL').toUpperCase(),
+    timeLabel: dt.toFormat('h:mm a'),
+  };
+}
+
 const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
   const [joining, setJoining] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  console.log('EventCard received userGender:', userGender, 'event:', event);
-  const { dayOfWeek, day, month } = getDateParts(event.date, event.time, event.timeZone);
+  console.log('EventCard received:', event);
+  // Prefer Remo timestamp if available
+  const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
+  const { dayOfWeek, day, month, timeLabel } = dateParts;
   
   return (
     <>
@@ -89,7 +103,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
         </div>
         {/* Event Title */}
         <div className="text-xl font-medium text-center text-black mt-2 mb-1">
-          {event.title || "Event"}
+          {event.name || event.title || 'Event'}
         </div>
         {/* Age Range */}
         {event.ageRange && (
@@ -103,9 +117,9 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
         </div>
 
         {/* Event Type and Time */}
-        {(event.eventType || event.time) && (
+        {(event.eventType || timeLabel) && (
           <div className="text-base text-slate-600 text-center mt-2">
-            {event.eventType || ''}{event.eventType && event.time ? ' @ ' : ''}{event.time || ''}
+            {event.eventType || ''}{event.eventType && timeLabel ? ' @ ' : ''}{timeLabel || ''}
           </div>
         )}
         {/* TimeZone */}
@@ -139,19 +153,18 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               try {
                 setJoining(true);
                 const functions = getFunctions();
-                console.log('About to call getRemoJoinUrl');
-                const getJoinLink = httpsCallable(functions, 'getRemoJoinUrl');
-                // Some older Firestore docs may not have an explicit `eventID` field;
-                // fall back to the document ID (`firestoreID`) when necessary.
-                console.log('got here');
-                const res = await getJoinLink({ eventId: event.eventID });
-                console.log('getRemoJoinUrl response:', res);
-                const { joinUrl } = res.data || {};
-                if (joinUrl) {
-                  window.open(joinUrl, '_blank');
-                } else {
-                  alert('Join link not available yet.');
+                console.log('About to call getEventData');
+                const getEventData = httpsCallable(functions, 'getEventData'); // returns full event
+                const res = await getEventData({ eventId: event.eventID });
+                console.log('getEventData response:', res);
+                const { event: remoEvent } = res.data || {};
+                if (!remoEvent) {
+                  alert('Event data not available yet.');
+                  return;
                 }
+                // Build join URL on the client
+                const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
+                window.open(joinUrl, '_blank');
               } catch (err) {
                 console.error('Error fetching join URL:', err);
                 alert('Unable to fetch join link. Please try again later.');
