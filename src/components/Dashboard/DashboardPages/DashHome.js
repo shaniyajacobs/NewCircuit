@@ -145,33 +145,6 @@ const DashHome = () => {
     return () => unsubscribe();
   }, []);
 
-  const signUpEvents = [
-    {
-      title: "25-34 yrs old SF",
-      date: "01/24/25",
-      time: "5:00pm",
-      menSpots: "5/10",
-      womenSpots: "7/10",
-      isActive: true,
-    },
-    {
-      title: "35-44 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      menSpots: "10/10",
-      womenSpots: "10/10",
-      isActive: false,
-    },
-    {
-      title: "45-55 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      menSpots: "4/10",
-      womenSpots: "9/10",
-      isActive: true,
-    },
-  ];
-
   const connections = [
     {
       id: "01",
