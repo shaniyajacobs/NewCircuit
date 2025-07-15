@@ -4,6 +4,7 @@ import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
 import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, getCountFromServer } from "firebase/firestore";
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
 import { auth } from "../../../firebaseConfig";
@@ -99,6 +100,22 @@ const DashHome = () => {
   const [showAllSignUp, setShowAllSignUp] = useState(false);
   const [allEvents, setAllEvents] = useState([]);
   const [signedUpEventIds, setSignedUpEventIds] = useState(new Set());
+  const [signedUpEventsLoaded, setSignedUpEventsLoaded] = useState(false);
+
+  // Helper: fetch IDs of events the user has signed up for from their sub-collection
+  const fetchUserSignedUpEventIds = async (userId) => {
+    if (!userId) return new Set();
+    try {
+      const signedUpCol = collection(db, 'users', userId, 'signedUpEvents');
+      const snap = await getDocs(signedUpCol);
+      const idSet = new Set();
+      snap.forEach((d) => idSet.add(d.id)); // doc id matches event's firestoreID
+      return idSet;
+    } catch (err) {
+      console.error('Error fetching user signed-up events:', err);
+      return new Set();
+    }
+  };
 
   // Filter events to only show upcoming ones
   const getUpcomingEvents = (eventsList, userLocation) => {
@@ -116,40 +133,17 @@ const DashHome = () => {
         if (userDoc.exists()) {
           const data = userDoc.data();
           setUserGender(data.gender);
-          setDatesRemaining(data.datesRemaining);
+          // Ensure datesRemaining is a finite number; default to 0 otherwise
+          const fetchedRemaining = typeof data.datesRemaining === 'number'
+            ? data.datesRemaining
+            : Number(data.datesRemaining);
+          setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
         }
       }
     });
     return () => unsubscribe();
   }, []);
-
-  const signUpEvents = [
-    {
-      title: "25-34 yrs old SF",
-      date: "01/24/25",
-      time: "5:00pm",
-      menSpots: "5/10",
-      womenSpots: "7/10",
-      isActive: true,
-    },
-    {
-      title: "35-44 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      menSpots: "10/10",
-      womenSpots: "10/10",
-      isActive: false,
-    },
-    {
-      title: "45-55 yrs old SF",
-      date: "01/27/25",
-      time: "7:00pm",
-      menSpots: "4/10",
-      womenSpots: "9/10",
-      isActive: true,
-    },
-  ];
 
   const connections = [
     {
@@ -169,17 +163,16 @@ const DashHome = () => {
     },
   ];
 
-  // Helper to check if user is signed up for an event
-  const fetchSignedUpEventIds = async (eventsList, userId) => {
-    const signedUpIds = new Set();
-    for (const event of eventsList) {
-      const signedUpUserDoc = await getDoc(doc(db, 'events', event.firestoreID, 'signedUpUsers', userId));
-      if (signedUpUserDoc.exists()) {
-        signedUpIds.add(event.firestoreID);
-      }
-    }
-    return signedUpIds;
-  };
+  // Load signed-up IDs when the authenticated user changes
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    (async () => {
+      const ids = await fetchUserSignedUpEventIds(auth.currentUser.uid);
+      setSignedUpEventIds(ids);
+      setSignedUpEventsLoaded(true);
+    })();
+  }, [auth.currentUser]);
 
   // Helper to check if event is past (for sign-up: event start; for upcoming: event start + 90min)
   function isEventPast(event, addMinutes = 0) {
@@ -216,20 +209,38 @@ const DashHome = () => {
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
-      const eventsList = [];
-      const querySnapshot = await getDocs(collection(db, "events"));
-      for (const docSnapshot of querySnapshot.docs) {
-        const eventData = await getEventData(docSnapshot.id);
-        if (eventData) {
-          eventsList.push({ ...eventData, firestoreID: docSnapshot.id });
+      try {
+        const querySnapshot = await getDocs(collection(db, "events"));
+        const functionsInst = getFunctions();
+        const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
+
+        const eventsList = await Promise.all(
+          querySnapshot.docs.map(async (docSnapshot) => {
+            const docData = docSnapshot.data() || {};
+            const eventId = docData.eventID || docSnapshot.id; // fallback
+            try {
+              const res = await getEventDataCF({ eventId });
+              const remoEvent = res.data?.event;
+              if (remoEvent) {
+                return { ...remoEvent, ...docData, firestoreID: docSnapshot.id, eventID: eventId };
+              }
+            } catch (err) {
+              console.error(`Failed fetching Remo event for ${eventId}:`, err);
+            }
+            return null;
+          })
+        );
+
+        const filteredEvents = eventsList.filter(Boolean);
+        setAllEvents(filteredEvents);
+
+        if (auth.currentUser) {
+          const signedUpIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
+          setSignedUpEventIds(signedUpIds);
         }
+      } finally {
+        setLoading(false);
       }
-      setAllEvents(eventsList);
-      if (auth.currentUser) {
-        const signedUpIds = await fetchSignedUpEventIds(eventsList, auth.currentUser.uid);
-        setSignedUpEventIds(signedUpIds);
-      }
-      setLoading(false);
     };
     fetchAll();
   }, [userProfile]);
@@ -363,14 +374,15 @@ const getEventData = async (eventID) => {
 
   // Handle sign up logic
   const handleSignUp = async (event) => {
-    if (datesRemaining <= 0) return;
-    setDatesRemaining(prev => prev - 1);
+    const currentRemaining = Number.isFinite(datesRemaining) ? datesRemaining : 0;
+    if (currentRemaining <= 0) return;
+    setDatesRemaining(prev => (Number.isFinite(prev) ? prev - 1 : 0));
 
     const user = auth.currentUser;
     if (user) {
       const userDocRef = doc(db, 'users', user.uid);
       // Update remaining dates for the user
-      await setDoc(userDocRef, { datesRemaining: datesRemaining - 1 }, { merge: true });
+      await setDoc(userDocRef, { datesRemaining: currentRemaining - 1 }, { merge: true });
 
       // 1. Add a document in the user's sub-collection
       await setDoc(
@@ -431,10 +443,16 @@ const getEventData = async (eventID) => {
       }
     }
 
-    // Re-fetch signed-up status
+    // Optimistically update local signed-up IDs when a user signs up
+    setSignedUpEventIds(prev => {
+      const next = new Set(prev);
+      next.add(event.firestoreID);
+      return next;
+    });
+    // Re-fetch from Firestore to confirm
     if (auth.currentUser) {
-      const signedUpIds = await fetchSignedUpEventIds(allEvents, auth.currentUser.uid);
-      setSignedUpEventIds(signedUpIds);
+      const confirmedIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
+      setSignedUpEventIds(confirmedIds);
     }
   };
 
