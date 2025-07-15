@@ -117,6 +117,47 @@ const DashHome = () => {
     }
   };
 
+  /**
+   * Call the getEventParticipants callable function and extract participant emails.
+   * @param {string} eventId - Remo event ID
+   * @returns {Promise<string[]>} list of participant email strings
+   */
+  const fetchEventParticipantEmails = async (eventId) => {
+    if (!eventId) return [];
+    try {
+      const functionsInst = getFunctions();
+      const getEventMembers = httpsCallable(functionsInst, 'getEventMembers');
+      const res = await getEventMembers({ eventId });
+
+      const payload = res?.data;
+
+      // Case 1: Cloud function already returns array of attendee objects
+      if (Array.isArray(payload)) {
+        return payload
+          .map((att) => att?.user?.email)
+          .filter(Boolean);
+      }
+
+      // Case 2: Cloud function returns { attendees: [...] }
+      if (payload && Array.isArray(payload.attendees)) {
+        return payload.attendees
+          .map((att) => att?.user?.email)
+          .filter(Boolean);
+      }
+
+      // Case 3: Cloud function returns { emails: [...] }
+      if (payload && Array.isArray(payload.emails)) {
+        return payload.emails.filter(Boolean);
+      }
+
+      console.warn('fetchEventParticipantEmails: Unexpected response format', payload);
+      return [];
+    } catch (err) {
+      console.error('Error fetching event participant emails:', err);
+      return [];
+    }
+  };
+
   // Filter events to only show upcoming ones
   const getUpcomingEvents = (eventsList, userLocation) => {
     const filtered = eventsList.filter(event => isEventUpcoming(event, userLocation));
@@ -456,7 +497,30 @@ const getEventData = async (eventID) => {
     }
   };
 
-  const handleMatchesClick = () => {
+  const handleMatchesClick = async () => {
+    try {
+      // Prefer cached profile first
+      let eventId = userProfile?.latestEventId;
+
+      // If not yet in state, fetch directly from Firestore
+      if (!eventId && auth.currentUser) {
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        const snap = await getDoc(userDocRef);
+        if (snap.exists()) {
+          eventId = snap.data().latestEventId;
+        }
+      }
+
+      if (!eventId) {
+        console.warn('No latestEventId found for user');
+      } else {
+        const emails = await fetchEventParticipantEmails(eventId);
+        console.log('Participant emails for event', eventId, emails);
+      }
+    } catch (err) {
+      console.error('handleMatchesClick error:', err);
+    }
+
     navigate('myMatches');
   };
 
