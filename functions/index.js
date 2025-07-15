@@ -54,7 +54,7 @@ exports.createPaymentIntent = onCall(
   }
 );
 
-exports.getRemoJoinUrl = onCall(
+exports.getEventData = onCall(
   {
     region: 'us-central1',
     secrets: [remoSecret, remoCompanyIdSecret],
@@ -62,7 +62,7 @@ exports.getRemoJoinUrl = onCall(
   },
   async (data, context) => {
     // Log only the payload the client sent. data.data contains the body for v2 callable
-    console.log('📝 getRemoJoinUrl – received data:', util.inspect(data.data || data, { depth: 3 }));
+    console.log('📝 getEventData – received data:', util.inspect(data.data || data, { depth: 3 }));
 
     // Prefer eventId from data.data, then fallback to data
     const eventId = data?.data?.eventId || data?.data?.eventID || data?.eventId || data?.eventID;
@@ -129,10 +129,8 @@ exports.getRemoJoinUrl = onCall(
       throw new functions.https.HttpsError('internal', 'No event code returned from Remo');
     }
     
-    const joinUrl = `https://live.remo.co/e/${eventCode}`;
-    console.log('✅ Constructed join URL:', joinUrl);
-
-    return { joinUrl };          // <- sent back to the client
+    // Return the raw event object; client will construct the join URL
+    return { event };
   } catch (error) {
     if (error.name === 'AbortError') {
       console.error('Remo API timeout:', error);
