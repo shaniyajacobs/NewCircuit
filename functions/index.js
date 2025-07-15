@@ -199,13 +199,18 @@ exports.getEventMembers = onCall(
   },
   async (data, context) => {
     const eventId = data?.data?.eventId || data?.data?.eventID || data?.eventId || data?.eventID;
+    console.log('eventId', eventId);
     if (!eventId) {
       throw new functions.https.HttpsError('invalid-argument', 'Missing eventId');
     }
 
-    const url = `https://live.remo.co/api/v1/events/${eventId}/attendees`;
+    const url = new URL(`https://live.remo.co/api/v1/events/${eventId}/attendees`);
+    url.searchParams.set('include', 'attendance');
+    url.searchParams.set('role', 'attendee');
+
     try {
-      const response = await fetch(url, {
+      console.log('Request to Remo API:', url.toString());
+      const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
           Accept: 'application/json',
@@ -213,6 +218,7 @@ exports.getEventMembers = onCall(
         },
         signal: AbortSignal.timeout(30000),
       });
+      console.log('Remo API response status:', response.status);
 
       if (!response.ok) {
         const errText = await response.text();
@@ -220,9 +226,18 @@ exports.getEventMembers = onCall(
         throw new functions.https.HttpsError('internal', 'Failed to fetch members');
       }
       
-      const dataJson = await response.json();
-      return dataJson; // full object with isSuccess, attendees, etc.
-      
+      const responseData = await response.json();
+      console.log('Remo API response:', responseData);
+
+      if (!responseData.isSuccess || !responseData.attendees) {
+        console.error('❌ Invalid Remo response structure:', responseData);
+        throw new functions.https.HttpsError('internal', 'Invalid response from Remo API');
+      }
+
+      const attendees = responseData.attendees;
+      console.log('📝 Attendees:', attendees);
+      return attendees; // returns the list of hashes of the attendees
+
     } catch (error) {
       if (error.name === 'AbortError') {
         throw new functions.https.HttpsError('deadline-exceeded', 'Remo API timeout');
