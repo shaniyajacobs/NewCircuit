@@ -187,7 +187,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               return (
                 <button
                   className="text-xs mt-5 p-1 text-center text-blue-500 cursor-pointer bg-white rounded-xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={datesRemaining === 0 || signUpClicked}
+                  disabled={!(Number.isInteger(datesRemaining) && datesRemaining > 0) || signUpClicked}
                   onClick={async () => { 
                     try {
                       console.log('🔄 Starting sign-up process...');
