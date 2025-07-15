@@ -93,17 +93,30 @@ const AdminEvents = () => {
     try {
       const functionsInst = getFunctions();
       const getMembers = httpsCallable(functionsInst, 'getEventMembers');
+      // The Callable result comes back as an object: { data: <actualArray> }
       const res = await getMembers({ eventId: event.eventID });
       console.log('getEventMembers response:', res);
-      const attendees = res.data?.attendees || [];
-      const normalized = attendees.map(a => {
+
+      const attendees = Array.isArray(res?.data) ? res.data : [];
+
+      const normalized = attendees.map((a) => {
         const profile = a.user?.profile || {};
         const nameCombined = profile.name || [profile.firstName, profile.lastName].filter(Boolean).join(' ');
+
+        const email = a.user?.email || a.invite?.email || '-';
+
+        const status = a.status || a.invite?.status || '-';
+        const accepted = (a.invite?.isAccepted ?? (status === 'accepted')) ? 'Yes' : 'No';
+
         return {
-          id: a._id,
-          name: nameCombined || a.user?.email || a.invite?.email || '-',
-          email: a.user?.email || a.invite?.email || '-',
-          signedUpAt: a.createdAt || a.invite?.createdAt || '',
+          // Prefer explicit IDs; fall back to invite _id or email for table key
+          id: a.user?.id || a.user?._id || a.invite?._id || a._id || email,
+          name: nameCombined || email,
+          email,
+          // Use createdAt from root or invite object as sign-up timestamp
+          signedUpAt: a.createdAt || a.invite?.createdAt || a.invite?.updatedAt || '',
+          status,
+          accepted,
         };
       });
       setEventUsers(normalized);
@@ -550,7 +563,9 @@ const AdminEvents = () => {
       {showUsersModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-5xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-2xl font-semibold mb-4">Users for {selectedEvent?.title}</h2>
+            <h2 className="text-2xl font-semibold mb-4">
+              Users for {selectedEvent?.name || selectedEvent?.title}
+            </h2>
             {loadingUsers ? (
               <div className="text-center py-8">Loading...</div>
             ) : eventUsers.length === 0 ? (
@@ -560,19 +575,23 @@ const AdminEvents = () => {
                 <div>
                   <h3 className="text-xl font-semibold mb-2">All Users</h3>
                   <table className="min-w-full text-sm table-fixed">
-                    <thead className="bg-gray-50 sticky top-0">
+                    <thead className="bg-gray-50 sticky z-10">
                       <tr>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Name</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Signed Up At</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Email</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Name</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Signed Up At</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Email</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Status</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Accepted</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {eventUsers.map(u => (
                         <tr key={u.id}>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.name}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.signedUpAt ? new Date(u.signedUpAt).toLocaleString() : '-'}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.email}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.name}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.signedUpAt ? new Date(u.signedUpAt).toLocaleString() : '-'}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.email}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate capitalize">{u.status}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.accepted}</td>
                         </tr>
                       ))}
                     </tbody>

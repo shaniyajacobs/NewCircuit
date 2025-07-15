@@ -382,6 +382,7 @@ const getEventData = async (eventID) => {
 
   // Handle sign up logic
   const handleSignUp = async (event) => {
+    console.log('number of dates remaining', datesRemaining);
     if (datesRemaining <= 0) return;
     setDatesRemaining(prev => prev - 1);
 
