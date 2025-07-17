@@ -1,47 +1,35 @@
 import React from "react";
+import { IoPersonCircle } from 'react-icons/io5';
 
 const ConnectionsTable = ({ connections }) => {
+  if (!connections.length) return <div className="p-4 text-gray-600">No connections yet.</div>;
   return (
-    <table className="w-full border-collapse">
+    <table className="min-w-full divide-y divide-gray-200">
       <thead>
         <tr>
-          <th className="px-0 py-4 text-sm text-left text-slate-400 max-sm:px-0 max-sm:py-2.5">
-            #
-          </th>
-          <th className="px-0 py-4 text-sm text-left text-slate-400 max-sm:px-0 max-sm:py-2.5">
-            Name
-          </th>
-          <th className="px-0 py-4 text-sm text-left text-slate-400 max-sm:px-0 max-sm:py-2.5">
-            Match Level
-          </th>
-          <th className="px-0 py-4 text-sm text-left text-slate-400 max-sm:px-0 max-sm:py-2.5">
-            Compatibility
-          </th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
         </tr>
       </thead>
-      <tbody>
-        {connections.map((connection) => (
-          <tr
-            key={connection.id}
-            className="border-b border-solid border-b-slate-100"
-          >
-            <td className="px-0 py-4 text-sm text-slate-600 max-sm:px-0 max-sm:py-2.5">
-              {connection.id}
-            </td>
-            <td className="px-0 py-4 text-sm text-slate-600 max-sm:px-0 max-sm:py-2.5">
-              {connection.name}
-            </td>
-            <td className="px-0 py-4 text-sm text-slate-600 max-sm:px-0 max-sm:py-2.5">
-              <div className="relative bg-blue-100 rounded-lg h-[3px] w-[325px]">
-                <div
-                  className="absolute h-full bg-sky-500 rounded-lg"
-                  style={{ width: `${connection.matchLevel}%` }}
+      <tbody className="bg-white divide-y divide-gray-200">
+        {connections.map((conn) => (
+          <tr key={conn.userId}>
+            <td className="px-6 py-4 whitespace-nowrap">
+              {conn.image ? (
+                <img
+                  src={conn.image}
+                  alt={conn.name}
+                  className="w-10 h-10 rounded-full object-cover border border-gray-300"
                 />
-              </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                  <IoPersonCircle className="w-6 h-6 text-gray-400" />
+                </div>
+              )}
             </td>
-            <td className="px-0 py-4 text-sm text-center rounded-lg text-slate-600 max-sm:px-0 max-sm:py-2.5">
-              {connection.matchLevel}%
-            </td>
+            <td className="px-6 py-4 whitespace-nowrap">{conn.name}</td>
+            <td className="px-6 py-4 whitespace-nowrap">{conn.age}</td>
           </tr>
         ))}
       </tbody>

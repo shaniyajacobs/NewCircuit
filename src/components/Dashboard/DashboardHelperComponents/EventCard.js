@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { DateTime } from 'luxon';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from '../../../pages/firebaseConfig';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../../pages/firebaseConfig';
 
 function getDateParts(dateString, timeString, timeZone) {
   const normalizedTime = timeString ? timeString.replace(/am|pm/i, m => m.toUpperCase()).trim() : '';
@@ -152,6 +154,11 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               }
               try {
                 setJoining(true);
+                if (onSignUp) {
+                  console.log('[JOIN NOW] Calling onSignUp for event:', event);
+                  await onSignUp(event);
+                  console.log('[JOIN NOW] onSignUp finished');
+                }
                 const functions = getFunctions();
                 console.log('About to call getEventData');
                 const getEventData = httpsCallable(functions, 'getEventData'); // returns full event
@@ -161,6 +168,16 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 if (!remoEvent) {
                   alert('Event data not available yet.');
                   return;
+                }
+                // Record the latest event this user joined
+                if (auth.currentUser) {
+                  await setDoc(
+                    doc(db, 'users', auth.currentUser.uid),
+                    {
+                      latestEventId: event.eventID,
+                    },
+                    { merge: true }
+                  );
                 }
                 // Build join URL on the client
                 const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
