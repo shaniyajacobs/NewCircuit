@@ -1,98 +1,155 @@
 import React, { useEffect, useState } from 'react';
 import { FaPaperPlane } from 'react-icons/fa';
 import { IoChevronBackCircleOutline } from 'react-icons/io5';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
 import { auth, db } from '../../../pages/firebaseConfig';
 import {DashMessages} from './DashMessages';
+import { calculateAge } from '../../../utils/ageCalculator';
 
 const DashMyConnections = () => {
   const [selectedConnection, setSelectedConnection] = useState(null);
+  const [connections, setConnections] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchConnections = async () => {
+      if (!auth.currentUser) {
+        console.error('[CONNECTIONS] No authenticated user found');
+        return;
+      }
+      
+      console.log('[CONNECTIONS] Starting to fetch connections...');
+      console.log('[CONNECTIONS] Current user ID:', auth.currentUser.uid);
+      
       try {
-        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const connections = userData.connections || [];
-          connections.forEach(async connection => {
-            const convoId =
-              auth.currentUser.uid < connection.id
-                ? `${auth.currentUser.uid}${connection.id}`
-                : `${connection.id}${auth.currentUser.uid}`;
-            const convoRef = doc(db, 'conversations', convoId);
-            const convoSnap = await getDoc(convoRef);
-            if (!convoSnap.exists()) {
-              await setDoc(convoRef, {
-                conversationId: convoId,
-                userIds: [auth.currentUser.uid, connection.id],
-                messages: [],
-              });
+        setLoading(true);
+        // Fetch connections from user's connections subcollection
+        const connectionsSnap = await getDocs(collection(db, 'users', auth.currentUser.uid, 'connections'));
+        const connectionIds = connectionsSnap.docs.map(doc => doc.id);
+        
+        console.log('[CONNECTIONS] Found connection IDs:', connectionIds);
+        console.log('[CONNECTIONS] Number of connections found:', connectionIds.length);
+        
+        // Fetch profile data for each connection and check for mutual status
+        const connectionProfiles = await Promise.all(
+          connectionIds.map(async (connectionId) => {
+            try {
+              console.log(`[CONNECTIONS] Fetching profile for connection: ${connectionId}`);
+              
+              const userDoc = await getDoc(doc(db, 'users', connectionId));
+              if (!userDoc.exists()) {
+                console.warn(`[CONNECTIONS] User document not found for ID: ${connectionId}`);
+                return null;
+              }
+              
+              // Get the connection document to retrieve the match score and status
+              const connectionDoc = await getDoc(doc(db, 'users', auth.currentUser.uid, 'connections', connectionId));
+              const connectionData = connectionDoc.exists() ? connectionDoc.data() : {};
+              
+              console.log(`[CONNECTIONS] Connection data for ${connectionId}:`, connectionData);
+              
+              // Only include mutual connections
+              if (connectionData.status !== 'mutual') {
+                console.log(`[CONNECTIONS] Skipping non-mutual connection ${connectionId} with status:`, connectionData.status);
+                return null;
+              }
+              
+              const userData = userDoc.data();
+              const profile = {
+                id: connectionId,
+                name: userData.firstName ? `${userData.firstName} ${userData.lastName || ''}`.trim() : userData.displayName || 'Unknown',
+                img: userData.image || '/default-profile.png',
+                age: calculateAge(userData.birthDate),
+                // Use the actual AI match score stored when connection was created, rounded
+                compatibility: Math.round(connectionData.matchScore || 0)
+              };
+              
+              console.log(`[CONNECTIONS] Created mutual profile for ${connectionId}:`, profile);
+              return profile;
+            } catch (err) {
+              console.error(`[CONNECTIONS] Error fetching profile for connection ${connectionId}:`, err);
+              return null;
             }
-          });
-        }
+          })
+        );
+        
+        const validProfiles = connectionProfiles.filter(Boolean);
+        console.log('[CONNECTIONS] Final mutual profiles:', validProfiles);
+        
+        setConnections(validProfiles);
       } catch (err) {
-        console.error('Error fetching connections:', err);
+        console.error('[CONNECTIONS] Error fetching connections:', err);
+        setConnections([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (auth.currentUser) fetchUserData();
+    fetchConnections();
   }, []);
 
-  const connections = [
-    { id: 1, name: 'Alice Johnson', compatibility: 85, img: 'https://randomuser.me/api/portraits/women/1.jpg' },
-    { id: 2, name: 'Michael Smith', compatibility: 72, img: 'https://randomuser.me/api/portraits/men/2.jpg' },
-    { id: 3, name: 'Sophia Martinez', compatibility: 50, img: 'https://randomuser.me/api/portraits/women/3.jpg' },
-    { id: 'mSkhXidLxpW7QZFJgkERDSI8N8m2', name: 'Marco Polo', compatibility: 100, img: 'https://randomuser.me/api/portraits/men/1.jpg' },
-    { id: 's1K8XeLj4PUXWLEEb5WLwGFtkx73', name: 'Marco Berk Monfiglio', compatibility: 100, img: 'https://randomuser.me/api/portraits/men/3.jpg' },
-  ];
+  const ConnectionList = () => {
+    if (loading) {
+      return <div className="flex flex-col px-7 w-full max-md:px-5">
+        <div className="text-center py-8 text-gray-600">Loading connections...</div>
+      </div>;
+    }
 
-  const ConnectionList = () => (
-    <div className="flex flex-col px-7 w-full max-md:px-5">
-      {connections.map(connection => (
-        <div
-          key={connection.id}
-          className="flex items-center py-4 px-6 bg-gray-100 rounded-xl my-2 shadow-sm"
-        >
-          {/* Profile Image & Name */}
-          <div className="flex items-center gap-4 w-1/3 min-w-[200px]">
-            <img
-              src={connection.img}
-              alt={connection.name}
-              className="w-12 h-12 rounded-full border border-gray-300"
-            />
-            <div className="text-lg font-semibold">{connection.name}</div>
-          </div>
+    if (connections.length === 0) {
+      return <div className="flex flex-col px-7 w-full max-md:px-5">
+        <div className="text-center py-8 text-gray-600">
+          No mutual connections yet. When both you and someone from your AI matches connect with each other, they'll appear here!
+        </div>
+      </div>;
+    }
 
-          {/* Compatibility Bar */}
-          <div className="flex-1 px-4">
-            <div className="w-full bg-gray-300 rounded-full h-2.5">
-              <div
-                className="h-2.5 rounded-full"
-                style={{
-                  width: `${connection.compatibility}%`,
-                  backgroundColor: getCompatibilityColor(connection.compatibility),
-                }}
+    return (
+      <div className="flex flex-col px-7 w-full max-md:px-5">
+        {connections.map(connection => (
+          <div
+            key={connection.id}
+            className="flex items-center py-4 px-6 bg-gray-100 rounded-xl my-2 shadow-sm"
+          >
+            {/* Profile Image & Name */}
+            <div className="flex items-center gap-4 w-1/3 min-w-[200px]">
+              <img
+                src={connection.img}
+                alt={connection.name}
+                className="w-12 h-12 rounded-full border border-gray-300 object-cover"
               />
+              <div className="text-lg font-semibold">{connection.name}</div>
+            </div>
+
+            {/* Compatibility Bar */}
+            <div className="flex-1 px-4">
+              <div className="w-full bg-gray-300 rounded-full h-2.5">
+                <div
+                  className="h-2.5 rounded-full"
+                  style={{
+                    width: `${connection.compatibility}%`,
+                    backgroundColor: getCompatibilityColor(connection.compatibility),
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Compatibility Percentage & Icon */}
+            <div className="flex items-center justify-end w-1/3 min-w-[120px] gap-3">
+              <span
+                className="px-3 py-1 text-sm font-semibold text-gray-900 rounded-lg shadow-sm border border-gray-300"
+                style={{ backgroundColor: getCompatibilityColor(connection.compatibility) }}
+              >
+                {connection.compatibility}%
+              </span>
+              <button onClick={() => setSelectedConnection(connection)}>
+                <FaPaperPlane className="text-indigo-600 cursor-pointer hover:text-indigo-800" />
+              </button>
             </div>
           </div>
-
-          {/* Compatibility Percentage & Icon */}
-          <div className="flex items-center justify-end w-1/3 min-w-[120px] gap-3">
-            <span
-              className="px-3 py-1 text-sm font-semibold text-gray-900 rounded-lg shadow-sm border border-gray-300"
-              style={{ backgroundColor: getCompatibilityColor(connection.compatibility) }}
-            >
-              {connection.compatibility}%
-            </span>
-            <button onClick={() => setSelectedConnection(connection)}>
-              <FaPaperPlane className="text-indigo-600 cursor-pointer hover:text-indigo-800" />
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-md:p-5">
