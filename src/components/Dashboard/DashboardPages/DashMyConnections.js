@@ -58,7 +58,7 @@ const DashMyConnections = () => {
               const profile = {
                 id: connectionId,
                 name: userData.firstName ? `${userData.firstName} ${userData.lastName || ''}`.trim() : userData.displayName || 'Unknown',
-                img: userData.profileImageUrl || '/default-profile.png',
+                img: userData.image || '/default-profile.png',
                 age: calculateAge(userData.birthDate),
                 // Use the actual AI match score stored when connection was created, rounded
                 compatibility: Math.round(connectionData.matchScore || 0)
