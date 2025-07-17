@@ -152,6 +152,11 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               }
               try {
                 setJoining(true);
+                if (onSignUp) {
+                  console.log('[JOIN NOW] Calling onSignUp for event:', event);
+                  await onSignUp(event);
+                  console.log('[JOIN NOW] onSignUp finished');
+                }
                 const functions = getFunctions();
                 console.log('About to call getEventData');
                 const getEventData = httpsCallable(functions, 'getEventData'); // returns full event
