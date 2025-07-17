@@ -3,13 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, getCountFromServer } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, getCountFromServer, query, where } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
 import { auth } from "../../../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { DateTime } from 'luxon';
+import { calculateAge } from '../../../utils/ageCalculator';
+import { filterByGenderPreference } from '../../../utils/genderPreferenceFilter';
 
 // Helper: map city to IANA time zone
 const cityToTimeZone = {
@@ -87,6 +89,18 @@ function useResponsiveEventLimit() {
   return isMobile ? 4 : 6;
 }
 
+// Helper: convert emails to user IDs
+async function emailsToUserIds(emails) {
+  if (!emails || emails.length === 0) return [];
+  const userIds = [];
+  for (const email of emails) {
+    const qSnap = await getDocs(collection(db, 'users'));
+    const match = qSnap.docs.find(doc => doc.data().email === email);
+    if (match) userIds.push(match.id);
+  }
+  return userIds;
+}
+
 const DashHome = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
@@ -101,6 +115,7 @@ const DashHome = () => {
   const [allEvents, setAllEvents] = useState([]);
   const [signedUpEventIds, setSignedUpEventIds] = useState(new Set());
   const [signedUpEventsLoaded, setSignedUpEventsLoaded] = useState(false);
+  const [connections, setConnections] = useState([]);
 
   // Helper: fetch IDs of events the user has signed up for from their sub-collection
   const fetchUserSignedUpEventIds = async (userId) => {
@@ -115,6 +130,69 @@ const DashHome = () => {
       console.error('Error fetching user signed-up events:', err);
       return new Set();
     }
+  };
+
+  /**
+   * Fetch participant user IDs for a Remo event.
+   * 1. Call CF getEventMembers → list of attendee objects.
+   * 2. Extract attendee.user.email → emails[]
+   * 3. Query Firestore users by email (batched 10 per 'in' query) → uid[]
+   */
+  const fetchEventParticipantUserIds = async (eventId) => {
+    if (!eventId) return [];
+    try {
+      const functionsInst = getFunctions();
+      const getEventMembers = httpsCallable(functionsInst, 'getEventMembers');
+      const res = await getEventMembers({ eventId });
+
+      const payload = res?.data;
+
+      // Case 1: Cloud function already returns array of attendee objects
+      if (Array.isArray(payload)) {
+        const userIds = await emailsToUserIds(payload.map((att) => att?.user?.email).filter(Boolean));
+        return userIds;
+      }
+
+      // Case 2: Object wrapper with attendees array
+      if (payload && Array.isArray(payload.attendees)) {
+        const userIds = await emailsToUserIds(payload.attendees.map((att) => att?.user?.email).filter(Boolean));
+        return userIds;
+      }
+
+      // Case 3: Object wrapper with precomputed emails array
+      if (payload && Array.isArray(payload.emails)) {
+        const userIds = await emailsToUserIds(payload.emails.filter(Boolean));
+        return userIds;
+      }
+
+      console.warn('fetchEventParticipantEmails: Unexpected response format', payload);
+      return [];
+    } catch (err) {
+      console.error('Error fetching event participant emails:', err);
+      return [];
+    }
+  };
+
+  /**
+   * Helper to map an array of emails → array of Firebase user document IDs
+   */
+  const emailsToUserIds = async (emails) => {
+    if (!Array.isArray(emails) || emails.length === 0) return [];
+
+    const uidSet = new Set();
+    // Firestore 'in' queries accept max 10 values
+    for (let i = 0; i < emails.length; i += 10) {
+      const slice = emails.slice(i, i + 10);
+      const q = query(collection(db, 'users'), where('email', 'in', slice));
+      const snap = await getDocs(q);
+      snap.forEach((docSnap) => {
+        const uid = docSnap.id;
+        if (auth.currentUser && uid === auth.currentUser.uid) return; // skip self
+        uidSet.add(uid);
+      });
+    }
+
+    return Array.from(uidSet);
   };
 
   // Filter events to only show upcoming ones
@@ -145,33 +223,31 @@ const DashHome = () => {
     return () => unsubscribe();
   }, []);
 
-  const connections = [
-    {
-      id: "01",
-      name: "Kelly Rachel",
-      matchLevel: 65,
-    },
-    {
-      id: "02",
-      name: "Taylor Swift",
-      matchLevel: 29,
-    },
-    {
-      id: "03",
-      name: "Jennifer Lopex",
-      matchLevel: 48,
-    },
-  ];
+  // Move fetchConnections outside useEffect so it can be called from child
+  const fetchConnections = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    const connsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+    const uids = connsSnap.docs.map(d => d.id);
+    const profiles = await Promise.all(
+      uids.map(async (uid) => {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        if (!userDoc.exists()) return null;
+        const data = userDoc.data();
+        return {
+          userId: uid,
+          name: data.firstName ? `${data.firstName} ${data.lastName || ''}`.trim() : data.displayName || 'Unknown',
+          age: calculateAge(data.birthDate),
+          image: data.image || null,
+          ...data,
+        };
+      })
+    );
+    setConnections(profiles.filter(Boolean));
+  };
 
-  // Load signed-up IDs when the authenticated user changes
   useEffect(() => {
-    if (!auth.currentUser) return;
-
-    (async () => {
-      const ids = await fetchUserSignedUpEventIds(auth.currentUser.uid);
-      setSignedUpEventIds(ids);
-      setSignedUpEventsLoaded(true);
-    })();
+    fetchConnections();
   }, [auth.currentUser]);
 
   // Helper to check if event is past (for sign-up: event start; for upcoming: event start + 90min)
@@ -374,6 +450,10 @@ const getEventData = async (eventID) => {
 
   // Handle sign up logic
   const handleSignUp = async (event) => {
+    // 🐛 DEBUGGING LOGS
+    console.log("[JOIN NOW] Event:", event);
+    console.log("[JOIN NOW] Event ID:", event.eventID);
+    console.log("[JOIN NOW] Current user:", auth.currentUser?.uid);
     const currentRemaining = Number.isFinite(datesRemaining) ? datesRemaining : 0;
     if (currentRemaining <= 0) return;
     setDatesRemaining(prev => (Number.isFinite(prev) ? prev - 1 : 0));
@@ -382,7 +462,10 @@ const getEventData = async (eventID) => {
     if (user) {
       const userDocRef = doc(db, 'users', user.uid);
       // Update remaining dates for the user
-      await setDoc(userDocRef, { datesRemaining: currentRemaining - 1 }, { merge: true });
+      await setDoc(userDocRef, { 
+        datesRemaining: currentRemaining - 1, 
+        latestEventId: event.eventID // <-- ensure this is set
+      }, { merge: true });
 
       // 1. Add a document in the user's sub-collection
       await setDoc(
@@ -456,7 +539,124 @@ const getEventData = async (eventID) => {
     }
   };
 
-  const handleMatchesClick = () => {
+  const handleMatchesClick = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    // 1. Get latestEventId from user doc
+    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+    const latestEventId = userDoc.data()?.latestEventId;
+    if (!latestEventId) return alert("Missing latest event ID");
+    console.log('[MATCHES] latestEventId:', latestEventId);
+
+    // 2. Find the event doc where eventID === latestEventId
+    const eventsSnapshot = await getDocs(collection(db, 'events'));
+    let eventDocId = null;
+    eventsSnapshot.forEach(docSnap => {
+      if (docSnap.data().eventID === latestEventId) {
+        eventDocId = docSnap.id;
+      }
+    });
+    if (!eventDocId) {
+      alert('Event not found for latestEventId');
+      return;
+    }
+    console.log('[MATCHES] Found event doc ID:', eventDocId);
+
+    // 3. Get signedUpUsers subcollection from that event doc
+    const signedUpUsersCol = collection(db, 'events', eventDocId, 'signedUpUsers');
+    const signedUpUsersSnap = await getDocs(signedUpUsersCol);
+    const userIds = signedUpUsersSnap.docs.map(d => d.id);
+    console.log('[MATCHES] User IDs from signedUpUsers:', userIds);
+
+    // 4. Fetch quiz responses and user profiles for each user ID
+    const quizResponses = [];
+    const userProfiles = [];
+    
+    for (const uid of userIds) {
+      const quizDocRef = doc(db, 'users', uid, 'quizResponses', 'latest');
+      const userProfileRef = doc(db, 'users', uid);
+      
+      console.log(`[MATCHES] Fetching quiz and profile for user ${uid}`);
+      
+      const [quizDoc, userProfileDoc] = await Promise.all([
+        getDoc(quizDocRef),
+        getDoc(userProfileRef)
+      ]);
+      
+      console.log(`[MATCHES] Quiz exists for user ${uid}:`, quizDoc.exists());
+      console.log(`[MATCHES] Profile exists for user ${uid}:`, userProfileDoc.exists());
+      
+      if (quizDoc.exists()) {
+        const quizData = { userId: uid, answers: quizDoc.data().answers };
+        quizResponses.push(quizData);
+        
+        // Also store user profile data for gender preference filtering
+        if (userProfileDoc.exists()) {
+          userProfiles.push({
+            userId: uid,
+            ...userProfileDoc.data()
+          });
+        }
+      }
+    }
+
+    // 5. Find current user's answers and profile
+    const currentUserAnswers = quizResponses.find(q => q.userId === currentUser.uid)?.answers;
+    const currentUserProfile = userProfiles.find(p => p.userId === currentUser.uid);
+    
+    if (!currentUserAnswers) {
+      alert('You must complete your quiz to get matches.');
+      return;
+    }
+
+    if (!currentUserProfile) {
+      alert('User profile not found. Please complete your profile setup.');
+      return;
+    }
+
+    // 6. Filter other users by gender preference
+    const otherUsers = quizResponses.filter(q => q.userId !== currentUser.uid);
+    const otherUserProfiles = userProfiles.filter(p => p.userId !== currentUser.uid);
+    
+    console.log('[MATCHES] Before gender filtering:', {
+      totalUsers: otherUsers.length,
+      currentUserProfile: {
+        gender: currentUserProfile.gender,
+        sexualPreference: currentUserProfile.sexualPreference
+      }
+    });
+
+    // Create combined user objects with both quiz answers and profile data
+    const otherUsersWithProfiles = otherUsers.map(quizUser => {
+      const profile = otherUserProfiles.find(p => p.userId === quizUser.userId);
+      return {
+        ...quizUser,
+        ...profile
+      };
+    });
+
+    // Apply gender preference filtering
+    const filteredUsers = filterByGenderPreference(currentUserProfile, otherUsersWithProfiles);
+    
+    console.log('[MATCHES] After gender filtering:', {
+      filteredUsers: filteredUsers.length,
+      filteredUserIds: filteredUsers.map(u => u.userId)
+    });
+
+    // 7. Run matchmaking algorithm only on filtered users
+    const { getTopMatches } = await import('../../Matchmaking/Synergies.js');
+    const matches = getTopMatches(currentUserAnswers, filteredUsers); // [{ userId, score }]
+
+    console.log('[MATCHES] Final matches:', matches);
+
+    // 8. Save matches to Firestore
+    await setDoc(doc(db, 'matches', currentUser.uid), {
+      timestamp: serverTimestamp(),
+      results: matches
+    });
+
+    // 9. Redirect to MyMatches
     navigate('myMatches');
   };
 
