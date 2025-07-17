@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, getCountFromServer } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, getCountFromServer, query, where } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
@@ -130,6 +130,69 @@ const DashHome = () => {
       console.error('Error fetching user signed-up events:', err);
       return new Set();
     }
+  };
+
+  /**
+   * Fetch participant user IDs for a Remo event.
+   * 1. Call CF getEventMembers → list of attendee objects.
+   * 2. Extract attendee.user.email → emails[]
+   * 3. Query Firestore users by email (batched 10 per 'in' query) → uid[]
+   */
+  const fetchEventParticipantUserIds = async (eventId) => {
+    if (!eventId) return [];
+    try {
+      const functionsInst = getFunctions();
+      const getEventMembers = httpsCallable(functionsInst, 'getEventMembers');
+      const res = await getEventMembers({ eventId });
+
+      const payload = res?.data;
+
+      // Case 1: Cloud function already returns array of attendee objects
+      if (Array.isArray(payload)) {
+        const userIds = await emailsToUserIds(payload.map((att) => att?.user?.email).filter(Boolean));
+        return userIds;
+      }
+
+      // Case 2: Object wrapper with attendees array
+      if (payload && Array.isArray(payload.attendees)) {
+        const userIds = await emailsToUserIds(payload.attendees.map((att) => att?.user?.email).filter(Boolean));
+        return userIds;
+      }
+
+      // Case 3: Object wrapper with precomputed emails array
+      if (payload && Array.isArray(payload.emails)) {
+        const userIds = await emailsToUserIds(payload.emails.filter(Boolean));
+        return userIds;
+      }
+
+      console.warn('fetchEventParticipantEmails: Unexpected response format', payload);
+      return [];
+    } catch (err) {
+      console.error('Error fetching event participant emails:', err);
+      return [];
+    }
+  };
+
+  /**
+   * Helper to map an array of emails → array of Firebase user document IDs
+   */
+  const emailsToUserIds = async (emails) => {
+    if (!Array.isArray(emails) || emails.length === 0) return [];
+
+    const uidSet = new Set();
+    // Firestore 'in' queries accept max 10 values
+    for (let i = 0; i < emails.length; i += 10) {
+      const slice = emails.slice(i, i + 10);
+      const q = query(collection(db, 'users'), where('email', 'in', slice));
+      const snap = await getDocs(q);
+      snap.forEach((docSnap) => {
+        const uid = docSnap.id;
+        if (auth.currentUser && uid === auth.currentUser.uid) return; // skip self
+        uidSet.add(uid);
+      });
+    }
+
+    return Array.from(uidSet);
   };
 
   // Filter events to only show upcoming ones
