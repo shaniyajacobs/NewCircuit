@@ -175,6 +175,7 @@ const DashHome = () => {
           userId: uid,
           name: data.firstName ? `${data.firstName} ${data.lastName || ''}`.trim() : data.displayName || 'Unknown',
           age: calculateAge(data.birthDate),
+          image: data.image || null,
           ...data,
         };
       })

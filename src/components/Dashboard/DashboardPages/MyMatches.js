@@ -35,7 +35,7 @@ const MyMatches = ({ onConnect }) => {
               score: m.score,
               name: data.firstName ? `${data.firstName} ${data.lastName || ''}`.trim() : data.displayName || 'Unknown',
               age: calculateAge(data.birthDate),
-              image: data.profileImageUrl || '',
+              image: data.image || '',
               ...data,
             };
           })
