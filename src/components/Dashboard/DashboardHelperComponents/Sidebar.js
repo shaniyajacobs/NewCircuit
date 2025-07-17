@@ -16,7 +16,7 @@ const Sidebar = () => {
 
   const navItems = [
     { icon: "ti ti-home", text: "Home", active: true },
-    { icon: "ti ti-users", text: "My Connections" },
+    { icon: "ti ti-users", text: "My Sparks" },
     { icon: "ti ti-calendar", text: "Date Calendar" },
     { icon: "ti ti-ticket", text: "My Coupons" },
     { icon: "ti ti-user", text: "My Profile" },
@@ -48,7 +48,7 @@ const Sidebar = () => {
       cName: "nav-text",
     },
     {
-      title: "My Connections",
+      title: "My Sparks",
       path: "/dashboard/dashMyConnections",
       icon: <FaIcons.FaUsers />,
       cName: "nav-text",

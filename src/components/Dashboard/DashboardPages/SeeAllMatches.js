@@ -85,11 +85,11 @@ const SeeAllMatches = () => {
     }
   };
 
-  if (loading) return <div className="p-8 text-lg text-gray-600">Loading matches...</div>;
+  if (loading) return <div className="p-8 text-lg text-gray-600">Loading connections...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <h1 className="text-4xl font-bold text-center mb-8">Select your Matches</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">Select your Connections</h1>
       <div className="grid grid-cols-2 gap-6 max-w-5xl mx-auto">
         {matches.map(match => (
           <div key={match.id} onClick={() => toggleSelect(match.id)}
