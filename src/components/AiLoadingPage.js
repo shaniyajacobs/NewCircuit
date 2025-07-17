@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { getAuth } from "firebase/auth";
-import { collection, query, where, getDocs, doc } from "firebase/firestore";
+import { onAuthStateChanged, getAuth } from "firebase/auth";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from '../pages/firebaseConfig';
 import Synergies from './Matchmaking/Synergies';
 
@@ -50,22 +50,80 @@ const AiLoadingPage = () => {
     }
   }, [])
 
-  async function runAlgorithm() {
-    const loggedInUserID = userData.data().userId;
-    const userAnswers = await getQuestionData(loggedInUserID);
-    
-    placeholderUserIDs.forEach(async (userID) => {
-      try {
-        const connectionAnswers = await getQuestionData(userID);
-        const synergies = createSynergies(userAnswers, connectionAnswers);
-        const matchScore = matchmakingAlgorithm(synergies, weights);
-        console.log("User: " + loggedInUserID + " and connection: " + userID + " have score: " + matchScore);
-      } catch (e) {
-        console.log(e)
-        console.log("PROMISE CANCELLED");
+  // Replace the runAlgorithm function with an onAuthStateChanged-based approach
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        alert("Not signed in");
+        return;
       }
+      console.log('[AI MATCH] Current user:', user);
+      console.log('[AI MATCH] Current user UID:', user.uid);
+
+      // 1. Get latestEventId from current user's doc
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      const latestEventId = userDoc.data()?.latestEventId;
+      console.log('[AI MATCH] latestEventId:', latestEventId);
+      if (!latestEventId) {
+        alert("No latest event found for user.");
+        return;
+      }
+
+      // 2. Fetch user IDs who joined that event
+      const signedUpUsersCol = collection(db, "events", latestEventId, "signedUpUsers");
+      const signedUpUsersSnap = await getDocs(signedUpUsersCol);
+      const userIds = signedUpUsersSnap.docs.map(d => d.id);
+      console.log('[AI MATCH] User IDs in event:', userIds);
+
+      // 3. For each user ID, fetch their quiz responses
+      const quizResponses = [];
+      for (const uid of userIds) {
+        const quizDocRef = doc(db, "users", uid, "quizResponses", "latest");
+        console.log(`[AI MATCH] Fetching quiz for user ${uid} at path:`, quizDocRef.path);
+        const quizDoc = await getDoc(quizDocRef);
+        console.log(`[AI MATCH] Checking quiz for user ${uid}: exists =`, quizDoc.exists());
+        if (quizDoc.exists()) {
+          quizResponses.push({ userId: uid, answers: quizDoc.data().answers });
+        }
+      }
+
+      // 4. Filter out users without quiz responses (already done above)
+      if (quizResponses.length === 0) {
+        alert("No quiz responses found for this event.");
+        return;
+      }
+
+      // 5. Pass those quiz responses into the matchmaking algorithm
+      let currentUserAnswers = quizResponses.find(q => q.userId === user.uid)?.answers;
+
+      if (!currentUserAnswers) {
+        // Try fetching current user's quiz response directly
+        const quizDocRef = doc(db, "users", user.uid, "quizResponses", "latest");
+        console.log('[AI MATCH] Direct fetch for current user quiz at path:', quizDocRef.path);
+        const quizDoc = await getDoc(quizDocRef);
+        console.log(`[AI MATCH] Direct fetch for current user quiz: exists =`, quizDoc.exists());
+        if (quizDoc.exists()) {
+          currentUserAnswers = quizDoc.data().answers;
+          // Optionally add to quizResponses for completeness
+          quizResponses.push({ userId: user.uid, answers: currentUserAnswers });
+        }
+      }
+
+      if (!currentUserAnswers) {
+        alert("You must complete your quiz to get matches.");
+        return;
+      }
+
+      // Example: run your matchmaking algorithm here
+      // const matches = getTopMatches(currentUserAnswers, others);
+      console.log('[AI MATCH] Current user answers:', currentUserAnswers);
+      const others = quizResponses.filter(q => q.userId !== user.uid);
+      console.log('[AI MATCH] Other users:', others);
     });
-  }
+    return () => unsubscribe();
+  }, []);
 
   async function getQuestionData(userID) {
     const userDocRef = doc(db, "users", userID);
