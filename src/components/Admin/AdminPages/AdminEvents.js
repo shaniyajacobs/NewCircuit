@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../../pages/firebaseConfig';
 import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from 'firebase/firestore';
 import { FaSearch, FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { DateTime } from 'luxon';
 
 const AdminEvents = () => {
   const [events, setEvents] = useState([]);
@@ -49,7 +51,23 @@ const AdminEvents = () => {
   const fetchEvents = async () => {
     try {
       const eventsSnapshot = await getDocs(collection(db, 'events'));
-      const eventsList = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const functionsInst = getFunctions();
+      const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
+
+      const eventsList = await Promise.all(
+        eventsSnapshot.docs.map(async (d) => {
+          const meta = d.data();
+          const eventId = meta.eventID || d.id;
+          try {
+            const res = await getEventDataCF({ eventId });
+            const remo = res.data?.event || {};
+            return { id: d.id, ...remo, ...meta }; // Firebase meta (eventType etc.) overrides
+          } catch (e) {
+            console.error('Remo fetch fail', e);
+            return { id: d.id, ...meta };
+          }
+        })
+      );
       setEvents(eventsList);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -73,13 +91,37 @@ const AdminEvents = () => {
     setShowUsersModal(true);
     setLoadingUsers(true);
     try {
-      const usersSnap = await getDocs(collection(db, 'events', event.id, 'signedUpUsers'));
-      const usersList = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setEventUsers(usersList);
-      setMaleUsers(usersList.filter(u => (u.userGender || '').toLowerCase() === 'male'));
-      setFemaleUsers(usersList.filter(u => (u.userGender || '').toLowerCase() === 'female'));
+      const functionsInst = getFunctions();
+      const getMembers = httpsCallable(functionsInst, 'getEventMembers');
+      // The Callable result comes back as an object: { data: <actualArray> }
+      const res = await getMembers({ eventId: event.eventID });
+      console.log('getEventMembers response:', res);
+
+      const attendees = Array.isArray(res?.data) ? res.data : [];
+
+      const normalized = attendees.map((a) => {
+        const profile = a.user?.profile || {};
+        const nameCombined = profile.name || [profile.firstName, profile.lastName].filter(Boolean).join(' ');
+
+        const email = a.user?.email || a.invite?.email || '-';
+
+        const status = a.status || a.invite?.status || '-';
+        const accepted = (a.invite?.isAccepted ?? (status === 'accepted')) ? 'Yes' : 'No';
+
+        return {
+          // Prefer explicit IDs; fall back to invite _id or email for table key
+          id: a.user?.id || a.user?._id || a.invite?._id || a._id || email,
+          name: nameCombined || email,
+          email,
+          // Use createdAt from root or invite object as sign-up timestamp
+          signedUpAt: a.createdAt || a.invite?.createdAt || a.invite?.updatedAt || '',
+          status,
+          accepted,
+        };
+      });
+      setEventUsers(normalized);
     } catch (error) {
-      console.error('Error fetching signed up users:', error);
+      console.error('Error fetching Remo members:', error);
     } finally {
       setLoadingUsers(false);
     }
@@ -173,10 +215,20 @@ const AdminEvents = () => {
               </tr>
             ) : filteredEvents.map(evt => (
               <tr key={evt.id}>
-                <td className="px-6 py-4 whitespace-nowrap">{evt.title}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{evt.date}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{evt.time}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{evt.timeZone}</td>
+                {(() => {
+                  const dt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)) : null;
+                  const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (evt.date || '');
+                  const timeStr = dt ? dt.toFormat('h:mm a') : (evt.time || '');
+                  const tzStr = dt ? dt.offsetNameShort : (evt.timeZone || '');
+                  return (
+                    <>
+                      <td className="px-6 py-4 whitespace-nowrap">{evt.name || evt.title}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{dateStr}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{timeStr}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{tzStr}</td>
+                    </>
+                  );
+                })()}
                 <td className="px-6 py-4 whitespace-nowrap">{evt.location}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
@@ -511,69 +563,39 @@ const AdminEvents = () => {
       {showUsersModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-5xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-2xl font-semibold mb-4">Users for {selectedEvent?.title}</h2>
+            <h2 className="text-2xl font-semibold mb-4">
+              Users for {selectedEvent?.name || selectedEvent?.title}
+            </h2>
             {loadingUsers ? (
               <div className="text-center py-8">Loading...</div>
             ) : eventUsers.length === 0 ? (
               <div className="text-center py-8 text-gray-600">No users have signed up yet.</div>
             ) : (
               <div className="space-y-10">
-                {/* Male Users Table */}
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">Male Users</h3>
-                  {maleUsers.length === 0 ? (
-                    <div className="text-gray-600">No male users have signed up.</div>
-                  ) : (
-                    <table className="min-w-full text-sm table-fixed">
-                      <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Name</th>
-                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Signed Up At</th>
-                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Email</th>
-                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Phone</th>
+                  <h3 className="text-xl font-semibold mb-2">All Users</h3>
+                  <table className="min-w-full text-sm table-fixed">
+                    <thead className="bg-gray-50 sticky z-10">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Name</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Signed Up At</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Email</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Status</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Accepted</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {eventUsers.map(u => (
+                        <tr key={u.id}>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.name}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.signedUpAt ? new Date(u.signedUpAt).toLocaleString() : '-'}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.email}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate capitalize">{u.status}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.accepted}</td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {maleUsers.map(u => (
-                          <tr key={u.id}>
-                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userName || '-'}</td>
-                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.signUpTime && u.signUpTime.toDate ? u.signUpTime.toDate().toLocaleString() : '-'}</td>
-                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userEmail || '-'}</td>
-                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userPhoneNumber || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-
-                {/* Female Users Table */}
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">Female Users</h3>
-                  {femaleUsers.length === 0 ? (
-                    <div className="text-gray-600">No female users have signed up.</div>
-                  ) : (
-                    <table className="min-w-full text-sm table-fixed">
-                      <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Name</th>
-                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Signed Up At</th>
-                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Email</th>
-                          <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Phone</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {femaleUsers.map(u => (
-                          <tr key={u.id}>
-                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userName || '-'}</td>
-                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.signUpTime && u.signUpTime.toDate ? u.signUpTime.toDate().toLocaleString() : '-'}</td>
-                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userEmail || '-'}</td>
-                            <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{u.userPhoneNumber || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
