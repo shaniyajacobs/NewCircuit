@@ -54,7 +54,7 @@ exports.createPaymentIntent = onCall(
   }
 );
 
-exports.getRemoJoinUrl = onCall(
+exports.getEventData = onCall(
   {
     region: 'us-central1',
     secrets: [remoSecret, remoCompanyIdSecret],
@@ -62,7 +62,7 @@ exports.getRemoJoinUrl = onCall(
   },
   async (data, context) => {
     // Log only the payload the client sent. data.data contains the body for v2 callable
-    console.log('📝 getRemoJoinUrl – received data:', util.inspect(data.data || data, { depth: 3 }));
+    console.log('📝 getEventData – received data:', util.inspect(data.data || data, { depth: 3 }));
 
     // Prefer eventId from data.data, then fallback to data
     const eventId = data?.data?.eventId || data?.data?.eventID || data?.eventId || data?.eventID;
@@ -129,10 +129,8 @@ exports.getRemoJoinUrl = onCall(
       throw new functions.https.HttpsError('internal', 'No event code returned from Remo');
     }
     
-    const joinUrl = `https://live.remo.co/e/${eventCode}`;
-    console.log('✅ Constructed join URL:', joinUrl);
-
-    return { joinUrl };          // <- sent back to the client
+    // Return the raw event object; client will construct the join URL
+    return { event };
   } catch (error) {
     if (error.name === 'AbortError') {
       console.error('Remo API timeout:', error);
@@ -190,6 +188,62 @@ exports.addUserToRemoEvent = onCall(
     console.log('✅ Successfully added user to Remo event:', result);
     
     return { success: true };
+  }
+);
+
+exports.getEventMembers = onCall(
+  {
+    region: 'us-central1',
+    secrets: [remoSecret, remoCompanyIdSecret],
+    runtime: 'nodejs18',
+  },
+  async (data, context) => {
+    const eventId = data?.data?.eventId || data?.data?.eventID || data?.eventId || data?.eventID;
+    console.log('eventId', eventId);
+    if (!eventId) {
+      throw new functions.https.HttpsError('invalid-argument', 'Missing eventId');
+    }
+
+    const url = new URL(`https://live.remo.co/api/v1/events/${eventId}/attendees`);
+    url.searchParams.set('include', 'attendance');
+    url.searchParams.set('role', 'attendee');
+
+    try {
+      console.log('Request to Remo API:', url.toString());
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Token: ${remoSecret.value()}`,
+        },
+        signal: AbortSignal.timeout(30000),
+      });
+      console.log('Remo API response status:', response.status);
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('Remo members fetch error:', errText);
+        throw new functions.https.HttpsError('internal', 'Failed to fetch members');
+      }
+      
+      const responseData = await response.json();
+      console.log('Remo API response:', responseData);
+
+      if (!responseData.isSuccess || !responseData.attendees) {
+        console.error('❌ Invalid Remo response structure:', responseData);
+        throw new functions.https.HttpsError('internal', 'Invalid response from Remo API');
+      }
+
+      const attendees = responseData.attendees;
+      console.log('📝 Attendees:', attendees);
+      return attendees; // returns the list of hashes of the attendees
+
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new functions.https.HttpsError('deadline-exceeded', 'Remo API timeout');
+      }
+      throw error;
+    }
   }
 );
 
