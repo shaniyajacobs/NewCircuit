@@ -689,13 +689,13 @@ const getEventData = async (eventID) => {
                 onClick={handleMatchesClick}
                 className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
               >
-                You just went on a date! Here are your ai rec matches! 
+                You just went on a date! Here are your connections!
               </button>
               <button 
                 onClick={handleConnectionsClick}
                 className="px-4 py-2 text-sm font-medium text-white bg-[#85A2F2] rounded-lg hover:opacity-90 transition-colors"
               >
-                See your new connections
+                See your Sparks
               </button>
             </div>
             <div className="text-xl font-semibold text-indigo-950 mt-4">
