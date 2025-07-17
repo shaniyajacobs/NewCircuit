@@ -1,118 +1,145 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { auth, db } from '../../../firebaseConfig';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { calculateAge } from '../../../utils/ageCalculator';
 
-const MyMatches = () => {
+const MyMatches = ({ onConnect }) => {
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const [visibleMatches, setVisibleMatches] = useState([]);
-  
-  const matches = [
-    { id: 1, name: 'Kayla', age: 27, image: 'path_to_image', compatibility: 95 },
-    { id: 2, name: 'Kayla', age: 27, image: 'path_to_image', compatibility: 92 },
-    { id: 3, name: 'Kayla', age: 27, image: 'path_to_image', compatibility: 88 }
-  ];
 
   useEffect(() => {
-    setVisibleMatches([]);
-
-    const timeouts = [
-      setTimeout(() => setVisibleMatches([2]), 500),
-      setTimeout(() => setVisibleMatches([2, 1]), 1500),
-      setTimeout(() => setVisibleMatches([2, 1, 0]), 2500)
-    ];
-
-    return () => timeouts.forEach(timeout => clearTimeout(timeout));
+    const fetchMatches = async () => {
+      setLoading(true);
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        // 1. Fetch matches from Firestore
+        const matchesDoc = await getDoc(doc(db, 'matches', user.uid));
+        if (!matchesDoc.exists()) {
+          setMatches([]);
+          setLoading(false);
+          return;
+        }
+        const results = matchesDoc.data().results || [];
+        // 2. For each match, fetch user profile
+        const top3 = results.slice(0, 3);
+        const profiles = await Promise.all(
+          top3.map(async (m) => {
+            const userDoc = await getDoc(doc(db, 'users', m.userId));
+            if (!userDoc.exists()) return null;
+            const data = userDoc.data();
+            return {
+              userId: m.userId,
+              score: m.score,
+              name: data.firstName ? `${data.firstName} ${data.lastName || ''}`.trim() : data.displayName || 'Unknown',
+              age: calculateAge(data.birthDate),
+              image: data.profileImageUrl || '',
+              ...data,
+            };
+          })
+        );
+        setMatches(profiles.filter(Boolean));
+      } catch (err) {
+        setMatches([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMatches();
   }, []);
 
-  return (
-    <div className="min-h-screen bg-white p-8">
-      {/* Header */}
-      <div className="mb-12">
-        <h1 className="text-4xl font-bold text-center mb-2">Matched in Heaven</h1>
-        <p className="text-xl text-center text-gray-700">Here are your suggestions powered by AI</p>
-      </div>
+  const handleConnect = async (matchedUid) => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error('[CONNECT] No authenticated user found');
+      return;
+    }
+    
+    console.log('[CONNECT] Starting connection process...');
+    console.log('[CONNECT] Current user ID:', user.uid);
+    console.log('[CONNECT] Matched user ID:', matchedUid);
+    
+    // Find the match score for this user
+    const match = matches.find(m => m.userId === matchedUid);
+    const matchScore = match ? match.score : 0; // Use actual score or 0, not hardcoded 85
+    
+    console.log('[CONNECT] Found match:', match);
+    console.log('[CONNECT] Match score to store:', matchScore);
+    
+    try {
+      // Check if the other user has already connected with current user
+      const otherUserConnectionRef = doc(db, 'users', matchedUid, 'connections', user.uid);
+      const otherUserConnectionDoc = await getDoc(otherUserConnectionRef);
+      const isMutual = otherUserConnectionDoc.exists();
+      
+      console.log('[CONNECT] Other user connection exists:', isMutual);
+      
+      // Store current user's connection
+      const connectionRef = doc(db, 'users', user.uid, 'connections', matchedUid);
+      console.log('[CONNECT] Connection document path:', connectionRef.path);
+      
+      const connectionData = {
+        connectedAt: serverTimestamp(),
+        matchScore: matchScore,
+        status: isMutual ? 'mutual' : 'pending'
+      };
+      
+      await setDoc(connectionRef, connectionData, { merge: true });
+      console.log('[CONNECT] Current user connection saved with status:', connectionData.status);
+      
+      // If mutual, update the other user's connection status too
+      if (isMutual) {
+        await setDoc(otherUserConnectionRef, { status: 'mutual' }, { merge: true });
+        console.log('[CONNECT] Updated other user connection to mutual');
+      }
+      
+      console.log('[CONNECT] Connection saved successfully to Firebase');
+      
+      setMatches((prev) => prev.map(m => m.userId === matchedUid ? { ...m, connected: true } : m));
+      if (onConnect) onConnect();
+      
+      console.log('[CONNECT] UI updated and onConnect callback triggered');
+    } catch (error) {
+      console.error('[CONNECT] Error saving connection to Firebase:', error);
+    }
+  };
 
-      {/* Matches Container */}
-      <div className="max-w-3xl mx-auto space-y-6">
-        {matches.map((match, index) => (
-          <div 
-            key={match.id}
-            className={`flex items-center bg-white rounded-lg overflow-hidden border-2 border-[#85A2F2] transition-all duration-500 transform
-              ${visibleMatches.includes(index) 
-                ? 'opacity-100 translate-x-0' 
-                : 'opacity-0 -translate-x-full'
-              }`}
-          >
-            {/* Ranking Number */}
-            <div className="w-12 flex items-center justify-center">
-              <span className={`text-2xl font-bold text-[#85A2F2] transition-all duration-500 transform
-                ${visibleMatches.includes(index) 
-                  ? 'scale-100' 
-                  : 'scale-0'
-                }`}>
-                #{index + 1}
-              </span>
-            </div>
-            
-            <div className="w-20 bg-[#85A2F2] h-full flex items-center justify-center p-4">
-              <div className={`text-white text-3xl transition-transform duration-500
-                ${visibleMatches.includes(index) 
-                  ? 'scale-100' 
-                  : 'scale-0'
-                }`}>
-                ♥
-              </div>
-            </div>
-            
-            <div className="flex flex-col p-4 flex-grow">
-              <div className="flex items-center mb-2">
-                <div className="w-16 h-16 rounded-full overflow-hidden mr-4">
-                  <img 
-                    src={match.image} 
-                    alt={match.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center">
-                    <span className="text-2xl font-bold mr-2">{match.name},</span>
-                    <span className="text-2xl">{match.age}</span>
-                  </div>
-                  
-                  {/* Compatibility Score */}
-                  <div className="flex items-center mt-1">
-                    <div className="w-48 h-2 bg-gray-200 rounded-full mr-3 overflow-hidden">
-                      <div 
-                        className={`h-full bg-[#85A2F2] rounded-full transition-all duration-1000
-                          ${visibleMatches.includes(index) 
-                            ? 'w-[' + match.compatibility + '%]' 
-                            : 'w-0'
-                          }`}
-                      />
-                    </div>
-                    <span className={`text-sm font-medium text-gray-600 transition-opacity duration-500
-                      ${visibleMatches.includes(index) 
-                        ? 'opacity-100' 
-                        : 'opacity-0'
-                      }`}>
-                      {match.compatibility}% Match
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+  if (loading) return <div className="p-8 text-lg text-gray-600">Loading your matches...</div>;
+  if (!matches.length) return <div className="p-8 text-lg text-gray-600">No matches found yet. Try again after your next event!</div>;
+
+  return (
+    <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
+      <div className="mb-6 text-xl font-semibold text-indigo-950">Matched in Heaven</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {matches.map((match, idx) => (
+          <div key={match.userId} className="bg-white rounded-xl shadow p-6 flex flex-col items-center">
+            <img
+              src={match.image || '/default-profile.png'}
+              alt={match.name}
+              className="w-24 h-24 rounded-full object-cover mb-4 border"
+            />
+            <div className="text-lg font-bold text-indigo-900 mb-1">{match.name}</div>
+            <div className="text-gray-600 mb-2">Age: {match.age}</div>
+            <div className="text-blue-600 font-semibold text-xl mb-2">{Math.round(match.score)}% Match</div>
+            {/* Add more profile info as needed */}
+            <button
+              className={`mt-2 px-4 py-1 text-sm font-medium rounded-lg transition-colors ${match.connected ? 'bg-green-400 text-white cursor-default' : 'bg-[#0043F1] text-white hover:bg-[#0034BD]'}`}
+              onClick={() => handleConnect(match.userId)}
+              disabled={match.connected}
+            >
+              {match.connected ? 'Connected!' : 'Connect'}
+            </button>
           </div>
         ))}
       </div>
-
-      {/* See All Button */}
-      <div className="flex justify-end mt-8 max-w-3xl mx-auto">
-        <button 
-          onClick={() => navigate('seeAllMatches')}
-          className="bg-[#85A2F2] text-white px-8 py-2 rounded-lg text-lg font-semibold hover:bg-[#7491e0] transition-colors"
-        >
-          SEE ALL
-        </button>
-      </div>
+      <button
+        className="mt-8 px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
+        onClick={() => navigate('/dashboard')}
+      >
+        Back to Dashboard
+      </button>
     </div>
   );
 };
