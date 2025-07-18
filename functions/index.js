@@ -247,3 +247,73 @@ exports.getEventMembers = onCall(
   }
 );
 
+// 🔥 Callable to completely delete a user and all related Firestore traces
+exports.deleteUser = onCall({
+  region: 'us-central1',
+  runtime: 'nodejs18',
+}, async (data, context) => {
+  const uid = data?.data?.userId || data?.userId;
+  if (!uid) {
+    throw new functions.https.HttpsError('invalid-argument', 'Missing userId');
+  }
+
+  const db = admin.firestore();
+  const userRef = db.collection('users').doc(uid);
+
+  try {
+    // Fetch user doc to retrieve gender for signup count adjustments
+    const userSnap = await userRef.get();
+    const userData = userSnap.exists ? userSnap.data() : {};
+    const gender = (userData.gender || '').toLowerCase();
+
+    // 1️⃣  Handle event sign-ups
+    const signedUpEventsSnap = await userRef.collection('signedUpEvents').get();
+    const eventUpdates = signedUpEventsSnap.docs.map(async (evDoc) => {
+      const eventId = evDoc.id; // firestoreID of the event
+      const eventRef = db.collection('events').doc(eventId);
+
+      // Remove from event's signedUpUsers sub-collection
+      await eventRef.collection('signedUpUsers').doc(uid).delete().catch(() => {});
+
+      // Decrement gender-specific signup count
+      let fieldName = null;
+      if (gender === 'male') fieldName = 'menSignupCount';
+      else if (gender === 'female') fieldName = 'womenSignupCount';
+
+      if (fieldName) {
+        await eventRef.update({
+          [fieldName]: admin.firestore.FieldValue.increment(-1),
+        }).catch(() => {});
+      }
+
+      // Delete the signedUpEvents document under the user
+      await evDoc.ref.delete().catch(() => {});
+    });
+
+    // 2️⃣  Remove connections (both sides)
+    const connectionsSnap = await userRef.collection('connections').get();
+    const connectionUpdates = connectionsSnap.docs.map(async (connDoc) => {
+      const otherUid = connDoc.id;
+      await db.collection('users').doc(otherUid).collection('connections').doc(uid).delete().catch(() => {});
+      await connDoc.ref.delete().catch(() => {});
+    });
+
+    // 3️⃣  Remove admin role record if present
+    const adminRoleDeletion = db.collection('adminUsers').doc(uid).delete().catch(() => {});
+
+    // 4️⃣  Wait for all parallel deletions
+    await Promise.all([...eventUpdates, ...connectionUpdates, adminRoleDeletion]);
+
+    // 5️⃣  Finally, recursively delete the user document (clears remaining sub-collections)
+    await admin.firestore().recursiveDelete(userRef).catch(() => {});
+
+    // 6️⃣  Remove from Firebase Authentication
+    await admin.auth().deleteUser(uid).catch(() => {});
+
+    return { success: true };
+  } catch (err) {
+    console.error('❌ deleteUser error:', err);
+    throw new functions.https.HttpsError('internal', 'Failed to fully delete user');
+  }
+});
+

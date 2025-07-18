@@ -84,7 +84,7 @@ const AdminUserManagement = () => {
       setLoading(true);
       
       const functions = getFunctions();
-      const deleteUserFunction = httpsCallable(functions, 'deleteUserAsAdmin');
+      const deleteUserFunction = httpsCallable(functions, 'deleteUser');
       
       await deleteUserFunction({ userId: selectedUser.id });
 
