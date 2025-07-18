@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, getCountFromServer, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
@@ -288,98 +288,62 @@ const DashHome = () => {
     return eventThreshold <= now;
   }
 
-  // Fetch events and signed-up status on page load and after sign-up
-  useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true);
-      try {
-        const querySnapshot = await getDocs(collection(db, "events"));
-        const functionsInst = getFunctions();
-        const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
-
-        const eventsList = await Promise.all(
-          querySnapshot.docs.map(async (docSnapshot) => {
-            const docData = docSnapshot.data() || {};
-            const eventId = docData.eventID || docSnapshot.id; // fallback
-            try {
-              const res = await getEventDataCF({ eventId });
-              const remoEvent = res.data?.event;
-              if (remoEvent) {
-                return { ...remoEvent, ...docData, firestoreID: docSnapshot.id, eventID: eventId };
-              }
-            } catch (err) {
-              console.error(`Failed fetching Remo event for ${eventId}:`, err);
-            }
-            return null;
-          })
-        );
-
-        const filteredEvents = eventsList.filter(Boolean);
-        setAllEvents(filteredEvents);
-
-        if (auth.currentUser) {
-          const signedUpIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
-          setSignedUpEventIds(signedUpIds);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, [userProfile]);
-
-  const fetchEventsFromFirebase = async () => {
+  // Centralized event loader so we can reuse for initial mount and Refresh button
+  const loadEvents = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const eventsList = [];
+      // Pull all events from Firestore
       const querySnapshot = await getDocs(collection(db, "events"));
-      
-      console.log("querySnapshot.docs", querySnapshot.docs);
-      for (const docSnapshot of querySnapshot.docs) {
-        try {
-          const eventData = await getEventData(docSnapshot.id);
-          console.log("eventData for doc", docSnapshot.id, eventData);
-          if (eventData) {
-            const transformedEvent = {
-              ...eventData,
-              firestoreID: docSnapshot.id,
-            };
-            eventsList.push(transformedEvent);
+
+      // Cloud Function to merge Remo data
+      const functionsInst = getFunctions();
+      const getEventDataCF = httpsCallable(functionsInst, "getEventData");
+
+      const eventsList = await Promise.all(
+        querySnapshot.docs.map(async (docSnapshot) => {
+          const docData = docSnapshot.data() || {};
+          const eventId = docData.eventID || docSnapshot.id;
+          try {
+            const res = await getEventDataCF({ eventId });
+            const remoEvent = res.data?.event;
+            if (remoEvent) {
+              return { ...remoEvent, ...docData, firestoreID: docSnapshot.id, eventID: eventId };
+            }
+          } catch (err) {
+            console.error(`Failed fetching Remo event for ${eventId}:`, err);
           }
-        } catch (error) {
-          console.error(`Error processing event ${docSnapshot.id}:`, error);
-          eventsList.push({
-            title: "TitleNotFound",
-            date: "DateNotFound",
-            time: "TimeNotFound",
-            status: "StatusNotFound",
-            action: "ActionNotFound",
-            isActive: false,
-            menSpots: "N/A",
-            womenSpots: "N/A",
-          });
-        }
+          return null;
+        })
+      );
+
+      const filteredEvents = eventsList.filter(Boolean);
+      setAllEvents(filteredEvents);
+
+      // Upcoming-filter based on user location
+      const upcoming = getUpcomingEvents(filteredEvents, userProfile?.location);
+      setFirebaseEvents(upcoming);
+      setEvents(upcoming);
+
+      // Signed-up IDs to highlight joined events
+      if (auth.currentUser) {
+        const signedUpIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
+        setSignedUpEventIds(signedUpIds);
       }
-      
-      setAllEvents(eventsList); // store all fetched events
-      const upcomingEventsList = getUpcomingEvents(eventsList, userProfile?.location);
-      setFirebaseEvents(upcomingEventsList);
-      setEvents(upcomingEventsList);
-    } catch (error) {
-      console.error('Error fetching events from Firebase:', error);
-      setFirebaseEvents([{
-        title: "N/A",
-        date: "N/A",
-        time: "N/A",
-        status: "N/A",
-        action: "N/A",
-        isActive: false,
-        menSpots: "N/A",
-        womenSpots: "N/A",
-      }]);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch events and signed-up status on page load and after sign-up
+  useEffect(() => {
+    if (userProfile) {
+      loadEvents();
+    }
+  }, [userProfile]);
+
+  // Manual refresh button now uses the same loader
+  const fetchEventsFromFirebase = async () => {
+    await loadEvents();
   };
 
   const postNewEvent = async () => {
@@ -467,6 +431,14 @@ const getEventData = async (eventID) => {
 
     const user = auth.currentUser;
     if (user) {
+      // 0️⃣ Guard: skip if user already signed up
+      const existingSignupRef = doc(db, 'events', event.firestoreID, 'signedUpUsers', user.uid);
+      const existingSignupSnap = await getDoc(existingSignupRef);
+      if (existingSignupSnap.exists()) {
+        console.log('[JOIN NOW] User already signed up – skipping duplicate');
+        return;
+      }
+
       const userDocRef = doc(db, 'users', user.uid);
       // Update remaining dates for the user
       await setDoc(userDocRef, { 
@@ -513,8 +485,7 @@ const getEventData = async (eventID) => {
     if (eventDoc.exists()) {
       const data = eventDoc.data();
       if (userGender && userGender.toLowerCase() === 'male') {
-        const newMenSignupCount = (Number(data.menSignupCount) || 0) + 1;
-        await setDoc(eventDocRef, { menSignupCount: newMenSignupCount }, { merge: true });
+        await updateDoc(eventDocRef, { menSignupCount: increment(1) });
         // Update local state
         updatedEvents = updatedEvents.map(ev =>
           ev.firestoreID === event.firestoreID
@@ -522,8 +493,7 @@ const getEventData = async (eventID) => {
             : ev
         );
       } else if (userGender && userGender.toLowerCase() === 'female') {
-        const newWomenSignupCount = (Number(data.womenSignupCount) || 0) + 1;
-        await setDoc(eventDocRef, { womenSignupCount: newWomenSignupCount }, { merge: true });
+        await updateDoc(eventDocRef, { womenSignupCount: increment(1) });
         // Update local state
         updatedEvents = updatedEvents.map(ev =>
           ev.firestoreID === event.firestoreID
