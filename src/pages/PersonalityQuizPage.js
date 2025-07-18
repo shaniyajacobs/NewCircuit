@@ -4,7 +4,7 @@ import { FaArrowLeft } from "react-icons/fa";
 import HeaderBar from "../components/HeaderBar.js";
 import newLogo from "../images/logomark_white.png";
 import { db, auth } from "../pages/firebaseConfig"; 
-import { doc, setDoc, collection } from "firebase/firestore"; 
+import { doc, setDoc, collection, updateDoc } from "firebase/firestore"; 
 
 const TOTAL_STEPS = 17; // Set total quiz steps
 
@@ -88,6 +88,7 @@ const PersonalityQuizPage = () => {
       const latestDocRef = doc(quizResponseRef, "latest");
       try {
         await setDoc(latestDocRef, { answers: updatedAnswers, id: "latest", timestamp: new Date() }, { merge: true });
+        await updateDoc(userDocRef, { quizComplete: true });
         console.log("Quiz answers saved successfully!");
         navigate("/finalQuizPage");
       } catch (error) {

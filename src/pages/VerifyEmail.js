@@ -54,7 +54,11 @@ const VerifyEmail = () => {
                     image: userData.image,
                     isActive: true,
                     location: userData.location,
-                    datesRemaining: 50 // TODO: change this number when finished testing
+                    datesRemaining: 50, // TODO: change when finished testing
+                    profileComplete: true,
+                    preferencesComplete: false,
+                    locationSet: false,
+                    quizComplete: false
                 });
 
             } catch (createErr) {
