@@ -117,6 +117,13 @@ const DashHome = () => {
   const [signedUpEventsLoaded, setSignedUpEventsLoaded] = useState(false);
   const [connections, setConnections] = useState([]);
 
+  // Error modal state for informative popups (e.g., missing event)
+  const [errorModal, setErrorModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
+
   // Helper: fetch IDs of events the user has signed up for from their sub-collection
   const fetchUserSignedUpEventIds = async (userId) => {
     if (!userId) return new Set();
@@ -546,7 +553,14 @@ const getEventData = async (eventID) => {
     // 1. Get latestEventId from user doc
     const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
     const latestEventId = userDoc.data()?.latestEventId;
-    if (!latestEventId) return alert("Missing latest event ID");
+    if (!latestEventId) {
+      setErrorModal({
+        open: true,
+        title: "No Event Found",
+        message: "You have not joined any events yet, or the event you are trying to access does not exist.",
+      });
+      return;
+    }
     console.log('[MATCHES] latestEventId:', latestEventId);
 
     // 2. Find the event doc where eventID === latestEventId
@@ -558,7 +572,11 @@ const getEventData = async (eventID) => {
       }
     });
     if (!eventDocId) {
-      alert('Event not found for latestEventId');
+      setErrorModal({
+        open: true,
+        title: "Event Not Found",
+        message: "The event you are trying to access could not be found. It may have been removed or is no longer available.",
+      });
       return;
     }
     console.log('[MATCHES] Found event doc ID:', eventDocId);
@@ -689,13 +707,13 @@ const getEventData = async (eventID) => {
                 onClick={handleMatchesClick}
                 className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
               >
-                You just went on a date! Here are your ai rec matches! 
+                You just went on a date! Here are your connections!
               </button>
               <button 
                 onClick={handleConnectionsClick}
                 className="px-4 py-2 text-sm font-medium text-white bg-[#85A2F2] rounded-lg hover:opacity-90 transition-colors"
               >
-                See your new connections
+                See your Sparks
               </button>
             </div>
             <div className="text-xl font-semibold text-indigo-950 mt-4">
@@ -840,7 +858,41 @@ const getEventData = async (eventID) => {
             </button>
           </div>
         </div>
-      </div>
+
+      {/* Error Modal Overlay */}
+      {errorModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black opacity-50"
+            onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
+          />
+          {/* Modal content */}
+          <div className="relative bg-white rounded-2xl shadow-lg max-w-md w-full p-8 z-10">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-indigo-950">{errorModal.title}</h2>
+              <button
+                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            </div>
+            <p className="text-gray-700 whitespace-pre-line mb-6">{errorModal.message}</p>
+            <div className="flex justify-end">
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
+                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
   );
 };
 

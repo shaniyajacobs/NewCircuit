@@ -67,8 +67,7 @@ const MyMatches = () => {
     <div className="min-h-screen bg-white p-8">
       {/* Header */}
       <div className="mb-12">
-        <h1 className="text-4xl font-bold text-center mb-2">Matched in Heaven</h1>
-        <p className="text-xl text-center text-gray-700">Here are your suggestions powered by AI</p>
+        <p className="text-xl text-center text-gray-700">Based on AI powered compatibility results, here are your suggested selections</p>
       </div>
 
       {/* Matches Container */}
