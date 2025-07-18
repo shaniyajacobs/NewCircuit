@@ -91,14 +91,14 @@ const DashMyConnections = () => {
   const ConnectionList = () => {
     if (loading) {
       return <div className="flex flex-col px-7 w-full max-md:px-5">
-        <div className="text-center py-8 text-gray-600">Loading connections...</div>
+        <div className="text-center py-8 text-gray-600">Loading Sparks...</div>
       </div>;
     }
 
     if (connections.length === 0) {
       return <div className="flex flex-col px-7 w-full max-md:px-5">
         <div className="text-center py-8 text-gray-600">
-          No mutual connections yet. When both you and someone from your AI matches connect with each other, they'll appear here!
+        No sparks yet. When both you and someone from your connections select one another, they’ll appear here! 
         </div>
       </div>;
     }
@@ -156,7 +156,7 @@ const DashMyConnections = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6 px-7">
         <div className="text-xl font-semibold text-indigo-950">
-          Current Connections
+          Current Sparks
         </div>
       </div>
 

@@ -35,7 +35,7 @@ const Header = (props) => {
   }, [user]);
 
 
-  const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "My Connections", 
+  const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "My Sparks", 
     "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
     "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashSignOut": "Sign Out"}
   const { path } = props;
