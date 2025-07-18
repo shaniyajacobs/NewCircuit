@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import HeaderBar from '../components/HeaderBar';
 import whiteLogo from '../images/logomark_white.png';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db, auth } from '../firebaseConfig';
 
 // Import all images at the top
 import atlantaImg from '../images/atlanta.jpeg';
@@ -61,29 +61,29 @@ const LocationScreen = () => {
         .catch(err => console.log("Error loading images", err));
     }, []);
 
-    const handleCityClick = async (cityName) => {
-        console.log("City click handler started for:", cityName);
-        setSelectedCity(cityName);
-      
-        try {
-          // Assumes that userData contains a unique user identifier (e.g., userData.userId)
-          // that was created during VerifyEmail (the uid from Firebase Authentication)
-          console.log('in try block');
-          console.log('User Data:', userData);
-          await updateDoc(doc(db, "users", userData.userId), {
-            location: cityName
-          });
-          console.log(`User location updated to ${cityName}`);
-        } catch (error) {
-          console.error("Error updating user location:", error);
-          // Optionally, set error state if you want to notify the user
-        }
-        setShowModal(true);
+    // First click: just store selection and open confirmation modal
+    const handleCityClick = (cityName) => {
+      setSelectedCity(cityName);
+      setShowModal(true);
     };
 
-    const handleConfirm = () => {
-        setShowModal(false);
-        navigate('/quiz-start');
+    // Second click (Yes button): write to Firestore then move on
+    const handleConfirm = async () => {
+      try {
+        const uid = userData.userId || (auth.currentUser && auth.currentUser.uid);
+        if (!uid) throw new Error('No user ID available');
+
+        await updateDoc(doc(db, 'users', uid), {
+          location: selectedCity,
+          locationSet: true,
+        });
+        console.log(`User location updated to ${selectedCity}`);
+      } catch (error) {
+        console.error('Error updating user location:', error);
+      }
+
+      setShowModal(false);
+      navigate('/quiz-start');
     };
 
     // Show loading state while images are loading
