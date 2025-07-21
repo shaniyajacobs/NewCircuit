@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../firebaseConfig';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
 import { calculateAge } from '../../../utils/ageCalculator';
 
 const MAX_SELECTIONS = 3; // maximum matches a user can choose
@@ -25,6 +25,11 @@ const SeeAllMatches = () => {
           setMatches([]);
           return;
         }
+        // Fetch any existing selections from the user's connections sub-collection so that
+        // previously chosen sparks appear pre-selected.
+        const prevConnSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+        const prevSelectedIds = prevConnSnap.docs.map(d => d.id);
+
         const results = (matchesDoc.data().results || []).sort((a,b) => b.score - a.score);
         const profiles = await Promise.all(
           results.map(async (m) => {
@@ -37,11 +42,13 @@ const SeeAllMatches = () => {
               age: calculateAge(d.birthDate),
               image: d.image || '/default-profile.png',
               compatibility: Math.round(m.score),
-              selected: false,
+              selected: prevSelectedIds.includes(m.userId),
             };
           })
         );
-        setMatches(profiles.filter(Boolean));
+        const filtered = profiles.filter(Boolean);
+        setMatches(filtered);
+        setSelectedIds(prevSelectedIds.slice(0, MAX_SELECTIONS));
       } catch (err) {
         console.error('Error fetching full matches', err);
         setMatches([]);
@@ -77,6 +84,13 @@ const SeeAllMatches = () => {
     if (!user) return;
 
     try {
+      // 1️⃣ Delete any previous selections that the user has now deselected
+      const existingSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+      const deletions = existingSnap.docs
+        .filter(d => !selectedIds.includes(d.id))
+        .map(d => deleteDoc(d.ref).catch(() => {}));
+
+      // 2️⃣ Upsert current selections
       for (const matchedUid of selectedIds) {
         const otherRef = doc(db, 'users', matchedUid, 'connections', user.uid);
         const otherSnap = await getDoc(otherRef);
@@ -91,6 +105,8 @@ const SeeAllMatches = () => {
           await setDoc(otherRef, { status: 'mutual' }, { merge: true });
         }
       }
+
+      await Promise.all(deletions);
       navigate('/dashboard');
     } catch (err) {
       console.error('Error saving selections', err);
