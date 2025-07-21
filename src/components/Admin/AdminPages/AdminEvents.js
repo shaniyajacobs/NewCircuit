@@ -12,6 +12,7 @@ const AdminEvents = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [popoverEventId, setPopoverEventId] = useState(null); // for ID tooltip
   const [showEditModal, setShowEditModal] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -144,7 +145,16 @@ const AdminEvents = () => {
   const handleAddEvent = async (e) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'events'), { ...newEvent, menSignupCount: 0, womenSignupCount: 0 });
+      // 1️⃣ Create the doc first to obtain its ID
+      const docRef = await addDoc(collection(db, 'events'), {
+        ...newEvent,
+        menSignupCount: 0,
+        womenSignupCount: 0,
+      });
+
+      // 2️⃣ Immediately write the Firestore ID inside the document for easy querying later
+      await updateDoc(docRef, { id: docRef.id });
+
       setShowAddModal(false);
       setNewEvent({ title: '', date: '', location: '', time: '', timeZone: '', menSpots: '', womenSpots: '', ageRange: '', eventType: '', eventID: '' });
       fetchEvents();
@@ -211,7 +221,7 @@ const AdminEvents = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan="4" className="text-center py-4">Loading...</td>
+                <td colSpan="9" className="text-center py-4">Loading...</td>
               </tr>
             ) : filteredEvents.map(evt => (
               <tr key={evt.id}>
@@ -221,12 +231,26 @@ const AdminEvents = () => {
                   const timeStr = dt ? dt.toFormat('h:mm a') : (evt.time || '');
                   const tzStr = dt ? dt.offsetNameShort : (evt.timeZone || '');
                   return (
-                    <>
-                      <td className="px-6 py-4 whitespace-nowrap">{evt.name || evt.title}</td>
+                    <> 
+                      <td className="px-6 py-4 whitespace-nowrap relative">
+                        <button
+                          type="button"
+                          onClick={() => setPopoverEventId(popoverEventId === evt.id ? null : evt.id)}
+                          className="text-blue-600 underline"
+                        >
+                          {evt.name || evt.title}
+                        </button>
+                        {popoverEventId === evt.id && (
+                          <div className="absolute z-10 left-1/2 -translate-x-1/2 -top-2 -translate-y-full bg-white border border-gray-300 shadow-lg rounded p-2 text-xs whitespace-nowrap">
+                            <div><span className="font-semibold">Firestore:</span> {evt.id}</div>
+                            <div><span className="font-semibold">Event ID:</span> {evt.eventID || '-'}</div>
+                          </div>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">{dateStr}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{timeStr}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{tzStr}</td>
-                    </>
+                       </>
                   );
                 })()}
                 <td className="px-6 py-4 whitespace-nowrap">{evt.location}</td>
