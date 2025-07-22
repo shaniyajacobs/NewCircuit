@@ -14,12 +14,9 @@ const DashMyConnections = () => {
   useEffect(() => {
     const fetchConnections = async () => {
       if (!auth.currentUser) {
-        console.error('[CONNECTIONS] No authenticated user found');
+        // console.error('[CONNECTIONS] No authenticated user found');
         return;
       }
-      
-      console.log('[CONNECTIONS] Starting to fetch connections...');
-      console.log('[CONNECTIONS] Current user ID:', auth.currentUser.uid);
       
       try {
         setLoading(true);
@@ -27,18 +24,13 @@ const DashMyConnections = () => {
         const connectionsSnap = await getDocs(collection(db, 'users', auth.currentUser.uid, 'connections'));
         const connectionIds = connectionsSnap.docs.map(doc => doc.id);
         
-        console.log('[CONNECTIONS] Found connection IDs:', connectionIds);
-        console.log('[CONNECTIONS] Number of connections found:', connectionIds.length);
-        
         // Fetch profile data for each connection and check for mutual status
         const connectionProfiles = await Promise.all(
           connectionIds.map(async (connectionId) => {
             try {
-              console.log(`[CONNECTIONS] Fetching profile for connection: ${connectionId}`);
               
               const userDoc = await getDoc(doc(db, 'users', connectionId));
               if (!userDoc.exists()) {
-                console.warn(`[CONNECTIONS] User document not found for ID: ${connectionId}`);
                 return null;
               }
               
@@ -46,11 +38,9 @@ const DashMyConnections = () => {
               const connectionDoc = await getDoc(doc(db, 'users', auth.currentUser.uid, 'connections', connectionId));
               const connectionData = connectionDoc.exists() ? connectionDoc.data() : {};
               
-              console.log(`[CONNECTIONS] Connection data for ${connectionId}:`, connectionData);
               
               // Only include mutual connections
               if (connectionData.status !== 'mutual') {
-                console.log(`[CONNECTIONS] Skipping non-mutual connection ${connectionId} with status:`, connectionData.status);
                 return null;
               }
               
@@ -64,21 +54,17 @@ const DashMyConnections = () => {
                 compatibility: Math.round(connectionData.matchScore || 0)
               };
               
-              console.log(`[CONNECTIONS] Created mutual profile for ${connectionId}:`, profile);
               return profile;
             } catch (err) {
-              console.error(`[CONNECTIONS] Error fetching profile for connection ${connectionId}:`, err);
               return null;
             }
           })
         );
         
         const validProfiles = connectionProfiles.filter(Boolean);
-        console.log('[CONNECTIONS] Final mutual profiles:', validProfiles);
         
         setConnections(validProfiles);
       } catch (err) {
-        console.error('[CONNECTIONS] Error fetching connections:', err);
         setConnections([]);
       } finally {
         setLoading(false);
