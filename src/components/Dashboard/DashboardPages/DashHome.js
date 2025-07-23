@@ -744,8 +744,41 @@ const getEventData = async (eventID) => {
 
   // Show *all* events (regardless of date) that the user has not yet signed up for
   const upcomingSignupEvents = useMemo(() => {
-    return allEvents.filter(event => !signedUpEventIds.has(event.firestoreID));
-  }, [allEvents, signedUpEventIds]);
+    return allEvents.filter(event => {
+      // First, exclude events the user has already signed up for
+      if (signedUpEventIds.has(event.firestoreID)) {
+        return false;
+      }
+
+      // Then check if the event is full for the user's gender
+      if (userGender) {
+        const userGenderLower = userGender.toLowerCase();
+        
+        if (userGenderLower === 'male') {
+          const totalMenSpots = Number(event.menSpots) || 0;
+          const signedUpMen = Number(event.menSignupCount) || 0;
+          const availableMenSpots = totalMenSpots - signedUpMen;
+          
+          // If no spots available for men, exclude this event
+          if (availableMenSpots <= 0) {
+            return false;
+          }
+        } else if (userGenderLower === 'female') {
+          const totalWomenSpots = Number(event.womenSpots) || 0;
+          const signedUpWomen = Number(event.womenSignupCount) || 0;
+          const availableWomenSpots = totalWomenSpots - signedUpWomen;
+          
+          // If no spots available for women, exclude this event
+          if (availableWomenSpots <= 0) {
+            return false;
+          }
+        }
+      }
+
+      // If we get here, the event is available for sign-up
+      return true;
+    });
+  }, [allEvents, signedUpEventIds, userGender]);
 
   return (
     <div>
@@ -887,8 +920,8 @@ const getEventData = async (eventID) => {
                 xl:grid-cols-3
                 auto-rows-fr
               ">
-                {/* Show max 4 cards */}
-                {(upcomingEvents.slice(0, 4)).map((event) => (
+                {/* Show max 6 cards */}
+                {(upcomingEvents.slice(0, 6)).map((event) => (
                   <EventCard
                     key={event.firestoreID}
                     event={event}
@@ -1023,7 +1056,7 @@ const getEventData = async (eventID) => {
                     <div className="text-lg text-gray-600">Loading events...</div>
                   </div>
                 ) : upcomingSignupEvents.length > 0 ? (
-                  upcomingSignupEvents.slice(0, 4).map((event) => (
+                  upcomingSignupEvents.slice(0, 6).map((event) => (
                     <EventCard
                       key={event.firestoreID}
                       event={event}

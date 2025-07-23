@@ -1,10 +1,24 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { IoPersonCircle } from "react-icons/io5";
 import { ReactComponent as SendIcon } from "../../../images/send-2.svg";
 
-const ConnectionsTable = ({ connections }) => {
+const ConnectionsTable = ({ connections, onMessageClick }) => {
+  const navigate = useNavigate();
+
   if (!connections.length)
     return <div className="p-4 text-gray-600">No connections yet.</div>;
+
+  const handleMessageClick = (connection) => {
+    if (onMessageClick) {
+      onMessageClick(connection);
+    } else {
+      // Default behavior: navigate to My Sparks page with the selected connection
+      navigate('/dashboard/dashMyConnections', { 
+        state: { selectedConnectionId: connection.userId } 
+      });
+    }
+  };
 
   const badgeBackgrounds = [
     {
@@ -111,6 +125,7 @@ const ConnectionsTable = ({ connections }) => {
             {/* 4. Message Button */}
             <div>
               <button
+                onClick={() => handleMessageClick(conn)}
                 className="ml-auto flex items-center gap-2 bg-black rounded-lg px-6 py-3 sm:px-5 sm:py-2.5 xs:px-5 xs:py-2 transition-colors hover:bg-[#333]"
               >
                 <SendIcon className="w-5 h-5" />
