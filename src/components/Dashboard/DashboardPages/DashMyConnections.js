@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FaPaperPlane } from 'react-icons/fa';
 import { IoChevronBackCircleOutline } from 'react-icons/io5';
 import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
@@ -7,9 +8,22 @@ import {DashMessages} from './DashMessages';
 import { calculateAge } from '../../../utils/ageCalculator';
 
 const DashMyConnections = () => {
+  const location = useLocation();
   const [selectedConnection, setSelectedConnection] = useState(null);
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Handle navigation state from Current Sparks section
+  useEffect(() => {
+    if (location.state?.selectedConnectionId && connections.length > 0) {
+      const connectionToSelect = connections.find(conn => conn.id === location.state.selectedConnectionId);
+      if (connectionToSelect) {
+        setSelectedConnection(connectionToSelect);
+        // Clear the state to prevent auto-selection on subsequent renders
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, connections]);
 
   useEffect(() => {
     const fetchConnections = async () => {
