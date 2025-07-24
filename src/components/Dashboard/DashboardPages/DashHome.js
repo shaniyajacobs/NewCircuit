@@ -78,6 +78,29 @@ function isEventUpcoming(event, userLocation) {
   return eventEndDateTime.setZone(userZone) > now;
 }
 
+// Helper: check if event is joinable (has not started yet)
+function isEventJoinable(event, userLocation) {
+  if (!event.date || !event.time || !event.timeZone) return false;
+  let eventZone = eventZoneMap[event.timeZone] || event.timeZone || 'UTC';
+  const normalizedTime = event.time ? event.time.replace(/am|pm/i, match => match.toUpperCase()) : '';
+  let eventDateTime = DateTime.fromFormat(
+    `${event.date} ${normalizedTime}`,
+    'yyyy-MM-dd h:mma',
+    { zone: eventZone }
+  );
+  if (!eventDateTime.isValid) {
+    eventDateTime = DateTime.fromFormat(
+      `${event.date} ${normalizedTime}`,
+      'yyyy-MM-dd H:mm',
+      { zone: eventZone }
+    );
+  }
+  if (!eventDateTime.isValid) return false;
+  const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
+  const now = DateTime.now().setZone(userZone);
+  return eventDateTime.setZone(userZone) > now;
+}
+
 // Add a hook to detect window width
 function useResponsiveEventLimit() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -607,14 +630,16 @@ const getEventData = async (eventID) => {
   // Filter for upcoming and sign-up events
   const upcomingEvents = useMemo(() => {
     return allEvents.filter(event =>
-      signedUpEventIds.has(event.firestoreID)
+      signedUpEventIds.has(event.firestoreID) && isEventUpcoming(event, userProfile?.location)
     );
-  }, [allEvents, signedUpEventIds]);
+  }, [allEvents, signedUpEventIds, userProfile]);
 
   // Show *all* events (regardless of date) that the user has not yet signed up for
   const upcomingSignupEvents = useMemo(() => {
-    return allEvents.filter(event => !signedUpEventIds.has(event.firestoreID));
-  }, [allEvents, signedUpEventIds]);
+    return allEvents.filter(event =>
+      !signedUpEventIds.has(event.firestoreID) && isEventJoinable(event, userProfile?.location)
+    );
+  }, [allEvents, signedUpEventIds, userProfile]);
 
   return (
     <div>
@@ -725,6 +750,7 @@ const getEventData = async (eventID) => {
                     userGender={userGender}
                     datesRemaining={datesRemaining}
                     onSignUp={() => handleSignUp(event)}
+                    isJoinable={isEventJoinable(event, userProfile?.location)}
                   />
                 ))
               ) : (
@@ -752,6 +778,7 @@ const getEventData = async (eventID) => {
                       userGender={userGender}
                       datesRemaining={datesRemaining}
                       onSignUp={() => handleSignUp(event)}
+                      isJoinable={isEventJoinable(event, userProfile?.location)}
                     />
                   ))}
                 </div>

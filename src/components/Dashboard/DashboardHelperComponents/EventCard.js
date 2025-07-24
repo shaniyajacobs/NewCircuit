@@ -77,7 +77,7 @@ function getDatePartsFromMillis(millis) {
   };
 }
 
-const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
+const EventCard = ({ event, type, userGender, onSignUp, datesRemaining, isJoinable = true }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
   const [joining, setJoining] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -344,6 +344,12 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
             }
           }
         })()}
+        {/* Sign Up button for sign-up events, only if isJoinable */}
+        {type === 'signup' && !isJoinable && (
+          <div className="text-xs mt-5 p-1 text-center text-gray-400 bg-white rounded-xl w-full opacity-50 cursor-not-allowed">
+            Event Started
+          </div>
+        )}
       </div>
 
       {/* Success Modal */}
