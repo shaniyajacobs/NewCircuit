@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../../../pages/firebaseConfig';
-import { collection, getDocs, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
 import { deleteUser, getAuth, signInWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { FaSearch, FaTrash, FaUserShield } from 'react-icons/fa';
 import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
@@ -18,6 +18,10 @@ const AdminUserManagement = () => {
   const [showEventsModal, setShowEventsModal] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [userEvents, setUserEvents] = useState([]);
+  // Sparks (connections) modal state
+  const [showConnectionsModal, setShowConnectionsModal] = useState(false);
+  const [loadingConnections, setLoadingConnections] = useState(false);
+  const [userConnections, setUserConnections] = useState([]);
 
   useEffect(() => {
     fetchUsers();
@@ -117,6 +121,46 @@ const AdminUserManagement = () => {
     }
   };
 
+  // Show sparks (connections) for a user
+  const handleShowConnections = async (user) => {
+    setSelectedUser(user);
+    setShowConnectionsModal(true);
+    setLoadingConnections(true);
+    try {
+      // Fetch the user's connections sub-collection
+      const connectionsSnap = await getDocs(collection(db, 'users', user.id, 'connections'));
+      // Enrich each connection with basic profile data of the other user
+      const connectionsData = await Promise.all(
+        connectionsSnap.docs.map(async (connDoc) => {
+          const otherUserId = connDoc.id;
+          const connInfo = connDoc.data();
+
+          // Get other user's profile for name & image (fallbacks included)
+          const otherUserSnap = await getDoc(doc(db, 'users', otherUserId));
+          const otherUser = otherUserSnap.exists() ? otherUserSnap.data() : {};
+
+          return {
+            id: otherUserId,
+            name: otherUser.firstName
+              ? `${otherUser.firstName} ${otherUser.lastName || ''}`.trim()
+              : otherUser.displayName || 'Unknown',
+            email: otherUser.email || '-',
+            status: connInfo.status || 'unknown',
+            matchScore: typeof connInfo.matchScore === 'number' ? Math.round(connInfo.matchScore) : null,
+            connectedAt: connInfo.connectedAt?.toDate?.() ?? null,
+          };
+        })
+      );
+
+      setUserConnections(connectionsData);
+    } catch (error) {
+      console.error('Error fetching user connections:', error);
+      setUserConnections([]);
+    } finally {
+      setLoadingConnections(false);
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -147,6 +191,7 @@ const AdminUserManagement = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sparks</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Events</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -154,7 +199,7 @@ const AdminUserManagement = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan="7" className="text-center py-4">Loading...</td>
+                <td colSpan="8" className="text-center py-4">Loading...</td>
               </tr>
             ) : filteredUsers.map(user => (
               <tr key={user.id} className={user.id === auth.currentUser?.uid ? 'bg-blue-50' : ''}>
@@ -181,6 +226,15 @@ const AdminUserManagement = () => {
                     <FaUserShield className="mr-1" />
                     {adminUsers.includes(user.id) ? 'Admin' : 'User'}
                   </span>
+                </td>
+                {/* Sparks column */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <button
+                    onClick={() => handleShowConnections(user)}
+                    className="px-3 py-1 bg-pink-600 text-white text-sm rounded-lg hover:bg-pink-700 transition-colors"
+                  >
+                    Sparks
+                  </button>
                 </td>
                 {/* Events column */}
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -308,6 +362,61 @@ const AdminUserManagement = () => {
               <button
                 className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
                 onClick={() => setShowEventsModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Sparks (Connections) Modal */}
+      {showConnectionsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <h2 className="text-2xl font-semibold mb-4">Sparks for {selectedUser?.firstName} {selectedUser?.lastName}</h2>
+            {loadingConnections ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : userConnections.length === 0 ? (
+              <div className="text-center py-8 text-gray-600">No sparks found.</div>
+            ) : (
+              <table className="min-w-full text-sm table-fixed">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Name</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Email</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Status</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Match %</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Connected At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {userConnections.map(conn => (
+                    <tr key={conn.id}>
+                      <td className="px-4 py-2 whitespace-nowrap truncate w-1/5">{conn.name}</td>
+                      <td className="px-4 py-2 whitespace-nowrap truncate w-1/5">{conn.email}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/5">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          conn.status === 'mutual'
+                            ? 'bg-green-100 text-green-800'
+                            : conn.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {conn.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/5">{conn.matchScore ?? '-'}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/5">{conn.connectedAt ? conn.connectedAt.toLocaleDateString() : '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <div className="flex justify-end mt-6">
+              <button
+                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                onClick={() => setShowConnectionsModal(false)}
               >
                 Close
               </button>
