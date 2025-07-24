@@ -78,7 +78,7 @@ function isEventUpcoming(event, userLocation) {
   return eventEndDateTime.setZone(userZone) > now;
 }
 
-// Helper: check if event is joinable (has not started yet)
+// Helper: check if event is joinable (has not started yet, or within 30-minute grace period)
 function isEventJoinable(event, userLocation) {
   if (!event.date || !event.time || !event.timeZone) return false;
   let eventZone = eventZoneMap[event.timeZone] || event.timeZone || 'UTC';
@@ -96,9 +96,15 @@ function isEventJoinable(event, userLocation) {
     );
   }
   if (!eventDateTime.isValid) return false;
+  
+  // Add 30-minute grace period after event starts
+  const gracePeriodEnd = eventDateTime.plus({ minutes: 30 });
+  
   const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
   const now = DateTime.now().setZone(userZone);
-  return eventDateTime.setZone(userZone) > now;
+  
+  // Allow joining if within grace period (30 minutes after event starts)
+  return gracePeriodEnd.setZone(userZone) > now;
 }
 
 // Add a hook to detect window width

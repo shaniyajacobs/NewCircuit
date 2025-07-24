@@ -88,6 +88,38 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining, isJoinab
   const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
   const { dayOfWeek, day, month, timeLabel } = dateParts;
   
+  // Helper function to check if event has started but is within grace period
+  const isEventStartedButJoinable = () => {
+    if (!event.date || !event.time || !event.timeZone) return false;
+    const eventZoneMap = {
+      'PST': 'America/Los_Angeles',
+      'EST': 'America/New_York',
+      'CST': 'America/Chicago',
+      'MST': 'America/Denver',
+    };
+    const eventZone = eventZoneMap[event.timeZone] || event.timeZone || 'UTC';
+    const normalizedTime = event.time ? event.time.replace(/am|pm/i, match => match.toUpperCase()) : '';
+    let eventDateTime = DateTime.fromFormat(
+      `${event.date} ${normalizedTime}`,
+      'yyyy-MM-dd h:mma',
+      { zone: eventZone }
+    );
+    if (!eventDateTime.isValid) {
+      eventDateTime = DateTime.fromFormat(
+        `${event.date} ${normalizedTime}`,
+        'yyyy-MM-dd H:mm',
+        { zone: eventZone }
+      );
+    }
+    if (!eventDateTime.isValid) return false;
+    
+    const now = DateTime.now().setZone(eventZone);
+    const gracePeriodEnd = eventDateTime.plus({ minutes: 30 });
+    
+    // Event has started but is still within grace period
+    return eventDateTime.setZone(eventZone) <= now && gracePeriodEnd.setZone(eventZone) > now;
+  };
+  
   return (
     <>
       <div
@@ -344,11 +376,53 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining, isJoinab
             }
           }
         })()}
-        {/* Sign Up button for sign-up events, only if isJoinable */}
+        {/* Sign Up button for sign-up events */}
         {type === 'signup' && !isJoinable && (
           <div className="text-xs mt-5 p-1 text-center text-gray-400 bg-white rounded-xl w-full opacity-50 cursor-not-allowed">
-            Event Started
+            Event Ended
           </div>
+        )}
+        {type === 'signup' && isJoinable && isEventStartedButJoinable() && (
+          <button
+            className="text-xs mt-5 p-1 text-center text-orange-500 cursor-pointer bg-white rounded-xl w-full border border-orange-300"
+            disabled={signUpClicked}
+            onClick={async () => { 
+              try {
+                console.log('🔄 Starting late sign-up process...');
+                setSignUpClicked(true);
+                
+                // Call the original onSignUp function first
+                console.log('📝 Calling original onSignUp function...');
+                await onSignUp(event);
+                console.log('✅ Original sign-up completed');
+                
+                // Then add user to Remo event if eventID exists
+                if (event.eventID && auth.currentUser) {
+                  console.log('🔄 Adding user to Remo event...');
+                  const functions = getFunctions();
+                  const addUserToRemoEvent = httpsCallable(functions, 'addUserToRemoEvent');
+                  
+                  await addUserToRemoEvent({ 
+                    eventId: event.eventID, 
+                    userEmail: auth.currentUser.email 
+                  });
+                  console.log('✅ User added to Remo event successfully');
+                  console.log('🎉 Showing success modal...');
+                  setShowSuccessModal(true);
+                } else {
+                  console.log('⚠️ No eventID or user not logged in, skipping Remo integration');
+                  setShowSuccessModal(true);
+                }
+              } catch (error) {
+                console.error('❌ Error signing up for event:', error);
+                setSignUpClicked(false);
+                setErrorMessage('Sign up is not working. Please try again later.');
+                setShowErrorModal(true);
+              }
+            }}
+          >
+            {signUpClicked ? 'Joining...' : 'Join Late'}
+          </button>
         )}
       </div>
 
