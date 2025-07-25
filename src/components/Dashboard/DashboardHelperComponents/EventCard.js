@@ -111,6 +111,17 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               }
         }
       >
+
+
+        {/* Remo Event Title - above age range */}
+        <div className="border-3 border-black p-2 rounded mb-[-20px]">  
+            {event.title && (
+              <div className="font-medium text-[#211F20] font-bricolage leading-[130%] text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px]">
+                {event.title}
+              </div>
+            )}
+          </div>
+        
         {/* Age Range - Top */}
         {event.ageRange && (
           <div className="border-3 border-black p-2 rounded">
@@ -219,6 +230,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
 
         {/* Sign Up Button */}
         <button
+          disabled={joining}
           onClick={async () => {
             if (!event?.eventID) {
               alert('Missing event ID');
@@ -251,9 +263,9 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                   { merge: true }
                 );
               }
-              // Build join URL on the client
-              const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
-              window.open(joinUrl, '_blank');
+              // Do NOT redirect to Remo site anymore
+              // const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
+              // window.open(joinUrl, '_blank');
             } catch (err) {
               console.error('Error fetching join URL:', err);
               alert('Unable to fetch join link. Please try again later.');
@@ -261,7 +273,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               setJoining(false);
             }
           }}
-          className="
+          className={`
             bg-[#211F20] 
             text-white 
             font-medium 
@@ -274,7 +286,8 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
             font-poppins
             leading-normal
             text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
-          "
+            ${joining ? 'opacity-60 cursor-not-allowed' : ''}
+          `}
         >
           {joining ? 'Loading…' : (type === "signup" ? "Sign Up" : "Join Now")}
         </button>

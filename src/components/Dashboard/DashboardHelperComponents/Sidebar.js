@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../../../firebaseConfig";
 import { signOut } from "firebase/auth";
@@ -16,13 +16,56 @@ import * as FaIcons from "react-icons/fa";
 import * as AiIcons from "react-icons/ai";
 import * as IoIcons from "react-icons/io";
 import * as RiIcons from "react-icons/ri";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { db } from '../../../firebaseConfig';
 
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showTabletMenu, setShowTabletMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [hasNewSpark, setHasNewSpark] = useState(false);
+
+  // Duplicate new sparks logic from DashHome.js
+  useEffect(() => {
+    const fetchConnections = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        const connsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+        const uids = connsSnap.docs.map(d => d.id);
+        const profiles = await Promise.all(
+          uids.map(async (uid) => {
+            const userDoc = await getDoc(doc(db, 'users', uid));
+            if (!userDoc.exists()) return null;
+            const data = userDoc.data();
+            const connectionDoc = await getDoc(doc(db, 'users', user.uid, 'connections', uid));
+            const connectionData = connectionDoc.exists() ? connectionDoc.data() : {};
+            if (connectionData.status !== 'mutual') return null;
+            return { userId: uid, ...data };
+          })
+        );
+        const filteredProfiles = profiles.filter(Boolean);
+        const userId = user.uid;
+        const newSparks = await Promise.all(
+          filteredProfiles.map(async (conn) => {
+            const convoId = userId < conn.userId ? `${userId}${conn.userId}` : `${conn.userId}${userId}`;
+            const convoDoc = await getDoc(doc(db, "conversations", convoId));
+            if (!convoDoc.exists()) return true;
+            const messages = convoDoc.data().messages || [];
+            const hasMessaged = messages.some(msg => msg.senderId === userId);
+            return !hasMessaged;
+          })
+        );
+        setHasNewSpark(newSparks.some(isNew => isNew));
+      } catch (err) {
+        setHasNewSpark(false);
+      }
+    };
+    fetchConnections();
+  }, [auth.currentUser]);
 
   const navItems = [
     { icon: "ti ti-home", text: "Home", active: true },
@@ -50,8 +93,8 @@ const Sidebar = () => {
     }
   };
 
-  const handleMobileMenuToggle = () => {
-    setShowMobileMenu(!showMobileMenu);
+  const handleTabletMenuToggle = () => {
+    setShowTabletMenu(!showTabletMenu);
   };
 
   const SidebarData = [
@@ -150,29 +193,44 @@ const Sidebar = () => {
 
         {/* Main navigation items with top padding */}
         <div className="pt-6">
-          {SidebarData.slice(0, -2).map((item, index) => (
-            <div key={index}>
-              <Link to={item.path}>
-                <div
-                  className={`flex gap-2 sm:gap-2 md:gap-3 lg:gap-4 items-center px-5 py-3 sm:px-5 sm:py-3 md:px-6 md:py-4 lg:px-6 lg:py-4 text-lg rounded-2xl transition-all cursor-pointer duration-[0.2s] text-slate-500 border
-                    ${location.pathname === item.path
-                      ? "bg-[#1C50D81A] border-[#1C50D840] text-[#1C50D8]"
-                      : "border-transparent hover:bg-gray-50 hover:border-[#1C50D840]"
-                    }`}
+          <div className="flex flex-col gap-2"> {/* Add vertical gap between options */}
+            {SidebarData.slice(0, -2).map((item, index) => (
+              <Link key={item.path} to={item.path} className="w-full">
+                <div className={`flex items-center justify-between w-full px-4 py-3 text-lg rounded-xl transition-all cursor-pointer duration-200 text-slate-500 border
+                  ${location.pathname === item.path
+                    ? "bg-[#1C50D81A] border-[#1C50D840] text-[#1C50D8]"
+                    : "border-transparent hover:bg-[#F5F7FB] hover:text-[#1C50D8] hover:border-[#1C50D840]"
+                  }`}
                 >
-                  {item.icon}
-                  <span>{item.title}</span>
+                  <div className="flex items-center gap-2">
+                    {item.icon}
+                    <span>{item.title}</span>
+                  </div>
+                  {/* Only for Sparks */}
+                  {item.title === "Sparks" && hasNewSpark && (
+                    <span
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '100px',
+                        background: '#FF4848',
+                        display: 'inline-block',
+                        border: '1px solid #E5E7EB',
+                        marginLeft: '8px',
+                      }}
+                    />
+                  )}
                 </div>
               </Link>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Spacer to push Settings and Sign Out to bottom */}
         <div className="flex-1"></div>
 
         {/* Settings and Sign Out at bottom with bottom padding */}
-        <div className="pb-6">
+        <div className="pb-6 flex flex-col gap-2"> {/* Add vertical gap between settings and logout */}
           {SidebarData.slice(-2).map((item, index) => (
             <div key={index}>
               {item.onClick ? (
@@ -210,7 +268,7 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Mobile/Tablet Header Bar (under 1280px) */}
+      {/* Tablet Header Bar (under 1280px) */}
       <div className="flex md:hidden justify-between items-center px-6 py-4 bg-white border-b border-[rgba(33,31,32,0.10)] w-full">
         {/* Left side - Circuit logo */}
         <div className="flex items-center">
@@ -227,20 +285,20 @@ const Sidebar = () => {
         {/* Right side - Vectors (clickable) */}
         <div 
           className="flex flex-col items-center gap-3 cursor-pointer"
-          onClick={handleMobileMenuToggle}
+          onClick={handleTabletMenuToggle}
         >
           <VectorIcon className="w-6 h-1" />
           <VectorIcon className="w-6 h-1" />
         </div>
       </div>
 
-      {/* Mobile Menu Overlay (full screen) */}
-      {showMobileMenu && (
+      {/* Tablet Menu Overlay (full screen) */}
+      {showTabletMenu && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 md:hidden">
-          <div className="flex flex-col h-full bg-white w-80 max-w-full">
-            {/* Mobile Menu Header */}
+          <div className="flex flex-col h-full bg-white w-[744px] max-w-full">
+            {/* Tablet Menu Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-[rgba(33,31,32,0.10)]">
-              <Link to="/dashboard" onClick={() => setShowMobileMenu(false)}>
+              <Link to="/dashboard" onClick={() => setShowTabletMenu(false)}>
                 <img
                   loading="lazy"
                   src={circuitLogo}
@@ -249,14 +307,14 @@ const Sidebar = () => {
                 />
               </Link>
               <button 
-                onClick={handleMobileMenuToggle}
+                onClick={handleTabletMenuToggle}
                 className="text-2xl font-bold text-gray-600 hover:text-gray-800"
               >
                 <img src={xIcon} alt="Close" className="w-6 h-6" />
               </button>
             </div>
 
-            {/* Mobile Menu Items */}
+            {/* Tablet Menu Items */}
             <div className="flex-1 px-6 py-4">
               {SidebarData.map((item, index) => (
                 <div key={index} className="mb-2">
@@ -283,7 +341,7 @@ const Sidebar = () => {
                               className="flex gap-4 items-center px-4 py-2 text-base hover:bg-[#0043F1] hover:text-white text-slate-500 rounded-lg transition-colors duration-200"
                               onClick={() => {
                                 dropdownItem.onClick && dropdownItem.onClick();
-                                setShowMobileMenu(false);
+                                setShowTabletMenu(false);
                                 setShowSettingsDropdown(false);
                               }}
                             >
@@ -295,7 +353,7 @@ const Sidebar = () => {
                       )}
                     </div>
                   ) : (
-                    <Link to={item.path} onClick={() => setShowMobileMenu(false)}>
+                    <Link to={item.path} onClick={() => setShowTabletMenu(false)}>
                       <div
                         className={`flex gap-4 items-center px-4 py-3 text-lg rounded-xl transition-all cursor-pointer duration-[0.2s] text-slate-500 border
                           ${location.pathname === item.path
@@ -312,12 +370,12 @@ const Sidebar = () => {
               ))}
             </div>
 
-            {/* Mobile Menu Footer - Log Out Button */}
+            {/* Tablet Menu Footer - Log Out Button */}
             <div className="px-6 py-4 border-t border-[rgba(33,31,32,0.10)]">
               <button
                 onClick={() => {
                   handleSignOut();
-                  setShowMobileMenu(false);
+                  setShowTabletMenu(false);
                 }}
                 className="flex gap-4 items-center px-4 py-3 text-lg text-red-600 hover:bg-red-50 rounded-xl transition-colors duration-200 w-full"
               >
