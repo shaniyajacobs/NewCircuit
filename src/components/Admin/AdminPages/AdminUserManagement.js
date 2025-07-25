@@ -5,6 +5,7 @@ import { deleteUser, getAuth, signInWithEmailAndPassword, EmailAuthProvider, rea
 import { FaSearch, FaTrash, FaUserShield } from 'react-icons/fa';
 import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { DateTime } from 'luxon';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -105,17 +106,64 @@ const AdminUserManagement = () => {
     }
   };
 
-  // Show events for a user
+  // Show events for a user – fetch live Remo details via Cloud Function
   const handleShowEvents = async (user) => {
     setSelectedUser(user);
     setShowEventsModal(true);
     setLoadingEvents(true);
+
     try {
+      // 1️⃣ Fetch signed-up event IDs from Firestore
       const eventsSnap = await getDocs(collection(db, 'users', user.id, 'signedUpEvents'));
-      const eventsList = eventsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setUserEvents(eventsList);
+
+      if (eventsSnap.empty) {
+        setUserEvents([]);
+        return;
+      }
+
+      // 2️⃣ Prepare callable
+      const functionsInst = getFunctions();
+      const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
+
+      // 3️⃣ For each event, call the CF to fetch Remo metadata
+      const enriched = await Promise.all(
+        eventsSnap.docs.map(async (docSnap) => {
+          const data = docSnap.data() || {};
+          const eventId = data.eventID || docSnap.id;
+
+          let remo = {};
+          try {
+            const res = await getEventDataCF({ eventId });
+            remo = res.data?.event || {};
+          } catch (err) {
+            console.error('getEventData error:', err);
+          }
+
+          // Extract date/time using Luxon
+          const dt = remo.startTime
+            ? DateTime.fromMillis(Number(remo.startTime))
+            : (remo.start_date_time ? DateTime.fromISO(remo.start_date_time) : null);
+
+          const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (data.eventDate ? DateTime.fromISO(data.eventDate).toFormat('MM/dd/yyyy') : '-');
+          const timeStr = dt ? dt.toFormat('h:mm a') : (data.eventTime || '-');
+
+          const signUpJS = data.signUpTime?.toDate?.();
+          const signUpStr = signUpJS ? DateTime.fromJSDate(signUpJS).toFormat('MM/dd/yyyy') : '-';
+
+          return {
+            id: eventId,
+            title: remo.name || remo.title || data.eventTitle || 'Unknown',
+            date: dateStr,
+            time: timeStr,
+            signUp: signUpStr,
+          };
+        })
+      );
+
+      setUserEvents(enriched);
     } catch (error) {
       console.error('Error fetching user events:', error);
+      setUserEvents([]);
     } finally {
       setLoadingEvents(false);
     }
@@ -340,19 +388,21 @@ const AdminUserManagement = () => {
               <table className="min-w-full text-sm table-fixed">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Name</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Date</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Time</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/4">Event ID</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Title</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Date</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Time</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Signed-Up At</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Event ID</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {userEvents.map(ev => (
                     <tr key={ev.id}>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{ev.eventTitle || '-'}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{ev.eventDate || '-'}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{ev.eventTime || '-'}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/4 truncate">{ev.eventID || ev.id}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.title}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.date}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.time}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.signUp}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.id}</td>
                     </tr>
                   ))}
                 </tbody>

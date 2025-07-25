@@ -227,7 +227,7 @@ const AdminEvents = () => {
               <tr key={evt.id}>
                 {(() => {
                   const dt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)) : null;
-                  const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (evt.date || '');
+                  const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (evt.date ? DateTime.fromISO(evt.date).toFormat('MM/dd/yyyy') : '');
                   const timeStr = dt ? dt.toFormat('h:mm a') : (evt.time || '');
                   const tzStr = dt ? dt.offsetNameShort : (evt.timeZone || '');
                   return (
