@@ -352,7 +352,15 @@ const DashHome = () => {
               const res = await getEventDataCF({ eventId });
               const remoEvent = res.data?.event;
               if (remoEvent) {
-                return { ...remoEvent, ...docData, firestoreID: docSnapshot.id, eventID: eventId };
+                const finalTitle = remoEvent.name || remoEvent.title || docData.title || docData.eventName || 'Untitled';
+                return {
+                  ...remoEvent,
+                  ...docData, // firebase fields (eventType etc.) override Remo
+                  title: finalTitle,
+                  eventType: docData.eventType || docData.type || remoEvent.eventType,
+                  firestoreID: docSnapshot.id,
+                  eventID: eventId,
+                };
               }
             } catch (err) {
               console.error(`Failed fetching Remo event for ${eventId}:`, err);
@@ -928,7 +936,6 @@ const getEventData = async (eventID) => {
                     type="upcoming"
                     userGender={userGender}
                     datesRemaining={datesRemaining}
-                    onSignUp={handleSignUp}
                   />
                 ))}
                 {loading && (
@@ -960,7 +967,6 @@ const getEventData = async (eventID) => {
                           type="upcoming"
                           userGender={userGender}
                           datesRemaining={datesRemaining}
-                          onSignUp={handleSignUp}
                         />
                       ))}
                     </div>
