@@ -15,6 +15,7 @@ const AdminUserManagement = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [hoverUserId, setHoverUserId] = useState(null);
   // Events modal state
   const [showEventsModal, setShowEventsModal] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -193,6 +194,7 @@ const AdminUserManagement = () => {
               ? `${otherUser.firstName} ${otherUser.lastName || ''}`.trim()
               : otherUser.displayName || 'Unknown',
             email: otherUser.email || '-',
+            gender: otherUser.gender || '-',
             status: connInfo.status || 'unknown',
             matchScore: typeof connInfo.matchScore === 'number' ? Math.round(connInfo.matchScore) : null,
             connectedAt: connInfo.connectedAt?.toDate?.() ?? null,
@@ -230,15 +232,18 @@ const AdminUserManagement = () => {
         </div>
       </div>
 
-      <div className="overflow-y-auto max-h-[calc(100vh-250px)]">
-        <table className="min-w-full">
+      <div
+        className="max-h-[calc(100vh-250px)] overflow-y-auto overflow-x-auto"
+        onScroll={() => hoverUserId && setHoverUserId(null)}
+      >
+        <table className="min-w-full w-full whitespace-nowrap text-sm">
           <thead className="bg-gray-50 sticky top-0">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preference</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sparks</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Events</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -252,13 +257,27 @@ const AdminUserManagement = () => {
             ) : filteredUsers.map(user => (
               <tr key={user.id} className={user.id === auth.currentUser?.uid ? 'bg-blue-50' : ''}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {user.firstName} {user.lastName}
+                  <span
+                    className="relative text-blue-600 underline cursor-pointer"
+                    onMouseEnter={() => setHoverUserId(user.id)}
+                    
+                  >
+                    {user.firstName} {user.lastName}
+                    {hoverUserId === user.id && (
+                      <div
+                        className="absolute z-10 left-full ml-4 top-1/2 -translate-y-1/2 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs whitespace-nowrap"
+                        onMouseLeave={() => setHoverUserId(null)}
+                        onMouseEnter={() => setHoverUserId(user.id)}
+                      >
+                        <div><span className="font-semibold">Email:</span> {user.email}</div>
+                        <div><span className="font-semibold">User ID:</span> {user.id}</div>
+                      </div>
+                    )}
+                  </span>
                   {user.id === auth.currentUser?.uid && (
                     <span className="ml-2 text-xs text-blue-600">(Me)</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-gray-600 truncate max-w-[200px]">{user.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -275,6 +294,8 @@ const AdminUserManagement = () => {
                     {adminUsers.includes(user.id) ? 'Admin' : 'User'}
                   </span>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap capitalize">{user.gender || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap capitalize">{user.sexualPreference || user.genderPreference || '-'}</td>
                 {/* Sparks column */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
@@ -434,9 +455,10 @@ const AdminUserManagement = () => {
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
                     <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Name</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Email</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Status</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Match %</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Email</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Gender</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Status</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Match %</th>
                     <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Connected At</th>
                   </tr>
                 </thead>
@@ -444,8 +466,9 @@ const AdminUserManagement = () => {
                   {userConnections.map(conn => (
                     <tr key={conn.id}>
                       <td className="px-4 py-2 whitespace-nowrap truncate w-1/5">{conn.name}</td>
-                      <td className="px-4 py-2 whitespace-nowrap truncate w-1/5">{conn.email}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5">
+                      <td className="px-4 py-2 whitespace-nowrap truncate w-1/6">{conn.email}</td>
+                      <td className="px-4 py-2 whitespace-nowrap capitalize w-1/6">{conn.gender}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           conn.status === 'mutual'
                             ? 'bg-green-100 text-green-800'
@@ -456,7 +479,7 @@ const AdminUserManagement = () => {
                           {conn.status}
                         </span>
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5">{conn.matchScore ?? '-'}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6">{conn.matchScore ?? '-'}</td>
                       <td className="px-4 py-2 whitespace-nowrap w-1/5">{conn.connectedAt ? conn.connectedAt.toLocaleDateString() : '-'}</td>
                     </tr>
                   ))}
