@@ -12,7 +12,7 @@ const AdminEvents = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [popoverEventId, setPopoverEventId] = useState(null); // for ID tooltip
+  const [hoverEventId, setHoverEventId] = useState(null); // for ID tooltip on hover
   const [showEditModal, setShowEditModal] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -203,8 +203,11 @@ const AdminEvents = () => {
         </div>
       </div>
 
-      <div className="overflow-y-auto max-h-[calc(100vh-250px)]">
-        <table className="min-w-full">
+      <div
+        className="overflow-y-auto max-h-[calc(100vh-250px)]"
+        onScroll={() => hoverEventId && setHoverEventId(null)}
+      >
+        <table className="min-w-full whitespace-nowrap text-sm">
           <thead className="bg-gray-50 sticky top-0">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
@@ -227,25 +230,28 @@ const AdminEvents = () => {
               <tr key={evt.id}>
                 {(() => {
                   const dt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)) : null;
-                  const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (evt.date || '');
+                  const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (evt.date ? DateTime.fromISO(evt.date).toFormat('MM/dd/yyyy') : '');
                   const timeStr = dt ? dt.toFormat('h:mm a') : (evt.time || '');
                   const tzStr = dt ? dt.offsetNameShort : (evt.timeZone || '');
                   return (
                     <> 
-                      <td className="px-6 py-4 whitespace-nowrap relative">
-                        <button
-                          type="button"
-                          onClick={() => setPopoverEventId(popoverEventId === evt.id ? null : evt.id)}
-                          className="text-blue-600 underline"
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className="relative text-blue-600 underline cursor-pointer"
+                          onMouseEnter={() => setHoverEventId(evt.id)}
                         >
                           {evt.name || evt.title}
-                        </button>
-                        {popoverEventId === evt.id && (
-                          <div className="absolute z-10 left-1/2 -translate-x-1/2 -top-2 -translate-y-full bg-white border border-gray-300 shadow-lg rounded p-2 text-xs whitespace-nowrap">
-                            <div><span className="font-semibold">Firestore:</span> {evt.id}</div>
-                            <div><span className="font-semibold">Event ID:</span> {evt.eventID || '-'}</div>
-                          </div>
-                        )}
+                          {hoverEventId === evt.id && (
+                            <div
+                              className="absolute z-10 left-full ml-4 top-1/2 -translate-y-1/2 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs whitespace-nowrap"
+                              onMouseEnter={() => setHoverEventId(evt.id)}
+                              onMouseLeave={() => setHoverEventId(null)}
+                            >
+                              <div><span className="font-semibold">Firestore:</span> {evt.id}</div>
+                              <div><span className="font-semibold">Event ID:</span> {evt.eventID || '-'}</div>
+                            </div>
+                          )}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{dateStr}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{timeStr}</td>
