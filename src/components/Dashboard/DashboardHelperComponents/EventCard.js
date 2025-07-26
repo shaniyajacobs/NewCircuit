@@ -228,69 +228,132 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
           </div>
         </div>
 
-        {/* Sign Up Button */}
-        <button
-          disabled={joining}
-          onClick={async () => {
-            if (!event?.eventID) {
-              alert('Missing event ID');
-              return;
-            }
-            try {
-              setJoining(true);
-              if (onSignUp) {
-                console.log('[JOIN NOW] Calling onSignUp for event:', event);
-                await onSignUp(event);
-                console.log('[JOIN NOW] onSignUp finished');
-              }
-              const functions = getFunctions();
-              console.log('About to call getEventData');
-              const getEventData = httpsCallable(functions, 'getEventData'); // returns full event
-              const res = await getEventData({ eventId: event.eventID });
-              console.log('getEventData response:', res);
-              const { event: remoEvent } = res.data || {};
-              if (!remoEvent) {
-                alert('Event data not available yet.');
+        {/* Sign Up / Wait List Button or Join Now for Upcoming */}
+        {type === 'upcoming' ? (
+          <button
+            disabled={joining}
+            onClick={async () => {
+              if (!event?.eventID) {
+                alert('Missing event ID');
                 return;
               }
-              // Record the latest event this user joined
-              if (auth.currentUser) {
-                await setDoc(
-                  doc(db, 'users', auth.currentUser.uid),
-                  {
-                    latestEventId: event.eventID,
-                  },
-                  { merge: true }
-                );
+              try {
+                setJoining(true);
+                if (onSignUp) {
+                  console.log('[JOIN NOW] Calling onSignUp for event:', event);
+                  await onSignUp(event);
+                  console.log('[JOIN NOW] onSignUp finished');
+                }
+                const functions = getFunctions();
+                console.log('About to call getEventData');
+                const getEventData = httpsCallable(functions, 'getEventData'); // returns full event
+                const res = await getEventData({ eventId: event.eventID });
+                console.log('getEventData response:', res);
+                const { event: remoEvent } = res.data || {};
+                if (!remoEvent) {
+                  alert('Event data not available yet.');
+                  return;
+                }
+                // Record the latest event this user joined
+                if (auth.currentUser) {
+                  await setDoc(
+                    doc(db, 'users', auth.currentUser.uid),
+                    {
+                      latestEventId: event.eventID,
+                    },
+                    { merge: true }
+                  );
+                }
+                // Build join URL on the client
+                const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
+                window.open(joinUrl, '_blank');
+              } catch (err) {
+                console.error('Error fetching join URL:', err);
+                alert('Unable to fetch join link. Please try again later.');
+              } finally {
+                setJoining(false);
               }
-              // Do NOT redirect to Remo site anymore
-              // const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
-              // window.open(joinUrl, '_blank');
-            } catch (err) {
-              console.error('Error fetching join URL:', err);
-              alert('Unable to fetch join link. Please try again later.');
-            } finally {
-              setJoining(false);
-            }
-          }}
-          className={`
-            bg-[#211F20] 
-            text-white 
-            font-medium 
-            hover:bg-gray-800 
-            transition-colors 
-            text-left
-            rounded-lg
-            py-2 sm:py-2 xl:py-2 2xl:py-2
-            px-6 sm:px-5 xl:px-5 2xl:px-5
-            font-poppins
-            leading-normal
-            text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
-            ${joining ? 'opacity-60 cursor-not-allowed' : ''}
-          `}
-        >
-          {joining ? 'Loading…' : (type === "signup" ? "Sign Up" : "Join Now")}
-        </button>
+            }}
+            className={`
+              bg-[#211F20] 
+              text-white 
+              font-medium 
+              hover:bg-gray-800 
+              transition-colors 
+              text-left
+              rounded-lg
+              py-2 sm:py-2 xl:py-2 2xl:py-2
+              px-6 sm:px-5 xl:px-5 2xl:px-5
+              font-poppins
+              leading-normal
+              text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
+              ${joining ? 'opacity-60 cursor-not-allowed' : ''}
+            `}
+          >
+            {joining ? 'Loading…' : 'Join Now'}
+          </button>
+        ) : (
+          <button
+            disabled={joining}
+            onClick={async () => {
+              if (!event?.eventID) {
+                alert('Missing event ID');
+                return;
+              }
+              try {
+                setJoining(true);
+                if (onSignUp) {
+                  console.log('[JOIN NOW] Calling onSignUp for event:', event);
+                  await onSignUp(event);
+                  console.log('[JOIN NOW] onSignUp finished');
+                }
+                const functions = getFunctions();
+                console.log('About to call getEventData');
+                const getEventData = httpsCallable(functions, 'getEventData'); // returns full event
+                const res = await getEventData({ eventId: event.eventID });
+                console.log('getEventData response:', res);
+                const { event: remoEvent } = res.data || {};
+                if (!remoEvent) {
+                  alert('Event data not available yet.');
+                  return;
+                }
+                // Record the latest event this user joined
+                if (auth.currentUser) {
+                  await setDoc(
+                    doc(db, 'users', auth.currentUser.uid),
+                    {
+                      latestEventId: event.eventID,
+                    },
+                    { merge: true }
+                  );
+                }
+                // Do NOT redirect to Remo site for signup events
+              } catch (err) {
+                console.error('Error fetching join URL:', err);
+                alert('Unable to fetch join link. Please try again later.');
+              } finally {
+                setJoining(false);
+              }
+            }}
+            className={`
+              bg-[#211F20] 
+              text-white 
+              font-medium 
+              hover:bg-gray-800 
+              transition-colors 
+              text-left
+              rounded-lg
+              py-2 sm:py-2 xl:py-2 2xl:py-2
+              px-6 sm:px-5 xl:px-5 2xl:px-5
+              font-poppins
+              leading-normal
+              text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
+              ${joining ? 'opacity-60 cursor-not-allowed' : ''}
+            `}
+          >
+            {joining ? 'Loading…' : 'Sign Up'}
+          </button>
+        )}
       </div>
 
       {/* Success Modal */}
