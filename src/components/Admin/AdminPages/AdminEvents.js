@@ -12,6 +12,7 @@ const AdminEvents = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [hoverEventId, setHoverEventId] = useState(null); // for ID tooltip on hover
   const [showEditModal, setShowEditModal] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -144,7 +145,16 @@ const AdminEvents = () => {
   const handleAddEvent = async (e) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'events'), { ...newEvent, menSignupCount: 0, womenSignupCount: 0 });
+      // 1️⃣ Create the doc first to obtain its ID
+      const docRef = await addDoc(collection(db, 'events'), {
+        ...newEvent,
+        menSignupCount: 0,
+        womenSignupCount: 0,
+      });
+
+      // 2️⃣ Immediately write the Firestore ID inside the document for easy querying later
+      await updateDoc(docRef, { id: docRef.id });
+
       setShowAddModal(false);
       setNewEvent({ title: '', date: '', location: '', time: '', timeZone: '', menSpots: '', womenSpots: '', ageRange: '', eventType: '', eventID: '' });
       fetchEvents();
@@ -193,8 +203,11 @@ const AdminEvents = () => {
         </div>
       </div>
 
-      <div className="overflow-y-auto max-h-[calc(100vh-250px)]">
-        <table className="min-w-full">
+      <div
+        className="overflow-y-auto max-h-[calc(100vh-250px)]"
+        onScroll={() => hoverEventId && setHoverEventId(null)}
+      >
+        <table className="min-w-full whitespace-nowrap text-sm">
           <thead className="bg-gray-50 sticky top-0">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
@@ -211,22 +224,39 @@ const AdminEvents = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan="4" className="text-center py-4">Loading...</td>
+                <td colSpan="9" className="text-center py-4">Loading...</td>
               </tr>
             ) : filteredEvents.map(evt => (
               <tr key={evt.id}>
                 {(() => {
                   const dt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)) : null;
-                  const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (evt.date || '');
+                  const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (evt.date ? DateTime.fromISO(evt.date).toFormat('MM/dd/yyyy') : '');
                   const timeStr = dt ? dt.toFormat('h:mm a') : (evt.time || '');
                   const tzStr = dt ? dt.offsetNameShort : (evt.timeZone || '');
                   return (
-                    <>
-                      <td className="px-6 py-4 whitespace-nowrap">{evt.name || evt.title}</td>
+                    <> 
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className="relative text-blue-600 underline cursor-pointer"
+                          onMouseEnter={() => setHoverEventId(evt.id)}
+                        >
+                          {evt.name || evt.title}
+                          {hoverEventId === evt.id && (
+                            <div
+                              className="absolute z-10 left-full ml-4 top-1/2 -translate-y-1/2 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs whitespace-nowrap"
+                              onMouseEnter={() => setHoverEventId(evt.id)}
+                              onMouseLeave={() => setHoverEventId(null)}
+                            >
+                              <div><span className="font-semibold">Firestore:</span> {evt.id}</div>
+                              <div><span className="font-semibold">Event ID:</span> {evt.eventID || '-'}</div>
+                            </div>
+                          )}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">{dateStr}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{timeStr}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{tzStr}</td>
-                    </>
+                       </>
                   );
                 })()}
                 <td className="px-6 py-4 whitespace-nowrap">{evt.location}</td>
@@ -424,7 +454,7 @@ const AdminEvents = () => {
       {/* Edit Event Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
             <h2 className="text-2xl font-semibold mb-4">Edit Event</h2>
             <form onSubmit={handleUpdateEvent} className="flex flex-col gap-4">
               {/* Event Title */}

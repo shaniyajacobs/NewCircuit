@@ -7,6 +7,10 @@ import { auth, db } from './firebaseConfig';
 import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
+function toLocalDate(ymdString) {
+  const [y, m, d] = ymdString.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
 
 const VerifyEmail = () => {
     const navigate = useNavigate();
@@ -47,14 +51,18 @@ const VerifyEmail = () => {
                     email: userData.email,
                     firstName: userData.firstName,
                     lastName: userData.lastName,
-                    birthDate: new Date(userData.birthDate),
+                    birthDate: toLocalDate(userData.birthDate),
                     phoneNumber: userData.phoneNumber,
                     emailVerified: false,
                     createdAt: new Date(),
                     image: userData.image,
                     isActive: true,
                     location: userData.location,
-                    datesRemaining: 50 // TODO: change this number when finished testing
+                    datesRemaining: 50, // TODO: change when finished testing
+                    profileComplete: true,
+                    preferencesComplete: false,
+                    locationSet: false,
+                    quizComplete: false
                 });
 
             } catch (createErr) {
