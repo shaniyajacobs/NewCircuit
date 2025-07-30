@@ -84,7 +84,7 @@ const MapHeroSection = () => {
             }}
             className="w-fit max-w-[500px] sm:max-w-[600px] md:max-w-[700px] text-[32px] sm:text-[32px] md:text-[48px] lg:text-[64px] text-left max-w-[10000px] md:max-w-[1000px]"
           >
-            We only pick the best restaurants for you! 🍲
+            The Kind of Places You’ll Want to Come Back To
           </h1>
         </div>
       </div>
@@ -103,10 +103,10 @@ const MapHeroSection = () => {
                 }}
                 className="text-[32px] sm:text-[32px] md:text-[40px] lg:text-[48px] leading-[110%] text-[#211F20] break-words"
             >
-                → Dietary restrictions
+                → Dietary-Friendly Menus
             </h2>
             <p className="text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-poppins font-normal text-[#211F20] break-words">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+                Whether you’re gluten-free, vegan, or have other preferences, we choose restaurants that can accommodate your needs.
             </p>
         </div>
 
@@ -123,10 +123,10 @@ const MapHeroSection = () => {
                 }}
                 className="text-[32px] sm:text-[32px] md:text-[40px] lg:text-[48px] leading-[110%] text-[#211F20] break-words"
             >
-                → Budget-friendly options
+                → Options That Won’t Break the Bank
             </h2>
             <p className="text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-poppins font-normal text-[#211F20] break-words">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+                We partner with restaurants that feel like a treat, without the hefty price tag.
             </p>
         </div>
 
@@ -144,10 +144,10 @@ const MapHeroSection = () => {
                     }}
                     className="text-[32px] sm:text-[32px] md:text-[40px] lg:text-[48px] leading-[110%] text-[#211F20] break-words"
                 >
-                    → Top Rated Restaurants
+                    → Top-Rated Local Gems
                 </h2>
                 <p className="text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-poppins font-normal text-[#211F20] break-words">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+                    From cozy cocktail bars to buzzy small plates, we partner with places that people genuinely love and review highly.
                 </p>
             </div>
             <button 
