@@ -117,7 +117,7 @@ const Hero = () => {
                 }}
                 onMouseOver={(e) => e.currentTarget.style.opacity = '0.6'}
                 onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
-                className="transition-colors hover:scale-110 transition-transform"
+                className="hover:scale-110 transition-transform"
               >
                 <LightningIcon />
                 Spark your connection
