@@ -3,7 +3,7 @@ import './SlidingBar.css';
 
 const DEFAULT_PHRASE = (
   <>
-    Find your next match on circuit
+    Sparks fly on Circuit
     <span className="sliding-bar__heart" role="img" aria-label="blue heart">💙</span>
   </>
 );
