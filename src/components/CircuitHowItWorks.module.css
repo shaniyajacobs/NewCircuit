@@ -15,8 +15,9 @@
   --card-padding: 24px;
   --card-image-height: 278px;
   --card-text-height: 172px;
+  --card2-text-height: 190px;   /* special for card 2 - slightly taller */
   --card3-image-height: 254px;   /* special for card 3 */
-  --card3-text-height: 196px;    /* special for card 3 */
+  --card3-text-height: 190px;    /* same as card 2 for uniform height */
   --stepnum-font: 16px;
   --card-desc-font: 16px;
   --h2: 48px;
