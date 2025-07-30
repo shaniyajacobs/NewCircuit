@@ -19,26 +19,28 @@ const thirdDateSteps = [
   }
 ];
 
-export function ThirdDatesOnUs() {
+export function ThirdDatesOnUs({ showHeader = true }) {
   const navigate = useNavigate();
 
   return (
     <div className="w-full bg-[#FAFFE7] flex flex-col items-center gap-[16px] sm:gap-[20px] md:gap-[24px] lg:gap-[32px]">
       {/* Title */}
-      <h2
-        style={{
-          color: '#211F20',
-          textAlign: 'center',
-          fontFamily: '"Bricolage Grotesque", sans-serif',
-          fontWeight: 520,
-          lineHeight: '120%',
-          alignSelf: 'stretch',
-          marginBottom: '24px',
-        }}
-        className="text-[32px] sm:text-[32px] md:text-[40px] lg:text-[48px] mb-[24px] sm:mb-[50px] md:mb-[75px] lg:mb-[100px]"
-      >
-        The third date's on us
-      </h2>
+      {showHeader && (
+        <h2
+          style={{
+            color: '#211F20',
+            textAlign: 'center',
+            fontFamily: '"Bricolage Grotesque", sans-serif',
+            fontWeight: 520,
+            lineHeight: '120%',
+            alignSelf: 'stretch',
+            marginBottom: '24px',
+          }}
+          className="text-[32px] sm:text-[32px] md:text-[40px] lg:text-[48px] mb-[24px] sm:mb-[50px] md:mb-[75px] lg:mb-[100px]"
+        >
+          The third date's on us
+        </h2>
+      )}
 
       {/* Card Grid */}
       <div className="flex flex-col items-center w-full gap-[16px]
