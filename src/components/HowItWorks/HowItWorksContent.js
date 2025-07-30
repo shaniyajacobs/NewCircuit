@@ -5,6 +5,7 @@ import Waiting from '../Waiting';
 import HIWDescription from './HIWDescription';
 import NewFeatureCard from '../NewFeatureCard';
 import FeatureCards from '../FeatureCards';
+import RestaurantPartnerships from '../RestaurantPartnerships';
 
 const HowItWorksContent = () => {
     return (
@@ -14,6 +15,7 @@ const HowItWorksContent = () => {
             <NewFeatureCard />
             <FeatureCards />
             <MapHeroSection />
+            <RestaurantPartnerships />
             <Waiting />
         </div>
     );
