@@ -8,8 +8,8 @@ const Info = () => {
                 {/* Text Section */}
                 <div className="text-center pt-[100px] pb-[100px] pl-xs pr-xs md:pl-m md:pr-m md:pt-[150px] md:pb-[150px] lg:pl-l lg:pr-l lg:pt-[200px] lg:pb-[200px]">
                     <h2 className="font-bricolage text-[22px] lg:text-[36px] md:text-[30px] text-black font-light font-weight-[400] mb-16 max-w-[800px] mx-auto leading-[130%]">
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                        Suspendisse mattis metus neque, ac hendrerit risus pharetra ac. 
+                    Real chemistry starts with a conversation. Circuit brings singles together in a way that feels effortless and just a little electric.
+ 
                     </h2>
                 </div>
                 
@@ -48,12 +48,11 @@ const Info = () => {
                             </h2>
                         </div>
                         <p className="text-[16px] md:text-[20px] lg:text-[24px] text-black font-poppins font-light leading-normal pb-[2px] sm:pb-[4px] md:pb-[8px] lg:pb-[18px]">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                            Suspendisse mattis metus neque, ac hendrerit risus pharetra ac. 
+                        Sign up, choose your age group, and we’ll guide you into real-time video dates with compatible singles in your area. 
                         </p>
                         <Link to="/create-account">
                             <button className="w-[148px] h-[34px] sm:w-[148px] sm:h-[34px] md:w-[166px] md:h-[41px] lg:w-[192px] lg:h-[48px] flex items-center justify-center rounded-[4px] sm:rounded-[6px] md:rounded-[6px] lg:rounded-[8px] bg-black text-mindaro-light font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-normal transition-transform hover:scale-105 hover:opacity-60">
-                                Find me a partner
+                                Meet someone new
                             </button>
                         </Link>
                     </div>
