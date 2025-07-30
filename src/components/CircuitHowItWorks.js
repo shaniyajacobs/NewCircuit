@@ -11,26 +11,26 @@ export const stepsData = [
   {
     stepNum: "STEP 01",
     title: "Sign Up to Circuit",
-    description: "Sign up & take the personality indicator test for us to match you with potential dates.",
+    description: "Create a profile & take the personality indicator. We'll use your results to guide you toward meaningful connections.",
     image: Howitworks1
   },
   {
     stepNum: "STEP 02",
-    title: "Find a date in your city",
-    description: "Sign up for a date in your city & select up to 3 sparks to take things further",
+    title: "Join a Date in Your City",
+    description: "Sign up for a virtual speed date and meet singles in your area. After the speed date, select up to 3 connections you'd like to keep getting to know.",
     image: Howitworks2
   },
   {
     stepNum: "STEP 03",
-    title: "Ignite the spark",
-    description: "Connect with your sparks and go on 1-1 dates with them. The 3rd date includes a free drink on us!",
+    title: "Spark Your Connection",
+    description: "Message your sparks and keep the conversation going. When things move offline, your third date includes a free drink on us!",
     image: Howitworks3
   }
 ];
 
 
 
-export function StepCard({ stepNum, title, description, image, isFirst, isThird, dotColors }) {
+export function StepCard({ stepNum, title, description, image, isFirst, isThird, dotColors, index }) {
   return (
     <div className={isThird || isFirst ? `${styles.stepcard} ${styles.stepcardArrow}` : styles.stepcard} style={{ position: 'relative' }}>
       {/* Arrow for step 1 and step 3 */}
@@ -89,7 +89,7 @@ export function StepCard({ stepNum, title, description, image, isFirst, isThird,
       <div
         className={styles.stepcardContent}
         style={{
-          height: isThird ? "var(--card3-text-height)" : "var(--card-text-height)",
+          height: "var(--card2-text-height)",
           background: "#FAFFE7",
           borderBottomLeftRadius: "var(--card-radius)",
           borderBottomRightRadius: "var(--card-radius)",
@@ -179,6 +179,7 @@ export function HowItWorks() {
               isFirst={index === 0}
               isThird={index === 2}
               dotColors={dotColorsArr[index]}
+              index={index}
             />
           </div>
         ))}
