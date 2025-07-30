@@ -4,20 +4,20 @@ import { Link } from 'react-router-dom';
 
 const HIWDescription = () => {
     return (
-        <div className="w-full bg-[#FAFFE7] py-[100px]">
-            <div className="max-w-[1280px] mx-auto px-[100px]">
-                <div className="flex flex-col items-center text-center">
+        <div className="w-full bg-[#FAFFE7] py-8 sm:py-12 md:py-16 lg:py-[100px]">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-[100px]">
+                <div className="flex flex-col items-center text-center w-full">
                     <h1 
                         style={{
                             fontFamily: '"Bricolage Grotesque", sans-serif',
                             fontWeight: 520,
                             lineHeight: '120%',
                         }}
-                        className="text-[32px] sm:text-[32px] md:text-[48px] lg:text-[64px] text-[#211F20] mb-[24px] sm:mb-[50px] md:mb-[75px] lg:mb-[100px]"
+                        className="text-2xl sm:text-3xl md:text-4xl lg:text-[64px] text-[#211F20] mb-6 sm:mb-8 md:mb-12 lg:mb-[100px] w-full"
                     >
                         How It Works
                     </h1>
-                    <div className="flex flex-col items-center text-center gap-[18px] sm:gap-[24px] md:gap-[32px] lg:gap-[50px]">
+                    <div className="flex flex-col items-center text-center gap-4 sm:gap-6 md:gap-8 lg:gap-[50px] w-full">
                         <GradientDescription 
                             headerText="Sign up to Circuit"
                             bodyText="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
@@ -59,7 +59,7 @@ const HIWDescription = () => {
                             }}
                         />
                     </div>
-                    <Link to="/create-account" className="inline-block mt-[24px] sm:mt-[50px] md:mt-[75px] lg:mt-[100px]">
+                    <Link to="/create-account" className="inline-block mt-6 sm:mt-8 md:mt-12 lg:mt-[100px]">
                         <button
                             style={{
                                 background: '#211F20',
