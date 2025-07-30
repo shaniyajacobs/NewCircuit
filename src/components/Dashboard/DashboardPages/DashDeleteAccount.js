@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import { getAuth, deleteUser, signOut, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { getAuth, signOut, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { doc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../pages/firebaseConfig";
 
@@ -33,11 +34,10 @@ const DashDeleteAccount = () => {
       );
       await reauthenticateWithCredential(user, credential);
 
-      // Delete user data from Firestore
-      await deleteDoc(doc(db, "users", user.uid));
-
-      // Delete user from Firebase Auth
-      await deleteUser(user);
+      // Invoke backend cleanup
+      const functions = getFunctions();
+      const deleteFn = httpsCallable(functions, "deleteUser");
+      await deleteFn({ userId: user.uid });
 
       // Sign out and redirect to home
       await signOut(auth);
