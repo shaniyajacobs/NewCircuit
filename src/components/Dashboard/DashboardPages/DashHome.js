@@ -19,6 +19,9 @@ import homePurchaseMoreDates from '../../../images/home_purchase_more_dates.jpg'
 import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.svg';
 import filterIcon from '../../../images/setting-4.svg';
 import xIcon from "../../../images/x.svg";
+import tickCircle from "../../../images/tick-circle.svg";
+
+const MAX_SELECTIONS = 3; // maximum matches a user can choose
 
 // Helper: map city to IANA time zone
 const cityToTimeZone = {
@@ -96,6 +99,72 @@ function useResponsiveEventLimit() {
   return isMobile ? 4 : 6;
 }
 
+// Helper: check if latest event was within 48 hours
+async function isLatestEventWithin48Hours(userId) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const latestEventId = userDoc.data()?.latestEventId;
+    
+    if (!latestEventId) {
+      return false;
+    }
+    
+    // Find the event document
+    const eventsSnapshot = await getDocs(collection(db, 'events'));
+    let eventData = null;
+    eventsSnapshot.forEach(docSnap => {
+      if (docSnap.data().eventID === latestEventId) {
+        eventData = docSnap.data();
+      }
+    });
+    
+    if (!eventData) {
+      return false;
+    }
+    
+    // Calculate event end time
+    let eventDateTime;
+    if (eventData.startTime) {
+      // Use startTime if available (Remo events)
+      eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
+    } else if (eventData.date && eventData.time && eventData.timeZone) {
+      // Use date/time for regular events
+      const normalizedTime = eventData.time.replace(/am|pm/i, match => match.toUpperCase());
+      const eventZone = eventZoneMap[eventData.timeZone] || eventData.timeZone || 'UTC';
+      
+      eventDateTime = DateTime.fromFormat(
+        `${eventData.date} ${normalizedTime}`,
+        'yyyy-MM-dd h:mma',
+        { zone: eventZone }
+      );
+      
+      if (!eventDateTime.isValid) {
+        eventDateTime = DateTime.fromFormat(
+          `${eventData.date} ${normalizedTime}`,
+          'yyyy-MM-dd H:mm',
+          { zone: eventZone }
+        );
+      }
+    }
+    
+    if (!eventDateTime || !eventDateTime.isValid) {
+      return false;
+    }
+    
+    // Add 90 minutes for event duration
+    const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+    
+    // Check if event ended within the last 48 hours
+    const now = DateTime.now();
+    const hoursSinceEvent = now.diff(eventEndDateTime, 'hours').hours;
+    
+    return hoursSinceEvent <= 48;
+  } catch (error) {
+    console.error('[48HOURS] Error checking event time:', error);
+    return false;
+  }
+}
+
 // Helper: convert emails to user IDs
 async function emailsToUserIds(emails) {
   if (!emails || emails.length === 0) return [];
@@ -128,6 +197,8 @@ const DashHome = () => {
   const [hasNewSpark, setHasNewSpark] = useState(false);
   const [checkingNewSparks, setCheckingNewSparks] = useState(false);
   const [hideNewSparksNotification, setHideNewSparksNotification] = useState(false);
+  const [showSelectSparksCard, setShowSelectSparksCard] = useState(false);
+  const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -236,6 +307,23 @@ const DashHome = () => {
             : Number(data.datesRemaining);
           setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
+          
+          // Check if latest event was within 48 hours to show "Select my sparks" card
+          const within48Hours = await isLatestEventWithin48Hours(user.uid);
+          
+          // Check if user has already made max selections for the latest event
+          let hasMaxSelections = false;
+          if (within48Hours && data.latestEventId) {
+            const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+            const connectionDocs = connectionsSnap.docs;
+            
+            // If user has reached max selections
+            if (connectionDocs.length >= MAX_SELECTIONS) {
+              hasMaxSelections = true;
+            }
+          }
+          
+          setShowSelectSparksCard(within48Hours && !hasMaxSelections);
         }
       }
     });
@@ -291,6 +379,11 @@ const DashHome = () => {
       }));
       setConnections(connectionsWithNewFlag);
       setHasNewSpark(newSparks.some(isNew => isNew));
+      
+      // Hide select sparks card if user has max selections
+      if (filteredProfiles.length >= MAX_SELECTIONS) {
+        setShowSelectSparksCard(false);
+      }
     } catch (err) {
       setConnections([]);
       setHasNewSpark(false);
@@ -303,6 +396,15 @@ const DashHome = () => {
   useEffect(() => {
     fetchConnections();
   }, [auth.currentUser]);
+
+  // Check for congratulations modal on component mount
+  useEffect(() => {
+    const shouldShowCongratulations = localStorage.getItem('showCongratulationsModal');
+    if (shouldShowCongratulations === 'true') {
+      setShowCongratulationsModal(true);
+      localStorage.removeItem('showCongratulationsModal'); // Clear the flag
+    }
+  }, []);
 
   // Helper to check if event is past (for sign-up: event start; for upcoming: event start + 90min)
   function isEventPast(event, addMinutes = 0) {
@@ -715,15 +817,16 @@ const getEventData = async (eventID) => {
   const signUpEventLimit = useResponsiveEventLimit();
   // Filter for upcoming and sign-up events
   const upcomingEvents = useMemo(() => {
-    return allEvents.filter(event =>
-      signedUpEventIds.has(event.firestoreID)
-    );
-  }, [allEvents, signedUpEventIds]);
+    return getUpcomingEvents(allEvents, userProfile?.location);
+  }, [allEvents, signedUpEventIds, userProfile?.location]);
 
-  // Show *all* events (regardless of date) that the user has not yet signed up for
+  // Show upcoming events (future dates only) that the user has not yet signed up for
   const upcomingSignupEvents = useMemo(() => {
-    return allEvents.filter(event => {
-      // First, exclude events the user has already signed up for
+    // First filter by upcoming dates
+    const upcomingEvents = getUpcomingEvents(allEvents, userProfile?.location);
+    
+    return upcomingEvents.filter(event => {
+      // Exclude events the user has already signed up for
       if (signedUpEventIds.has(event.firestoreID)) {
         return false;
       }
@@ -756,7 +859,7 @@ const getEventData = async (eventID) => {
       // If we get here, the event is available for sign-up
       return true;
     });
-  }, [allEvents, signedUpEventIds, userGender]);
+  }, [allEvents, signedUpEventIds, userGender, userProfile?.location]);
 
   return (
     <div>
@@ -779,7 +882,8 @@ const getEventData = async (eventID) => {
               Welcome back, {userProfile?.firstName}
             </h2>
 
-            {/* Select my sparks card */}
+            {/* Select my sparks card - only show if latest event was within 48 hours */}
+            {showSelectSparksCard && (
             <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
               <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
               <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
@@ -814,6 +918,8 @@ const getEventData = async (eventID) => {
                 </button>
               </div>
             </div>
+            )}
+
 
             {/* See my sparks card */}
             {checkingNewSparks ? null : (hasNewSpark && !hideNewSparksNotification) && (
@@ -1154,6 +1260,42 @@ const getEventData = async (eventID) => {
                 onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
               >
                 OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Congratulations Modal Overlay */}
+      {showCongratulationsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black opacity-50"
+            onClick={() => setShowCongratulationsModal(false)}
+          />
+          {/* Modal content */}
+          <div className="relative bg-white rounded-2xl shadow-lg max-w-[48rem] w-full p-8 z-10">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex flex-col items-start">
+                <img src={tickCircle} alt="Success" className="w-12 h-12 mb-4" />
+                <h2 className="text-[#211F20] font-bricolage text-[18px] sm:text-[20px] md:text-[28px] lg:text-[32px] xl:text-[32px] font-medium leading-[130%] mb-4">Congratulations!</h2>
+              </div>
+              <button
+                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                onClick={() => setShowCongratulationsModal(false)}
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            </div>
+            <p className="text-[#211F20] font-poppins text-[16px] font-normal leading-normal opacity-75 mb-[18px] sm:mb-[24px] md:mb-[32px] lg:mb-[50px]">You picked your matches. We'll notify you if they match back and you have new sparks.</p>
+            <div className="flex justify-end">
+              <button
+                className="px-6 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors"
+                onClick={() => setShowCongratulationsModal(false)}
+              >
+                Got It
               </button>
             </div>
           </div>

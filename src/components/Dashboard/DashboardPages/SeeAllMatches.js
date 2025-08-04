@@ -3,8 +3,97 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../firebaseConfig';
 import { doc, getDoc, getDocs, setDoc, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
 import { calculateAge } from '../../../utils/ageCalculator';
+import { DateTime } from 'luxon';
 
 const MAX_SELECTIONS = 3; // maximum matches a user can choose
+
+// Function to format date as "Wed, 10th of June"
+const formatEventDate = (dateString, startTime) => {
+  let dt;
+  
+  if (startTime) {
+    // Use startTime if available (Remo events)
+    dt = DateTime.fromMillis(Number(startTime));
+  } else if (dateString) {
+    // Use dateString for regular events
+    dt = DateTime.fromISO(dateString);
+  } else {
+    return '';
+  }
+  
+  if (!dt.isValid) {
+    return '';
+  }
+  
+  const dayOfWeek = dt.toFormat('ccc');
+  const day = dt.toFormat('d');
+  const month = dt.toFormat('LLLL');
+  
+  // Add ordinal suffix to day
+  const getOrdinalSuffix = (day) => {
+    if (day >= 11 && day <= 13) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+  
+  return `${dayOfWeek}, ${day}${getOrdinalSuffix(day)} of ${month}`;
+};
+
+// Test data for development - COMMENT OUT BEFORE PUSHING
+const testMatches = [
+  {
+    id: 'test1',
+    name: 'Kelly Rachel',
+    age: 27,
+    image: '/default-profile.png',
+    compatibility: 85,
+    selected: true, // Simulate previously selected
+  },
+  {
+    id: 'test2', 
+    name: 'Sarah Johnson',
+    age: 25,
+    image: '/default-profile.png',
+    compatibility: 72,
+    selected: false,
+  },
+  {
+    id: 'test3',
+    name: 'Emma Davis',
+    age: 29,
+    image: '/default-profile.png',
+    compatibility: 68,
+    selected: false,
+  },
+  {
+    id: 'test4',
+    name: 'Jessica Wilson',
+    age: 26,
+    image: '/default-profile.png',
+    compatibility: 65,
+    selected: false,
+  },
+  {
+    id: 'test5',
+    name: 'Amanda Brown',
+    age: 28,
+    image: '/default-profile.png',
+    compatibility: 62,
+    selected: false,
+  },
+  {
+    id: 'test6',
+    name: 'Michelle Garcia',
+    age: 24,
+    image: '/default-profile.png',
+    compatibility: 58,
+    selected: false,
+  }
+];
 
 const SeeAllMatches = () => {
   const navigate = useNavigate();
@@ -13,27 +102,59 @@ const SeeAllMatches = () => {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]); // up to 3
   const [showMaxModal, setShowMaxModal] = useState(false); // controls the "max reached" modal visibility
+  const [showCongratulationsModal, setShowCongratulationsModal] = useState(false); // controls the congratulations modal
+  const [eventDate, setEventDate] = useState(''); // stores the formatted event date
 
   useEffect(() => {
     const fetchMatches = async () => {
       setLoading(true);
       try {
         const user = auth.currentUser;
-        if (!user) return;
-        const matchesDoc = await getDoc(doc(db, 'matches', user.uid));
-        if (!matchesDoc.exists()) {
-          setMatches([]);
+        //if (!user) return;
+        console.log('[DEBUG] Current user:', user);
+        if (!user) {
+          console.log('[DEBUG] No user found, using test data');
+          setMatches(testMatches);
           return;
+        }
+        const matchesDoc = await getDoc(doc(db, 'matches', user.uid));
+        console.log('[DEBUG] Matches doc exists:', matchesDoc.exists());
+        if (!matchesDoc.exists()) {
+          console.log('[DEBUG] No matches doc found, using test data');
+          setMatches(testMatches);
+          //setMatches([]);
+          return;
+        }
+        
+        // Get the latest event details to display the date
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const latestEventId = userDoc.data()?.latestEventId;
+        if (latestEventId) {
+          const eventsSnapshot = await getDocs(collection(db, 'events'));
+          let eventData = null;
+          eventsSnapshot.forEach(docSnap => {
+            if (docSnap.data().eventID === latestEventId) {
+              eventData = docSnap.data();
+            }
+          });
+          if (eventData) {
+            const formattedDate = formatEventDate(eventData.date, eventData.startTime);
+            setEventDate(formattedDate);
+            console.log('[DEBUG] Event date formatted:', formattedDate);
+          }
         }
         // Fetch any existing selections from the user's connections sub-collection so that
         // previously chosen sparks appear pre-selected.
         const prevConnSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
         const prevSelectedIds = prevConnSnap.docs.map(d => d.id);
+        console.log('[DEBUG] Previous selected IDs from connections:', prevSelectedIds);
 
         const results = (matchesDoc.data().results || []).sort((a,b) => b.score - a.score);
+        console.log('[DEBUG] Results from Firestore:', results);
         const profiles = await Promise.all(
           results.map(async (m) => {
             const userDoc = await getDoc(doc(db, 'users', m.userId));
+            console.log(`[DEBUG] User doc exists for ${m.userId}:`, userDoc.exists());
             if (!userDoc.exists()) return null;
             const d = userDoc.data();
             return {
@@ -47,11 +168,21 @@ const SeeAllMatches = () => {
           })
         );
         const filtered = profiles.filter(Boolean);
-        setMatches(filtered);
+        console.log('[DEBUG] Filtered profiles:', filtered);
+        console.log('[DEBUG] Profiles count:', filtered.length);
+
+        if (filtered.length === 0) {
+          console.log('[DEBUG] No profiles found, using test data');
+          setMatches(testMatches);
+        } else {
+          setMatches(filtered); //delete if statment, just keep this line
+        }
         setSelectedIds(prevSelectedIds.slice(0, MAX_SELECTIONS));
       } catch (err) {
         console.error('Error fetching full matches', err);
-        setMatches([]);
+        console.log('[DEBUG] Error occurred, using test data');
+        setMatches(testMatches);
+        //setMatches([]);
       } finally {
         setLoading(false);
       }
@@ -71,7 +202,9 @@ const SeeAllMatches = () => {
 
   // Handle the card click while respecting the max-selection rule
   const handleCardClick = (match) => {
+    console.log('[DEBUG] Card clicked for match:', match.id, 'Current selected count:', selectedIds.length);
     if (!match.selected && selectedIds.length >= MAX_SELECTIONS) {
+      console.log('[DEBUG] Max selections reached, showing modal');
       setShowMaxModal(true);
       return;
     }
@@ -79,6 +212,7 @@ const SeeAllMatches = () => {
   };
 
   const handleConfirm = async () => {
+    console.log('[DEBUG] Confirm button clicked, selectedIds:', selectedIds);
     if (selectedIds.length === 0) return navigate(-1);
     const user = auth.currentUser;
     if (!user) return;
@@ -95,10 +229,13 @@ const SeeAllMatches = () => {
         // Find the compatibility score for this match in local state
         const matchObj = matches.find(m => m.id === matchedUid);
         const score = matchObj ? matchObj.compatibility : null;
+        console.log('[DEBUG] Processing selection for user:', matchedUid);
+        console.log('[DEBUG] Compatibility score for', matchedUid, ':', score);
 
         const otherRef = doc(db, 'users', matchedUid, 'connections', user.uid);
         const otherSnap = await getDoc(otherRef);
         const isMutual = otherSnap.exists();
+        console.log('[DEBUG] Is mutual connection for', matchedUid, ':', isMutual);
 
         await setDoc(doc(db, 'users', user.uid, 'connections', matchedUid), {
           connectedAt: serverTimestamp(),
@@ -113,6 +250,14 @@ const SeeAllMatches = () => {
       }
 
       await Promise.all(deletions);
+      console.log('[DEBUG] Navigation to dashboard');
+      
+      // Check if user has reached max selections for this event
+      if (selectedIds.length >= MAX_SELECTIONS) {
+        // Store flag in localStorage to show congratulations modal on dashboard
+        localStorage.setItem('showCongratulationsModal', 'true');
+      }
+      
       navigate('/dashboard');
     } catch (err) {
       console.error('Error saving selections', err);
@@ -130,49 +275,97 @@ const SeeAllMatches = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 p-8">
-        <h1 className="text-4xl font-bold text-center mb-8">Select your Connections</h1>
-        <div className="grid grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {matches.map(match => {
-            const isDisabled = !match.selected && selectedIds.length >= MAX_SELECTIONS;
-            return (
-              <div
-                key={match.id}
-                onClick={() => handleCardClick(match)}
-                className={`flex items-center rounded-2xl overflow-hidden border-2 transition-opacity ${match.selected ? 'border-[#0043F1] bg-[#0043F1]' : 'bg-white border-[#85A2F2]'} ${isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-              >
-                <div className={`w-20 flex items-center justify-center p-4 ${match.selected ? 'bg-[#0043F1]' : 'bg-[#85A2F2]'}`}>
-                  <div className={`h-10 w-10 ${match.selected ? 'text-[#9FE870]' : 'text-white'}`}>♥</div>
-                </div>
-                <div className="flex flex-col p-4 flex-grow bg-white">
-                  <div className="flex items-center mb-2">
-                    <div className="w-16 h-16 rounded-full overflow-hidden mr-4">
-                      <img src={match.image} alt={match.name} className="w-full h-full object-cover" />
-                    </div>
-                    <div>
-                      <div className="flex items-center">
-                        <span className="text-2xl font-bold mr-2">{match.name},</span>
-                        <span className="text-2xl">{match.age}</span>
-                      </div>
-                      <div className="flex items-center mt-1">
-                        <div className="w-32 h-2 bg-gray-200 rounded-full mr-3">
-                          <div className="h-full bg-[#85A2F2] rounded-full" style={{ width: `${match.compatibility}%` }} />
-                        </div>
-                        <span className="text-sm font-medium text-gray-600">{match.compatibility}% Match</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      <div className="min-h-screen bg-white p-8">
+        {/* Header */}
+        <div className="mb-4 xl:mb-5 2xl:mb-6">
+          <h2 className="text-[#211F20] font-bricolage text-[32px] md:text-[40px] lg:text-[48px] font-semibold leading-[110%]">Select your Matches</h2>
+        </div>
+        <div className="mb-6 sm:mb-[50px] xl:mb-[75px] 2xl:mb-[100px]">
+          <p className="text-[rgba(33,31,32,0.75)] font-bricolage text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] font-medium leading-[130%]">
+            Pick who you'd like to match with from your speed date on: {eventDate && <span>{eventDate}</span>}
+          </p>
+        </div>
+       
+        <div className="max-w-[1292px] mx-auto flex flex-col gap-4">
+  {matches.map((match, index) => {
+    const isDisabled = !match.selected && selectedIds.length >= MAX_SELECTIONS;
+    return (
+      <div
+        key={match.id}
+        onClick={() => handleCardClick(match)}
+        className={`relative flex flex-col md:flex-row items-start md:items-center gap-y-3 md:gap-y-0 md:gap-x-0 w-full bg-white rounded-2xl border border-gray-200 p-[24px] xl:p-[20px] md:p-[16px] sm:p-[12px] shadow-sm transition-all duration-500 cursor-pointer ${match.selected ? 'ring-2 ring-[#211F20]' : ''} ${isDisabled ? 'opacity-50 pointer-events-none' : ''}`}
+      >
+        {/* 1. Rank Number */}
+        {/* 2. Profile picture + name/age */}
+        <div className="flex items-center min-w-[200px]">
+        <span className="text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] leading-[130%] font-bricolage font-medium text-[rgba(33,31,32,0.50)]">
+            #{index + 1}
+          </span>
+          <div className="w-2 sm:w-3 xl:w-3.5 2xl:w-4"></div>
+          {match.image ? (
+            <img
+              src={match.image}
+              alt={match.name}
+              className="w-12 h-12 rounded-full object-cover border border-gray-300"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+              <span className="text-gray-400 text-xl">👤</span>
+            </div>
+          )}
+          <div className="w-2 sm:w-3 xl:w-3.5 2xl:w-4"></div>
+          <span className="text-[14px] sm:text-[14px] md:text-[16px] lg:text-[20px] leading-[130%] font-poppins font-normal text-[#211F20]">
+            {match.name}, {match.age}
+          </span>
         </div>
 
-        <div className="flex justify-between mt-8 max-w-5xl mx-auto">
-          <button onClick={() => navigate(-1)} className="bg-[#85A2F2] text-white px-8 py-2 rounded-lg text-lg font-semibold hover:bg-[#7491e0] transition-colors">Back</button>
-          <button onClick={handleConfirm} disabled={selectedIds.length === 0} className={`px-8 py-2 rounded-lg text-lg font-semibold transition-colors ${selectedIds.length ? 'bg-[#0043F1] text-white hover:bg-[#0034BD]' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>SELECT</button>
+        {/* Gap-L between profile and compatibility */}
+        <div className="w-[4.5] sm:w-6 xl:w-8 2xl:w-[12.5]"></div>
+
+        {/* 3. Compatibility badge */}
+        <div>
+          <span className="flex items-center gap-2 px-4 py-2 rounded-[100px] font-bricolage font-normal text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-[130%] text-[#211F20] uppercase border border-[rgba(33,31,32,0.10)]"
+            style={{
+              background: (index % 3) === 0 
+                ? "radial-gradient(50% 50% at 50% 50%, #B4FFF280 0%, #E1FFD680 100%)"
+                : (index % 3) === 1
+                ? "radial-gradient(50% 50% at 50% 50%, #E2FF6580 0%, #D2FFD780 100%)"
+                : "radial-gradient(50% 50% at 50% 50%, #B0EEFF80 0%, #E7E9FF80 100%), radial-gradient(50% 50% at 50% 50%, #E2FF6580 0%, #D2FFD780 100%)"
+            }}
+          >
+            {match.compatibility}% COMPATIBILITY
+          </span>
+        </div>
+
+        {/* Gap-S between compatibility and progress */}
+        <div className="w-4 sm:w-4 xl:w-5 2xl:w-6"></div>
+
+        {/* 4. Progress bar */}
+        <div className="flex-1 min-w-0 w-full">
+          <div className="h-1 bg-[rgba(33,31,32,0.10)] rounded-full relative overflow-hidden" style={{ height: '4px' }}>
+            <div
+              className="absolute left-0 top-0 rounded-full transition-all duration-1000"
+              style={{
+                width: `${match.compatibility}%`,
+                height: '4px',
+                background: '#211F20',
+              }}
+            />
+          </div>
         </div>
       </div>
+    );
+  })}
+</div>
+
+        <div className="max-w-[1292px] mx-auto mt-8">
+          <div className="flex gap-6 sm:gap-5 md:gap-4 lg:gap-4 py-3 sm:py-2.5 md:py-2 lg:py-2 w-full">  
+            <button onClick={() => navigate(-1)} className="flex-1 bg-white text-[#211F20] px-4 sm:px-4 xl:px-5 2xl:px-6 py-3 sm:py-2.5 md:py-2 lg:py-2 rounded-lg font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-medium leading-normal border border-[#211F20] hover:bg-gray-50 transition-colors">Back</button>
+            <button onClick={handleConfirm} disabled={selectedIds.length === 0} className={`flex-1 px-4 sm:px-4 xl:px-5 2xl:px-6 py-3 sm:py-2.5 md:py-2 lg:py-2 rounded-lg font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-medium leading-normal transition-colors ${selectedIds.length ? 'bg-[#211F20] text-white hover:bg-[#333]' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>Select</button>
+          </div>
+        </div>
+      </div>
+
 
       {/* Modal shown when user tries to exceed the maximum selections */}
       {showMaxModal && (
