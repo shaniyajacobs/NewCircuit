@@ -137,19 +137,19 @@ const Sidebar = () => {
       ),
       cName: "nav-text",
     },
-    //{
-    //  title: "My Coupons",
-    //  path: "/dashboard/dashMyCoupons",
-    //  icon: (
-        //<TicketIcon
-          //className="w-5 h-5"
-          //style={{
-            //color: location.pathname === "/dashboard/dashMyCoupons" ? "#1C50D8" : "#211f20"
-          //}}
-        ///>
-    //  ),
-    //  cName: "nav-text",
-    //},
+    {
+     title: "My Coupons",
+     path: "/dashboard/dashMyCoupons",
+     icon: (
+        <TicketIcon
+          className="w-5 h-5"
+          style={{
+            color: location.pathname === "/dashboard/dashMyCoupons" ? "#1C50D8" : "#211f20"
+          }}
+        />
+     ),
+     cName: "nav-text",
+    },
     {
       title: "My Profile",
       path: "/dashboard/DashMyProfile",
