@@ -1,29 +1,84 @@
-# React JS Startup and small business website template
+# NewCircuit - Modern React Application
 
-[![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=yourname&button_colour=FFDD00&font_colour=000000&font_family=Comic&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/akugbeStephen)
+A modern React application built with React 17, featuring a responsive design and interactive user interface.
 
-### This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Technologies Used
 
-# Screenshot
+- React 17
+- TailwindCSS for styling
+- React Router v6 for navigation
+- EmailJS for contact form functionality
+- AOS (Animate On Scroll) for animations
+- Notiflix for notifications
+- Axios for HTTP requests
 
-![mld edit](https://user-images.githubusercontent.com/43953425/212030864-cf3aa272-e070-4e1b-8e25-f488ca56873e.png)
+## Features
+
+- Responsive design
+- Modern UI/UX
+- Animated components
+- Contact form integration
+- Smooth page transitions
+- Hash link navigation
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or higher recommended)
+- npm or yarn package manager
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone [repository-url]
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
 
 
+4. Start the development server:
+```bash
+npm start
+```
 
-The Live demo is available [Here](https://mld-prototype.netlify.app)
+The application will be available at `http://localhost:3000`
 
-## Description
+### Building for Production
 
-This is a ReactJS based startup and small business website template. 
-It was designed using TailwindCSS and React. 
-The Contact form was made functional using EmailJS, to learn how to use EmailJS, you can check out the official documentation [here](https://www.emailjs.com/docs/) or follow this short tutorial [here](https://senuravihanjayadeva.medium.com/send-emails-using-react-through-emailjs-a9d4b21193a7) 
+To create a production build:
 
-## How to use it
+```bash
+npm run build
+```
 
-To use this template:
-1. Clone the repository to your local machine, 
-2. run `npm install` to install all the required dependencies and
-3. run `npm start` to view the website locally.
-Feel free to edit and make changes. 
+The build files will be created in the `build` directory.
 
-You can also Fork the repo and clone to your local machine, make desired changes and enjoy.
+## Project Structure
+
+```
+src/
+├── components/     # Reusable UI components
+├── pages/         # Page components
+├── assets/        # Static assets (images, fonts)
+├── styles/        # Global styles and Tailwind configuration
+└── utils/         # Utility functions and helpers
+```
+
+## Development
+
+- `npm start` - Runs the app in development mode
+- `npm run build` - Builds the app for production
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+

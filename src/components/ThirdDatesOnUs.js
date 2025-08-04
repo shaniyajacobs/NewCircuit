@@ -4,22 +4,22 @@ import { useNavigate } from "react-router-dom";
 const thirdDateSteps = [
   {
     step: "STEP 01",
-    title: "Do your first speed date",
-    desc: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+    title: "Join a speed date",
+    desc: "Meet singles in your city through 6-minute face-to-face video chats, and see who leaves an impression."
   },
   {
     step: "STEP 02",
-    title: "Connect with a spark",
-    desc: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+    title: "Spark a Connection",
+    desc: "Choose up to 3 people you’d like to keep the energy going with. If the spark is mutual, you'll unlock messaging and take the next step."
   },
   {
     step: "STEP 03",
-    title: "Go on 3 dates with a spark & take pictures",
-    desc: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+    title: "Go on Two Real- Life Dates",
+    desc: "Meet up in person with your spark and snap a photo from each of your first two dates. We love seeing your chemistry in action."
   }
 ];
 
-export function ThirdDatesOnUs() {
+export function ThirdDatesOnUs({ showHeader = true }) {
   const navigate = useNavigate();
 
   return (
@@ -37,7 +37,7 @@ export function ThirdDatesOnUs() {
         }}
         className="text-[32px] sm:text-[32px] md:text-[40px] lg:text-[48px] mb-[24px] sm:mb-[50px] md:mb-[75px] lg:mb-[100px]"
       >
-        The third date's on us
+        Third Date On Us
       </h2>
 
       {/* Card Grid */}
@@ -211,10 +211,10 @@ export function ThirdDatesOnUs() {
             STEP 04
           </span>
           <span className="text-[32px] sm:text-[32px] md:text-[48px] lg:text-[64px] text-[#FAFFE7] font-bricolage font-medium leading-[110%]">
-            The third date includes a drink on us
+            Enjoy Your Third Date On Us
           </span>
           <span className="text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] text-[#FAFFE7] font-poppins leading-normal mt-[8px]">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+            Once your photos are verified, you’ll get to choose a reward—either two drinks or two appetizers at a partner restaurant in your city.
           </span>
         </div>
       </div>
@@ -240,7 +240,7 @@ export function ThirdDatesOnUs() {
         onMouseOver={(e) => e.currentTarget.style.opacity = '0.6'}
         onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
       >
-        Claim my free drink
+        Claim my reward
       </button>
     </div>
   );
