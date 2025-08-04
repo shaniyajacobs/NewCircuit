@@ -385,7 +385,25 @@ export default function DashMyCoupons() {
               </div>
               {/* PARTNER */}
               <div className="border-2 border-dashed rounded h-48 flex items-center justify-center text-gray-400">
-                {persisted ? 'Waiting for partner' : 'Your upload locks this slot'}
+                {dateObj?.photos?.[partnerId]?.uploaded ? (
+                  <img 
+                    src={dateObj.photos[partnerId].url} 
+                    className="w-full h-full object-cover rounded" 
+                    alt={`${partner}'s photo`}
+                  />
+                ) : persisted ? (
+                  <div className="text-center">
+                    <div className="text-2xl mb-2">⏳</div>
+                    <div className="text-sm">Waiting for {partner}</div>
+                    <div className="text-xs text-gray-500">to upload their photo</div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="text-2xl mb-2">🔒</div>
+                    <div className="text-sm">Upload your photo first</div>
+                    <div className="text-xs text-gray-500">to unlock partner's upload</div>
+                  </div>
+                )}
               </div>
 
             </div>
