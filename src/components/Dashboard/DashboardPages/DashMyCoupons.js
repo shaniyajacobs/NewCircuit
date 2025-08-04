@@ -325,32 +325,32 @@ export default function DashMyCoupons() {
       {/* Coupon Modal/Panel */}
       {showCouponModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                      <div className="bg-white border-2 border-indigo-400 rounded-lg p-6 max-w-lg w-full relative shadow-xl">
-              <button
-                className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none"
-                onClick={() => {
-                  setShowCouponModal(false);
-                  setError('');
-                  setSuccessMessage('');
-                  setSelectedCoupon(null);
-                }}
-                aria-label="Close"
-              >
-                &times;
-              </button>
-              {error && (
-                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                  {error}
-                </div>
-              )}
-              {successMessage && (
-                <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-                  {successMessage}
-                </div>
-              )}
+          <div className="bg-white border-2 border-indigo-400 rounded-lg p-6 max-w-lg w-full relative shadow-xl">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none"
+              onClick={() => {
+                setShowCouponModal(false);
+                setError('');
+                setSuccessMessage('');
+                setSelectedCoupon(null);
+              }}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {error}
+              </div>
+            )}
+            {successMessage && (
+              <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                {successMessage}
+              </div>
+            )}
                         {canAccessCoupons() ? (
               <>
-                <div className="font-semibold text-lg mb-4">Select Your Coupon</div>
+                <div className="font-semibold text-lg mb-4">Request Your Coupon</div>
                 {loadingCoupons ? (
                   <div className="text-center py-8">
                     <div className="text-gray-500">Loading available coupons...</div>
@@ -459,112 +459,145 @@ export default function DashMyCoupons() {
           </div>
         </div>
       )}
-      <h2 className="text-2xl mb-4">My Coupons</h2>
+      <h2 className="text-2xl mb-2">My Coupons</h2>
+      <p className="text-gray-600 mb-6 text-sm">
+        Upload a picture of your first 2 dates with a spark. Then, we offer you both a drink for your 3rd date.
+      </p>
       {error && <div className="mb-4 text-red-500">{error}</div>}
 
-      {[1,2].map(slot => {
-        const sel       = slot===1 ? sel1      : sel2;
-        const setSel    = slot===1 ? setSel1    : setSel2;
-        const preview   = slot===1 ? preview1   : preview2;
-        const persisted = slot===1 ? date1Url   : date2Url;
-        const otherSel  = slot===1 ? sel2       : sel1;
-        const loading   = slot===1 ? loading1   : loading2;
-        const dateObj = acceptedDates.find(d => String(d.id) === sel);
-        const partnerId = dateObj?.partnerId;
-        const partner = partnerId ? usersMap[String(partnerId)] || partnerId : null;
-        return (
-          <div key={slot} className="mb-8">
-            <h3 className="font-semibold mb-2">
-            {partner ? `Date with ${partner}` : `Date ${slot}`}
-            </h3>
-            <select
-              className="border p-2 rounded w-full mb-4"
-              value={sel}
-              onChange={e => setSel(e.target.value)}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {[1,2].map(slot => {
+          const sel       = slot===1 ? sel1      : sel2;
+          const setSel    = slot===1 ? setSel1    : setSel2;
+          const preview   = slot===1 ? preview1   : preview2;
+          const persisted = slot===1 ? date1Url   : date2Url;
+          const otherSel  = slot===1 ? sel2       : sel1;
+          const loading   = slot===1 ? loading1   : loading2;
+          const dateObj = acceptedDates.find(d => String(d.id) === sel);
+          const partnerId = dateObj?.partnerId;
+          const partner = partnerId ? usersMap[String(partnerId)] || partnerId : null;
+          return (
+            <div 
+              key={slot} 
+              className="rounded-[16px] border p-6 h-fit"
+              style={{
+                border: "1px solid rgba(33, 31, 32, 0.10)",
+                borderRadius: "16px",
+                background: slot === 1 
+                  ? "radial-gradient(50% 50% at 50% 50%, rgba(176,238,255,0.50) 0%, rgba(231,233,255,0.50) 100%)"
+                  : "radial-gradient(50% 50% at 50% 50%, rgba(226,255,101,0.50) 0%, rgba(210,255,215,0.50) 100%)"
+              }}
             >
-              <option value="">Select a scheduled date…</option>
-              {acceptedDates
-                .filter(d => d.id !== otherSel)
-                .map(d => {
-                  const name = usersMap[String(d.partnerId)] || d.partnerId;
-                  return (
-                    <option key={d.id} value={d.id}>
-                      {new Date(d.timestamp.toDate()).toLocaleString()}{' '}
-                      — with {name} at {d.location}
-                    </option>
-                  );
-                })}
-            </select>
+              {/* Date Title */}
+              <div className="mb-4">
+                <h3 className="font-semibold text-lg text-[#211F20]">
+                  {partner ? `Date with ${partner}` : `Date ${slot}`}
+                </h3>
+              </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              {/* YOU */}
-              <div className="border-2 border-dashed rounded h-48 flex items-center justify-center">
-                {persisted ? (
-                  <img src={persisted} className="w-full h-full object-cover rounded" />
-                ) : (
-                  <>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      id={`you-${slot}`}
-                      className="hidden"
-                      onChange={e => onFile(slot, e)}
+              {/* Date Selection */}
+              <div className="mb-6">
+                <select
+                  className="w-full h-12 px-6 py-3 rounded-lg border border-gray-300 bg-white bg-opacity-20 font-poppins font-medium text-base text-[#211F20] outline-none"
+                  value={sel}
+                  onChange={e => setSel(e.target.value)}
+                >
+                  <option value="">Pick a date</option>
+                  {acceptedDates
+                    .filter(d => d.id !== otherSel)
+                    .map(d => {
+                      const name = usersMap[String(d.partnerId)] || d.partnerId;
+                      return (
+                        <option key={d.id} value={d.id}>
+                          {new Date(d.timestamp.toDate()).toLocaleString()}{' '}
+                          — with {name} at {d.location}
+                        </option>
+                      );
+                    })}
+                </select>
+              </div>
+
+              {/* Photo Upload Stack */}
+              <div className="flex flex-col gap-4 mb-6">
+                {/* YOU */}
+                <div className="border-2 border-dashed rounded-lg h-48 flex items-center justify-center">
+                  {persisted ? (
+                    <img src={persisted} className="w-full h-full object-cover rounded-lg" />
+                  ) : (
+                    <>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id={`you-${slot}`}
+                        className="hidden"
+                        onChange={e => onFile(slot, e)}
+                      />
+                      <label
+                        htmlFor={`you-${slot}`}
+                        className="w-full h-full flex flex-col items-center justify-center cursor-pointer"
+                      >
+                        {preview
+                          ? <img src={preview} className="w-full h-full object-cover rounded-lg" />
+                          : <>
+                              <div className="relative">
+                                <div className="w-20 h-20 rounded-lg flex items-center justify-center">
+                                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-black">
+                                    <path d="M9 10C10.1046 10 11 9.10457 11 8C11 6.89543 10.1046 6 9 6C7.89543 6 7 6.89543 7 8C7 9.10457 7.89543 10 9 10Z" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M13 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M15.75 5H21.25" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                                    <path d="M18.5 7.75V2.25" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                                    <path d="M2.66992 18.9486L7.59992 15.6386C8.38992 15.1086 9.52992 15.1686 10.2399 15.7786L10.5699 16.0686C11.3499 16.7386 12.6099 16.7386 13.3899 16.0686L17.5499 12.4986C18.3299 11.8286 19.5899 11.8286 20.3699 12.4986L21.9999 13.8986" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </div>
+                              </div>
+                              <span className="mt-2">Upload a photo</span>
+                            </>}
+                      </label>
+                    </>
+                  )}
+                </div>
+                {/* PARTNER */}
+                <div className="border-2 border-dashed rounded-lg h-48 flex items-center justify-center text-gray-400">
+                  {dateObj?.photos?.[partnerId]?.uploaded ? (
+                    <img 
+                      src={dateObj.photos[partnerId].url} 
+                      className="w-full h-full object-cover rounded-lg" 
+                      alt={`${partner}'s photo`}
                     />
-                    <label
-                      htmlFor={`you-${slot}`}
-                      className="w-full h-full flex flex-col items-center justify-center cursor-pointer"
-                    >
-                      {preview
-                        ? <img src={preview} className="w-full h-full object-cover rounded" />
-                        : <>
-                            <div className="text-4xl text-gray-400">+</div>
-                            <span>Your photo</span>
-                          </>}
-                    </label>
-                  </>
-                )}
-              </div>
-              {/* PARTNER */}
-              <div className="border-2 border-dashed rounded h-48 flex items-center justify-center text-gray-400">
-                {dateObj?.photos?.[partnerId]?.uploaded ? (
-                  <img 
-                    src={dateObj.photos[partnerId].url} 
-                    className="w-full h-full object-cover rounded" 
-                    alt={`${partner}'s photo`}
-                  />
-                ) : persisted ? (
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">⏳</div>
-                    <div className="text-sm">Waiting for {partner}</div>
-                    <div className="text-xs text-gray-500">to upload their photo</div>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">🔒</div>
-                    <div className="text-sm">Upload your photo first</div>
-                    <div className="text-xs text-gray-500">to unlock partner's upload</div>
-                  </div>
-                )}
+                  ) : persisted ? (
+                    <div className="text-center">
+                      <div className="text-2xl mb-2">⏳</div>
+                      <div className="text-sm">Waiting for {partner}</div>
+                      <div className="text-xs text-gray-500">to upload their photo</div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-2xl mb-2">🔒</div>
+                      <div className="text-sm">Upload your photo first</div>
+                      <div className="text-xs text-gray-500">to unlock partner's upload</div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-            </div>
-
+                          {/* Submit Button */}
             <button
               onClick={() => upload(slot)}
               disabled={loading || !!persisted}
-              className={`w-full py-2 text-white rounded ${
+              className={`self-start px-4 py-2 text-white rounded-lg font-medium text-sm ${
                 persisted
                   ? 'bg-gray-400 cursor-not-allowed'
                   : loading
-                    ? 'bg-indigo-300'
-                    : 'bg-indigo-600 hover:bg-indigo-800'
+                    ? 'bg-gray-600'
+                    : 'bg-black hover:bg-gray-800'
               }`}
             >
-              {persisted ? 'Submitted ✅' : loading ? 'Uploading…' : `Submit Date ${slot}`}
+              {persisted ? 'Submitted ✅' : loading ? 'Uploading…' : 'Submit'}
             </button>
-          </div>
-        );
-      })}
+            </div>
+          );
+        })}
+      </div>
 
       {/* View Coupons button - only show when selected dates are with same person and both have photos */}
       {canAccessCoupons() && (
