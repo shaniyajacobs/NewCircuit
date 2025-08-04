@@ -165,10 +165,9 @@ export function HowItWorks() {
             key={index}
             className="howitworks-card-wrapper"
             style={{
-              flex: '0 0 auto',
-              width: 'var(--card-width)',
-              minWidth: 'var(--card-minwidth)',
+              width: '100%',
               maxWidth: 'var(--card-maxwidth)',
+              minWidth: 0,
               margin: 0,
             }}
           >

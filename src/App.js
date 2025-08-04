@@ -26,6 +26,7 @@ import EnterpriseProfile from './pages/EnterpriseProfile';
 import EnterpriseUserProfile from './pages/EnterpriseUserProfile';
 import EnterpriseVerifyEmail from './pages/EnterpriseVerifyEmail';
 import EnterpriseDash from './pages/EnterpriseDash';
+import AdminDashboard from './pages/AdminDashboard';
 import PricingPage from './pages/Pricing';
 import FAQPage from './pages/FAQPage';
 import HowItWorks from './pages/HowItWorks';
@@ -39,6 +40,9 @@ import NavBar from './components/Navbar/NavBar';
 import FinalQuizPage from './pages/finalQuizPage';
 import PreferencePage from './pages/preferencePage';
 import Legal from './pages/Legal';
+import AllDates from './components/Dashboard/DashboardPages/AllDates';
+import { db } from './firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
 
 const stripePromise = loadStripe("pk_test_51RHbstPpnLZEC8ZQlHoFbnmUGkkKT52aCLMYlMN6fgzmWnVFEPVv8mulHh1PJJaQJRN5yghwIJTfTgumFXt0H3Y400P8jrINGs");
 
@@ -72,23 +76,53 @@ const preloadImages = () => {
 // Move PrivateRoute component definition before App component
 const PrivateRoute = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const auth = getAuth();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
+      setAuthLoading(false);
+
+      if (currentUser) {
+        try {
+          const docSnap = await getDoc(doc(db, 'users', currentUser.uid));
+          if (docSnap.exists()) {
+            setProfile(docSnap.data());
+          }
+        } catch (err) {
+          console.error('Failed to fetch user profile:', err);
+        }
+      }
+      setProfileLoading(false);
     });
 
     return () => unsubscribe();
   }, [auth]);
 
-  if (loading) {
+  if (authLoading || profileLoading) {
     return <div>Loading...</div>;
   }
 
-  return user ? children : <Navigate to="/login" />; // Changed from /signin to /login
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (profile) {
+    if (!profile.preferencesComplete) {
+      return <Navigate to="/preferencePage" replace />;
+    }
+    if (!profile.locationSet) {
+      return <Navigate to="/locations" replace />;
+    }
+    if (!profile.quizComplete) {
+      return <Navigate to="/quiz-start" replace />;
+    }
+  }
+
+  return children;
 };
 
 function App() {
@@ -122,6 +156,7 @@ function App() {
                 </Elements>
               </PrivateRoute>
             } />
+            <Route path="/all-dates" element={<AllDates />} />
             <Route path = "/preferencePage" element={<PreferencePage/>}/>
             <Route path ="/finalQuizPage" element={<FinalQuizPage/>}/>
             <Route path="/contact" element={<Contact />} />
@@ -143,12 +178,14 @@ function App() {
             <Route path="/enterprise-user-profile" element={<EnterpriseUserProfile />} />
             <Route path="/enterprise-verify-email" element={<EnterpriseVerifyEmail />} />
             <Route path="/enterprise-dash/*" element={<EnterpriseDash />} />
+            <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/privacy-policy" element={<Legal />} />
             <Route path="/cookie-policy" element={<Legal />} />
             <Route path="/terms-of-service" element={<Legal />} />
+            <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
           </Routes>
         </ScrollToTop>
       </Router>

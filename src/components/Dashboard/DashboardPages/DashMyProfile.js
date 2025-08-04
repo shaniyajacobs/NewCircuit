@@ -33,6 +33,8 @@ const DashMyProfile = () => {
     lastName: "",
     dateOfBirth: "",
     location: "",
+    gender: "", // new
+    sexualPreference: "", // new
     profilePicture: ""
   });
 
@@ -75,6 +77,8 @@ const DashMyProfile = () => {
             lastName:   userDoc.lastName   || "",
             dateOfBirth: formattedDate,
             location:    userDoc.location  || "",
+            gender:      userDoc.gender || "", // new
+            sexualPreference: userDoc.sexualPreference || "", // new
             profilePicture: userDoc.image || ""
           });
 
@@ -286,6 +290,34 @@ const DashMyProfile = () => {
             type="text"
             name="location"
             value={formData.location}
+            readOnly
+            className={inputClassName}
+          />
+        </div>
+
+        {/* Gender */}
+        <div className="flex items-center gap-10 mt-10 max-w-full">
+          <label className="text-3xl font-bold text-black w-[250px]">
+            Gender
+          </label>
+          <input
+            type="text"
+            name="gender"
+            value={formData.gender}
+            readOnly
+            className={inputClassName}
+          />
+        </div>
+
+        {/* Sexual Preference */}
+        <div className="flex items-center gap-10 mt-10 max-w-full">
+          <label className="text-3xl font-bold text-black w-[250px]">
+            Sexual Preference
+          </label>
+          <input
+            type="text"
+            name="sexualPreference"
+            value={formData.sexualPreference}
             readOnly
             className={inputClassName}
           />

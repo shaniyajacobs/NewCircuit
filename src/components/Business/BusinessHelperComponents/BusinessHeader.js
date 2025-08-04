@@ -24,7 +24,7 @@ const BusinessHeader = (props) => {
 
   const PathTitleMappings = {
     "/enterprise-dash": "Home",
-    "/enterprise-dash/coupons": "Coupons",
+    // "/enterprise-dash/coupons": "Coupons",
     "/enterprise-dash/analytics": "Analytics",
     "/enterprise-dash/profile": "Business Profile",
     "/enterprise-dash/settings": "Settings"
@@ -60,7 +60,7 @@ const BusinessHeader = (props) => {
         )}
         <div className="flex flex-col gap-1">
           <div className="text-base font-medium text-indigo-950">
-            {businessData ? businessData.get("businessName") : ""}
+            {businessData ? businessData.get("legalBusinessName") : ""}
           </div>
           <div className="text-sm text-slate-500">
             {businessData ? businessData.get("email") : ""}

@@ -14,7 +14,7 @@ export const registerUser = async (email, password, userData) => {
       name: userData.name,
       dateOfBirth: userData.dateOfBirth,
       location: userData.location,
-      profileImageUrl: userData.profileImageUrl || null,
+      image: userData.image || null,
       createdAt: new Date().toISOString(),
     });
 

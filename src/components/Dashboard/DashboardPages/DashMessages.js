@@ -11,13 +11,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { auth, db } from "../../../pages/firebaseConfig";
 import { FaPaperPlane } from "react-icons/fa";
 
-// Dummy fallback messages
-const DUMMY_MESSAGES = [
-  { senderId: "user", receiverId: "other", text: "Salutations M'Lady.", timeStamp: 0 },
-  { senderId: "other", receiverId: "user", text: "I loved our chat!! 🥰", timeStamp: 0 },
-  { senderId: "user", receiverId: "other", text: "Let's go on a date? 🙏🏻", timeStamp: 0 },
-];
-
 export function DashMessages({ connection }) {
   // Auth state
   const [me, setMe] = useState(null);
@@ -293,7 +286,7 @@ export function DashMessages({ connection }) {
       {/* Chat Messages */}
       <div className="flex flex-col h-[57vh] pb-1 mt-1 mx-3 max-w-full shadow bg-white rounded-3xl border border-gray-50">
         <div className="flex flex-col flex-grow overflow-y-auto px-11 pt-6 pb-4">
-          {(messageArray.length ? messageArray : DUMMY_MESSAGES).map((msg, idx) => (
+          {messageArray.map((msg, idx) => (
             <div
               key={idx}
               className={

@@ -4,6 +4,11 @@ import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"; 
 import { getStorage } from 'firebase/storage'; // Add storage import
 
+// extra imports from the root file
+import { getApp, getApps } from 'firebase/app';
+import { getFunctions } from 'firebase/functions';
+import { getAnalytics } from 'firebase/analytics';
+
 // Your Firebase configuration from Firebase Console
 const firebaseConfig = {
     apiKey: "AIzaSyA8UBk7or93z6u1NeXV1jmuHOmyusJ-rwE",
@@ -16,7 +21,9 @@ const firebaseConfig = {
     //measurementId: "G-Q9G5S9JKJG"
   };
 
-  const app = initializeApp(firebaseConfig);
+  // initialise the app only once
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
   const auth = getAuth(app);
   const db = getFirestore(app); 
   const storage = getStorage(app); // Initialize storage
@@ -29,4 +36,8 @@ const firebaseConfig = {
       console.error("Error setting Firebase persistence:", error);
     });
   
-  export { auth, db, storage };
+  // extra services that only existed in the root file
+  const analytics = getAnalytics(app);
+  const functions = getFunctions(app, 'us-central1');
+
+  export { app, auth, db, storage, functions, analytics };

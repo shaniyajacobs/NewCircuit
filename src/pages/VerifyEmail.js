@@ -4,9 +4,13 @@ import { FooterShapes } from './Login';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth, db } from './firebaseConfig';
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
+function toLocalDate(ymdString) {
+  const [y, m, d] = ymdString.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
 
 const VerifyEmail = () => {
     const navigate = useNavigate();
@@ -15,12 +19,15 @@ const VerifyEmail = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [emailSent, setEmailSent] = useState(false);
-    const auth = getAuth();
 
     useEffect(() => {
         if (!userData) {
             navigate('/profile');
             return;
+        }
+
+        if (auth.currentUser && !auth.currentUser.emailVerified) {
+            setEmailSent(true);
         }
     }, [userData]);
 
@@ -29,31 +36,49 @@ const VerifyEmail = () => {
             setLoading(true);
             setError('');
 
-            // Create user with email and password
-            const userCredential = await createUserWithEmailAndPassword(
-                auth,
-                userData.email,
-                userData.password
-            );
+            let userCredential;
 
-            // Send verification email
+            try {
+                userCredential = await createUserWithEmailAndPassword(
+                    auth,
+                    userData.email,
+                    userData.password
+                );
+
+                // Create user profile in Firestore only for new accounts
+                await setDoc(doc(db, "users", userCredential.user.uid), {
+                    userId: userCredential.user.uid,
+                    email: userData.email,
+                    firstName: userData.firstName,
+                    lastName: userData.lastName,
+                    birthDate: toLocalDate(userData.birthDate),
+                    phoneNumber: userData.phoneNumber,
+                    emailVerified: false,
+                    createdAt: new Date(),
+                    image: userData.image,
+                    isActive: true,
+                    location: userData.location,
+                    datesRemaining: 50, // TODO: change when finished testing
+                    profileComplete: true,
+                    preferencesComplete: false,
+                    locationSet: false,
+                    quizComplete: false
+                });
+
+            } catch (createErr) {
+                if (createErr.code === 'auth/email-already-in-use') {
+                    userCredential = await signInWithEmailAndPassword(
+                        auth,
+                        userData.email,
+                        userData.password
+                    );
+                } else {
+                    throw createErr;
+                }
+            }
+
+            // Send verification email (for new or existing account)
             await sendEmailVerification(userCredential.user);
-
-            // Create user profile in Firestore
-            console.log('Image URL in verify email:', userData.image);
-            await setDoc(doc(db, "users", userCredential.user.uid), {
-                userId: userCredential.user.uid,
-                email: userData.email,
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                birthDate: new Date(userData.birthDate),
-                phoneNumber: userData.phoneNumber,
-                emailVerified: false,
-                createdAt: new Date(),
-                image: userData.image,
-                isActive: true,
-                location: userData.location
-            });
 
             setEmailSent(true);
             console.log('Verification email sent');
@@ -93,12 +118,45 @@ const VerifyEmail = () => {
         }
     };
 
+    // Resend verification email if already signed in / or sign in first
+    const resendVerificationEmail = async () => {
+        try {
+            setLoading(true);
+            setError('');
+
+            if (!auth.currentUser) {
+                await signInWithEmailAndPassword(auth, userData.email, userData.password);
+            }
+
+            await sendEmailVerification(auth.currentUser);
+        } catch (err) {
+            if (err.code === 'auth/too-many-requests') {
+                setError('A verification e-mail was just sent. Please wait a minute before asking for a new one.');
+            } else {
+                setError(err.message || err.code);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <LoginContainer>
             <FooterShapes />
             <ContentWrapper>
                 <Title>Verify Your Email</Title>
                 <Subtitle>Please verify your email: {userData?.email}</Subtitle>
+
+                {error && (
+                    <div style={{ 
+                        color: 'red', 
+                        marginTop: '1rem',
+                        textAlign: 'center',
+                        maxWidth: '400px'
+                    }}>
+                        {error}
+                    </div>
+                )}
 
                 {!emailSent ? (
                     <Button 
@@ -115,16 +173,6 @@ const VerifyEmail = () => {
                             Please check your inbox and click the verification link.
                         </p>
 
-                        {error && (
-                            <div style={{ 
-                                color: 'red', 
-                                marginTop: '1rem',
-                                textAlign: 'center' 
-                            }}>
-                                {error}
-                            </div>
-                        )}
-
                         <Button 
                             onClick={checkVerification}
                             disabled={loading}
@@ -138,7 +186,7 @@ const VerifyEmail = () => {
                                 Didn't receive the email?
                             </p>
                             <ResendLink 
-                                onClick={createUserAndSendVerification}
+                                onClick={resendVerificationEmail}
                                 disabled={loading}
                             >
                                 Send again
