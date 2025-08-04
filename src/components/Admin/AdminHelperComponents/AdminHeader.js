@@ -23,7 +23,6 @@ const AdminHeader = (props) => {
   }, [user]);
 
   const PathTitleMappings = {
-    "/admin-dashboard": "Coupons",
     "/admin-dashboard/coupons": "Coupons",
     "/admin-dashboard/users": "User Management",
     "/admin-dashboard/businesses": "Business Management",

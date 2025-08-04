@@ -34,6 +34,7 @@ const PreferencePage = () => {
       await updateDoc(userRef, {
         gender: formData.gender,
         sexualPreference: formData.sexualPreference,
+        preferencesComplete: true,
         updatedAt: new Date()
       });
 
