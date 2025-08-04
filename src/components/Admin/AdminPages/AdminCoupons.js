@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, getDoc, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, addDoc, deleteDoc, doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../../pages/firebaseConfig';
 import { getAuth } from 'firebase/auth';
-import { FaPlus, FaEdit, FaTrash, FaChartLine } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaChartLine, FaCheck, FaTimes } from 'react-icons/fa';
 
 const AdminCoupons = () => {
   const [coupons, setCoupons] = useState([]);
@@ -22,6 +22,17 @@ const AdminCoupons = () => {
     terms: '',
     businessId: ''
   });
+  
+  // Request management state
+  const [showRequestsModal, setShowRequestsModal] = useState(false);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const auth = getAuth();
   const businessId = auth.currentUser?.uid;
@@ -143,6 +154,121 @@ const AdminCoupons = () => {
     }
   };
 
+  // Fetch requests for a specific coupon
+  const fetchRequests = async (couponId) => {
+    setLoadingRequests(true);
+    try {
+      const requestsRef = collection(db, 'coupons', couponId, 'redemptions');
+      const querySnapshot = await getDocs(requestsRef);
+      const requestsList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      // Filter for pending requests only (status === 'redeemed')
+      const pendingRequests = requestsList.filter(request => request.status === 'redeemed');
+      
+      // Fetch user names for pending requests only
+      const requestsWithNames = await Promise.all(
+        pendingRequests.map(async (request) => {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', request.redeemedBy));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              const userName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User';
+              return {
+                ...request,
+                userName: userName
+              };
+            } else {
+              return {
+                ...request,
+                userName: 'Unknown User'
+              };
+            }
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+            return {
+              ...request,
+              userName: 'Unknown User'
+            };
+          }
+        })
+      );
+      
+      setRequests(requestsWithNames);
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  // Handle showing requests modal
+  const handleShowRequests = async (coupon) => {
+    setSelectedCoupon(coupon);
+    setShowRequestsModal(true);
+    await fetchRequests(coupon.id);
+  };
+
+  // Approve request
+  const handleApproveRequest = async (request) => {
+    try {
+      // Update the coupon's redeemedCount only after approval
+      const couponRef = doc(db, 'coupons', selectedCoupon.id);
+      await updateDoc(couponRef, {
+        redeemedCount: increment(1)
+      });
+      
+      // Delete the request document entirely
+      const requestRef = doc(db, 'coupons', selectedCoupon.id, 'redemptions', request.id);
+      await deleteDoc(requestRef);
+      
+      // Refresh requests
+      await fetchRequests(selectedCoupon.id);
+    } catch (error) {
+      console.error('Error approving request:', error);
+    }
+  };
+
+  // Reject request
+  const handleRejectRequest = (request) => {
+    setSelectedRequest(request);
+    setShowRejectModal(true);
+    setRejectReason('');
+  };
+
+  // Confirm rejection
+  const confirmRejectRequest = async () => {
+    if (!rejectReason.trim()) return;
+    
+    setRejecting(true);
+    try {
+      // Delete the request document entirely
+      const requestRef = doc(db, 'coupons', selectedCoupon.id, 'redemptions', selectedRequest.id);
+      await deleteDoc(requestRef);
+      
+      // Refresh requests
+      await fetchRequests(selectedCoupon.id);
+      setShowRejectModal(false);
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+    } finally {
+      setRejecting(false);
+    }
+  };
+
+  // Handle image click
+  const handleImageClick = (imageUrl, userName, dateNumber) => {
+    setSelectedImage({
+      url: imageUrl,
+      userName: userName,
+      dateNumber: dateNumber
+    });
+    setShowImageModal(true);
+  };
+
   return (
     <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
       <div className="flex justify-between items-center mb-6">
@@ -167,19 +293,20 @@ const AdminCoupons = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Redeemed</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requests</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan="8" className="text-center py-8">
+                <td colSpan="9" className="text-center py-8">
                   <div className="text-gray-500">Loading coupons...</div>
                 </td>
               </tr>
             ) : coupons.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center py-8">
+                <td colSpan="9" className="text-center py-8">
                   <div className="text-gray-500">No coupons found. Create your first coupon!</div>
                 </td>
               </tr>
@@ -218,6 +345,14 @@ const AdminCoupons = () => {
                       }`}>
                         {isValid ? 'Active' : 'Expired'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleShowRequests(coupon)}
+                        className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                      >
+                        View Requests
+                      </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-3">
@@ -515,6 +650,216 @@ const AdminCoupons = () => {
             </div>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-800 whitespace-pre-wrap">{selectedCoupon.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Requests Modal */}
+      {showRequestsModal && selectedCoupon && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">Pending Requests for "{selectedCoupon.title}"</h2>
+                              <button
+                  onClick={() => setShowRequestsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {loadingRequests ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500">Loading pending requests...</div>
+              </div>
+            ) : requests.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500">No pending requests found for this coupon.</div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {requests.map((request) => (
+                                    <div key={request.id} className="border border-gray-200 rounded-lg p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Request by {request.userName}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Requested on {request.redeemedAt?.toDate?.() ? 
+                            request.redeemedAt.toDate().toLocaleString() : 
+                            new Date(request.redeemedAt).toLocaleString()}
+                        </p>
+                        <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2 bg-yellow-100 text-yellow-800">
+                          Pending Review
+                        </div>
+                      </div>
+                      
+                      {request.status === 'redeemed' && (
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleApproveRequest(request)}
+                            className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleRejectRequest(request)}
+                            className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Date Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Date 1 */}
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3">Date 1</h4>
+                        <div className="space-y-2 text-sm">
+                          <p><strong>Date:</strong> {request.date1?.timestamp?.toDate?.() ? 
+                            request.date1.timestamp.toDate().toLocaleString() : 
+                            new Date(request.date1?.timestamp).toLocaleString()}</p>
+                          <p><strong>Location:</strong> {request.date1?.location}</p>
+                          <p><strong>Partner:</strong> {request.date1?.partnerName}</p>
+                        </div>
+                        
+                        {/* Date 1 Photos */}
+                        {request.date1?.photos && (
+                          <div className="mt-4">
+                            <h5 className="font-medium text-gray-700 mb-2">Photos:</h5>
+                            <div className="grid grid-cols-2 gap-2">
+                              {Object.entries(request.date1.photos).map(([userId, photoData]) => (
+                                <div key={userId} className="text-center">
+                                  <img 
+                                    src={photoData.url} 
+                                    alt={`Date 1 photo by ${userId}`}
+                                    className="w-full h-24 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => handleImageClick(
+                                      photoData.url, 
+                                      userId === request.redeemedBy ? request.userName : request.date1.partnerName,
+                                      1
+                                    )}
+                                  />
+                                  <p className="text-xs text-gray-600 mt-1">
+                                    {userId === request.redeemedBy ? 'You' : 'Partner'}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Date 2 */}
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3">Date 2</h4>
+                        <div className="space-y-2 text-sm">
+                          <p><strong>Date:</strong> {request.date2?.timestamp?.toDate?.() ? 
+                            request.date2.timestamp.toDate().toLocaleString() : 
+                            new Date(request.date2?.timestamp).toLocaleString()}</p>
+                          <p><strong>Location:</strong> {request.date2?.location}</p>
+                          <p><strong>Partner:</strong> {request.date2?.partnerName}</p>
+                        </div>
+                        
+                        {/* Date 2 Photos */}
+                        {request.date2?.photos && (
+                          <div className="mt-4">
+                            <h5 className="font-medium text-gray-700 mb-2">Photos:</h5>
+                            <div className="grid grid-cols-2 gap-2">
+                              {Object.entries(request.date2.photos).map(([userId, photoData]) => (
+                                <div key={userId} className="text-center">
+                                  <img 
+                                    src={photoData.url} 
+                                    alt={`Date 2 photo by ${userId}`}
+                                    className="w-full h-24 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => handleImageClick(
+                                      photoData.url, 
+                                      userId === request.redeemedBy ? request.userName : request.date2.partnerName,
+                                      2
+                                    )}
+                                  />
+                                  <p className="text-xs text-gray-600 mt-1">
+                                    {userId === request.redeemedBy ? 'You' : 'Partner'}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Reject Reason Modal */}
+      {showRejectModal && selectedRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={() => setShowRejectModal(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowRejectModal(false)}>&times;</button>
+            <h2 className="text-xl font-bold mb-4">Reject Request</h2>
+            <p className="mb-2 text-gray-700">Please provide a reason for rejection:</p>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              rows="3"
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Enter rejection reason..."
+            />
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => setShowRejectModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors ${!rejectReason.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={confirmRejectRequest}
+                disabled={!rejectReason.trim() || rejecting}
+              >
+                {rejecting ? 'Rejecting...' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Modal */}
+      {showImageModal && selectedImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75" onClick={() => setShowImageModal(false)}>
+          <div className="relative max-w-4xl max-h-[90vh] mx-4" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="absolute top-4 right-4 text-white hover:text-gray-300 text-3xl font-bold z-10 bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center"
+              onClick={() => setShowImageModal(false)}
+            >
+              &times;
+            </button>
+            <div className="bg-white rounded-lg overflow-hidden shadow-2xl">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Date {selectedImage.dateNumber} - {selectedImage.userName}
+                </h3>
+              </div>
+              <div className="p-4">
+                <img
+                  src={selectedImage.url}
+                  alt={`Date ${selectedImage.dateNumber} photo by ${selectedImage.userName}`}
+                  className="max-w-full max-h-[70vh] object-contain rounded"
+                />
+              </div>
             </div>
           </div>
         </div>
