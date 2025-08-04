@@ -4,6 +4,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from '../../../pages/firebaseConfig';
 import { IoPersonCircle } from 'react-icons/io5';
 import { ReactComponent as VectorIcon } from '../../../images/Vector 6.svg';
+import { formatUserName } from "../../../utils/nameFormatter";
 
 
 const Header = (props) => {
@@ -37,7 +38,7 @@ const Header = (props) => {
   }, [user]);
 
 
-  const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "My Sparks", 
+  const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "Sparks", 
     "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
     "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashSignOut": "Sign Out"}
   const { path } = props;
@@ -89,7 +90,7 @@ const Header = (props) => {
               <div className="flex flex-col">
                 {/* Name - Body-S-Med */}
                 <div className="text-[#211F20] font-poppins text-base font-medium leading-normal">
-                  {userData.get("firstName")} {userData.get("lastName")}
+                  {formatUserName(userData.data())}
                 </div>
                 {/* Email - Body-S-Reg */}
                 <div className="text-[rgba(33,31,32,0.75)] font-poppins text-base font-normal leading-normal">
@@ -108,7 +109,7 @@ const Header = (props) => {
               <div className="flex flex-col">
                 {/* Name - Body-S-Med */}
                 <div className="text-[#211F20] font-poppins text-base font-medium leading-normal">
-                  {userData.get("firstName")} {userData.get("lastName")}
+                  {formatUserName(userData.data())}
                 </div>
                 {/* Email - Body-S-Reg */}
                 <div className="text-[rgba(33,31,32,0.75)] font-poppins text-base font-normal leading-normal">

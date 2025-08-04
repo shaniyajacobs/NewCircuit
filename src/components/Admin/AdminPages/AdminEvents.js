@@ -4,6 +4,7 @@ import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from 'firebase
 import { FaSearch, FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
+import { formatUserName } from '../../../utils/nameFormatter';
 
 const AdminEvents = () => {
   const [events, setEvents] = useState([]);
@@ -102,7 +103,7 @@ const AdminEvents = () => {
 
       const normalized = attendees.map((a) => {
         const profile = a.user?.profile || {};
-        const nameCombined = profile.name || [profile.firstName, profile.lastName].filter(Boolean).join(' ');
+        const nameCombined = profile.name || formatUserName(profile);
 
         const email = a.user?.email || a.invite?.email || '-';
 
