@@ -31,6 +31,24 @@ export default function DashMyCoupons() {
     { id: 'c3', name: '10% Off', desc: '10% off your next date meal.' },
   ];
 
+  // Function to check if both users have uploaded photos for 2 different dates
+  const canAccessCoupons = () => {
+    if (acceptedDates.length < 2) return false;
+    
+    // Get the first 2 accepted dates
+    const firstTwoDates = acceptedDates.slice(0, 2);
+    
+    // Check if both users have uploaded photos for both dates
+    return firstTwoDates.every(date => {
+      const photos = date.photos || {};
+      const userIds = Object.keys(photos);
+      
+      // Check if both current user and partner have uploaded photos
+      return userIds.includes(me) && userIds.includes(date.partnerId) && 
+             photos[me]?.uploaded && photos[date.partnerId]?.uploaded;
+    });
+  };
+
   // local preview + persisted URL
   const [date1Url, setDate1Url] = useState('');
   const [date2Url, setDate2Url] = useState('');
@@ -197,13 +215,15 @@ export default function DashMyCoupons() {
 
   return (
     <div className="p-7 bg-white rounded shadow-lg relative">
-      {/* View Coupons button */}
-      <button
-        className="absolute top-4 right-4 bg-indigo-600 hover:bg-indigo-800 text-white px-4 py-2 rounded shadow"
-        onClick={() => setShowCouponModal(true)}
-      >
-        View Coupons
-      </button>
+      {/* View Coupons button - only show when both users have uploaded photos for 2 dates */}
+      {canAccessCoupons() && (
+        <button
+          className="absolute top-4 right-4 bg-indigo-600 hover:bg-indigo-800 text-white px-4 py-2 rounded shadow"
+          onClick={() => setShowCouponModal(true)}
+        >
+          View Coupons
+        </button>
+      )}
       {/* Coupon Modal/Panel */}
       {showCouponModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -215,7 +235,7 @@ export default function DashMyCoupons() {
             >
               &times;
             </button>
-            {acceptedDates.length >= 2 ? (
+            {canAccessCoupons() ? (
               <>
                 <div className="font-semibold text-lg mb-4">Select Your Coupon</div>
                 <div className="space-y-4">
@@ -244,8 +264,18 @@ export default function DashMyCoupons() {
               </>
             ) : (
               <div className="text-center">
-                <div className="font-semibold text-lg mb-2 text-red-600">You need 2 approved dates to access coupons.</div>
-                <div className="text-gray-600">Once you have 2 dates approved, you can select your coupon here!</div>
+                <div className="font-semibold text-lg mb-2 text-red-600">
+                  {acceptedDates.length < 2 
+                    ? "You need 2 approved dates to access coupons."
+                    : "Both you and your date partners need to upload photos for 2 dates to access coupons."
+                  }
+                </div>
+                <div className="text-gray-600">
+                  {acceptedDates.length < 2 
+                    ? "Once you have 2 dates approved, you can select your coupon here!"
+                    : "Once both users upload their photos for 2 dates, you can select your coupon here!"
+                  }
+                </div>
               </div>
             )}
           </div>
