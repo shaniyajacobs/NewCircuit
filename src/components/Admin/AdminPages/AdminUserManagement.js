@@ -5,7 +5,9 @@ import { deleteUser, getAuth, signInWithEmailAndPassword, EmailAuthProvider, rea
 import { FaSearch, FaTrash, FaUserShield } from 'react-icons/fa';
 import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import AdminUserDetailModal from './AdminUserDetailModal';
 import { DateTime } from 'luxon';
+import { formatUserName } from '../../../utils/nameFormatter';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -15,6 +17,8 @@ const AdminUserManagement = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [hoverUserId, setHoverUserId] = useState(null);
   // Events modal state
   const [showEventsModal, setShowEventsModal] = useState(false);
@@ -190,9 +194,7 @@ const AdminUserManagement = () => {
 
           return {
             id: otherUserId,
-            name: otherUser.firstName
-              ? `${otherUser.firstName} ${otherUser.lastName || ''}`.trim()
-              : otherUser.displayName || 'Unknown',
+            name: formatUserName(otherUser),
             email: otherUser.email || '-',
             gender: otherUser.gender || '-',
             status: connInfo.status || 'unknown',
@@ -256,13 +258,13 @@ const AdminUserManagement = () => {
               </tr>
             ) : filteredUsers.map(user => (
               <tr key={user.id} className={user.id === auth.currentUser?.uid ? 'bg-blue-50' : ''}>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap cursor-pointer text-blue-700 hover:underline" onClick={() => { setSelectedUserDetail(user); setShowUserDetailModal(true); }}>
                   <span
                     className="relative text-blue-600 underline cursor-pointer"
                     onMouseEnter={() => setHoverUserId(user.id)}
                     
                   >
-                    {user.firstName} {user.lastName}
+                    {formatUserName(user)}
                     {hoverUserId === user.id && (
                       <div
                         className="absolute z-10 left-full ml-4 top-1/2 -translate-y-1/2 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs whitespace-nowrap"
@@ -348,7 +350,7 @@ const AdminUserManagement = () => {
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <h2 className="text-2xl font-semibold mb-4">Delete User</h2>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete {selectedUser?.firstName} {selectedUser?.lastName}? 
+              Are you sure you want to delete {formatUserName(selectedUser)}? 
               This action cannot be undone.
             </p>
             <div className="flex justify-end gap-4">
@@ -375,7 +377,7 @@ const AdminUserManagement = () => {
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <h2 className="text-2xl font-semibold mb-4">Make User Admin</h2>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to make {selectedUser?.firstName} {selectedUser?.lastName} an admin? 
+              Are you sure you want to make {formatUserName(selectedUser)} an admin? 
               They will have full administrative access.
             </p>
             <div className="flex justify-end gap-4">
@@ -396,11 +398,20 @@ const AdminUserManagement = () => {
         </div>
       )}
 
+      {/* User Detail Modal */}
+      {showUserDetailModal && selectedUserDetail && (
+        <AdminUserDetailModal
+          isOpen={showUserDetailModal}
+          onClose={() => setShowUserDetailModal(false)}
+          user={selectedUserDetail}
+        />
+      )}
+
       {/* User Events Modal */}
       {showEventsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-2xl font-semibold mb-4">Events for {selectedUser?.firstName} {selectedUser?.lastName}</h2>
+            <h2 className="text-2xl font-semibold mb-4">Events for {formatUserName(selectedUser)}</h2>
             {loadingEvents ? (
               <div className="text-center py-8">Loading...</div>
             ) : userEvents.length === 0 ? (
@@ -445,7 +456,7 @@ const AdminUserManagement = () => {
       {showConnectionsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-2xl font-semibold mb-4">Sparks for {selectedUser?.firstName} {selectedUser?.lastName}</h2>
+            <h2 className="text-2xl font-semibold mb-4">Sparks for {formatUserName(selectedUser)}</h2>
             {loadingConnections ? (
               <div className="text-center py-8">Loading...</div>
             ) : userConnections.length === 0 ? (

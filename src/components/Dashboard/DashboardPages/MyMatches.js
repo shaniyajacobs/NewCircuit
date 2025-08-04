@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../../../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../../../firebaseConfig';
 import { calculateAge } from '../../../utils/ageCalculator';
+import { formatUserName } from '../../../utils/nameFormatter';
 
 const MyMatches = () => {
   const navigate = useNavigate();
@@ -12,7 +13,6 @@ const MyMatches = () => {
 
   useEffect(() => {
     const fetchMatches = async () => {
-      setLoading(true);
       try {
         const user = auth.currentUser;
         if (!user) return;
@@ -29,7 +29,7 @@ const MyMatches = () => {
             const data = userDoc.data();
             return {
               id: m.userId,
-              name: data.firstName ? `${data.firstName} ${data.lastName || ''}`.trim() : data.displayName || 'Unknown',
+              name: formatUserName(data),
               age: calculateAge(data.birthDate),
               image: data.image || '/default-profile.png',
               compatibility: Math.round(m.score),
