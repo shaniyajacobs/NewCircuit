@@ -57,7 +57,7 @@ const NavBar = () => {
                 <div className={styles.desktopNavLinks}>
                   <Link to="/how-it-works" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>How it works</Link>
                   <Link to="/pricing" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>Pricing</Link>
-                  {/* <Link to="/faq" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>FAQ</Link> */}
+                  <Link to="/faq" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>FAQ</Link>
                   <Link to="/contact" className={styles.linkButton} onClick={() => window.scrollTo(0, 0)}>Contact</Link>
                   <div className={styles.buttonGroup}>
                     <Link to="/login" className={styles.outlinedButton} onClick={() => window.scrollTo(0, 0)}>Sign in</Link>
