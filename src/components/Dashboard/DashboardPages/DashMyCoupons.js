@@ -7,7 +7,8 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  getDoc
+  getDoc,
+  getDocs
 } from 'firebase/firestore';
 import {
   ref as storageRef,
@@ -25,28 +26,49 @@ export default function DashMyCoupons() {
   const [showRejectedPopup, setShowRejectedPopup] = useState(false); // NEW
   const [showCouponModal, setShowCouponModal] = useState(false); // NEW
   const [selectedCoupon, setSelectedCoupon] = useState(null); // NEW
-  const coupons = [
-    { id: 'c1', name: 'Free Dessert', desc: 'Get a free dessert at participating restaurants.' },
-    { id: 'c2', name: '2-for-1 Appetizer', desc: 'Buy one appetizer, get one free.' },
-    { id: 'c3', name: '10% Off', desc: '10% off your next date meal.' },
-  ];
+  const [coupons, setCoupons] = useState([]); // Fetch from Firebase
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
 
-  // Function to check if both users have uploaded photos for 2 different dates
+  // Function to fetch coupons from Firebase
+  const fetchCoupons = async () => {
+    setLoadingCoupons(true);
+    try {
+      const couponsRef = collection(db, 'coupons');
+      const querySnapshot = await getDocs(couponsRef);
+      const couponsList = querySnapshot.docs.map(doc => {
+        const couponData = doc.data();
+        return {
+          id: doc.id,
+          ...couponData,
+          businessName: couponData.legalBusinessName || 'Unknown Business'
+        };
+      });
+      setCoupons(couponsList);
+    } catch (error) {
+      console.error('Error fetching coupons:', error);
+    } finally {
+      setLoadingCoupons(false);
+    }
+  };
+
+  // Function to check if selected dates are with the same person and both have photos uploaded
   const canAccessCoupons = () => {
-    if (acceptedDates.length < 2) return false;
+    if (!sel1 || !sel2) return false;
     
-    // Get the first 2 accepted dates
-    const firstTwoDates = acceptedDates.slice(0, 2);
+    const date1 = acceptedDates.find(d => d.id === sel1);
+    const date2 = acceptedDates.find(d => d.id === sel2);
     
-    // Check if both users have uploaded photos for both dates
-    return firstTwoDates.every(date => {
-      const photos = date.photos || {};
-      const userIds = Object.keys(photos);
-      
-      // Check if both current user and partner have uploaded photos
-      return userIds.includes(me) && userIds.includes(date.partnerId) && 
-             photos[me]?.uploaded && photos[date.partnerId]?.uploaded;
-    });
+    if (!date1 || !date2) return false;
+    
+    // Check if both dates are with the same person
+    if (date1.partnerId !== date2.partnerId) return false;
+    
+    // Check if both users have uploaded photos for both selected dates
+    const photos1 = date1.photos || {};
+    const photos2 = date2.photos || {};
+    
+    return photos1[me]?.uploaded && photos1[date1.partnerId]?.uploaded &&
+           photos2[me]?.uploaded && photos2[date2.partnerId]?.uploaded;
   };
 
   // local preview + persisted URL
@@ -215,15 +237,7 @@ export default function DashMyCoupons() {
 
   return (
     <div className="p-7 bg-white rounded shadow-lg relative">
-      {/* View Coupons button - only show when both users have uploaded photos for 2 dates */}
-      {canAccessCoupons() && (
-        <button
-          className="absolute top-4 right-4 bg-indigo-600 hover:bg-indigo-800 text-white px-4 py-2 rounded shadow"
-          onClick={() => setShowCouponModal(true)}
-        >
-          View Coupons
-        </button>
-      )}
+
       {/* Coupon Modal/Panel */}
       {showCouponModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -235,45 +249,73 @@ export default function DashMyCoupons() {
             >
               &times;
             </button>
-            {canAccessCoupons() ? (
+                        {canAccessCoupons() ? (
               <>
                 <div className="font-semibold text-lg mb-4">Select Your Coupon</div>
-                <div className="space-y-4">
-                  {coupons.map(coupon => (
-                    <label key={coupon.id} className={`block border rounded p-4 cursor-pointer transition ${selectedCoupon === coupon.id ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 bg-white'}`}>
-                      <input
-                        type="radio"
-                        name="coupon"
-                        value={coupon.id}
-                        checked={selectedCoupon === coupon.id}
-                        onChange={() => setSelectedCoupon(coupon.id)}
-                        className="mr-3"
-                      />
-                      <span className="font-semibold">{coupon.name}</span>
-                      <div className="text-gray-600 text-sm mt-1">{coupon.desc}</div>
-                    </label>
-                  ))}
-                </div>
-                <button
-                  className={`mt-6 w-full py-2 rounded text-white ${selectedCoupon ? 'bg-indigo-600 hover:bg-indigo-800' : 'bg-gray-400 cursor-not-allowed'}`}
-                  disabled={!selectedCoupon}
-                  onClick={() => setShowCouponModal(false)}
-                >
-                  Redeem Selected Coupon
-                </button>
+                {loadingCoupons ? (
+                  <div className="text-center py-8">
+                    <div className="text-gray-500">Loading available coupons...</div>
+                  </div>
+                ) : coupons.length > 0 ? (
+                  <div className="space-y-4">
+                    {coupons.map(coupon => (
+                      <label key={coupon.id} className={`block border rounded p-4 cursor-pointer transition ${selectedCoupon === coupon.id ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 bg-white'}`}>
+                        <input
+                          type="radio"
+                          name="coupon"
+                          value={coupon.id}
+                          checked={selectedCoupon === coupon.id}
+                          onChange={() => setSelectedCoupon(coupon.id)}
+                          className="mr-3"
+                        />
+                        <div className="flex-1">
+                          <div className="font-semibold text-lg">{coupon.title}</div>
+                          <div className="text-gray-600 text-sm mt-1">{coupon.description}</div>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-indigo-600 font-semibold">{coupon.discount}</span>
+                            <span className="text-gray-500 text-xs">{coupon.businessName}</span>
+                          </div>
+                          {coupon.validUntil && (
+                            <div className="text-gray-500 text-xs mt-1">
+                              Valid until: {new Date(coupon.validUntil).toLocaleDateString()}
+                            </div>
+                          )}
+                          {coupon.terms && coupon.terms !== "None" && coupon.terms !== "none" && (
+                            <div className="text-gray-500 text-xs mt-1">
+                              Terms: {coupon.terms}
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-gray-500">No coupons available at the moment.</div>
+                  </div>
+                )}
+                {coupons.length > 0 && (
+                  <button
+                    className={`mt-6 w-full py-2 rounded text-white ${selectedCoupon ? 'bg-indigo-600 hover:bg-indigo-800' : 'bg-gray-400 cursor-not-allowed'}`}
+                    disabled={!selectedCoupon}
+                    onClick={() => setShowCouponModal(false)}
+                  >
+                    Redeem Selected Coupon
+                  </button>
+                )}
               </>
             ) : (
               <div className="text-center">
                 <div className="font-semibold text-lg mb-2 text-red-600">
-                  {acceptedDates.length < 2 
-                    ? "You need 2 approved dates to access coupons."
-                    : "Both you and your date partners need to upload photos for 2 dates to access coupons."
+                  {!sel1 || !sel2 
+                    ? "Please select 2 dates with the same person."
+                    : "Both you and your date partner need to upload photos for the selected dates."
                   }
                 </div>
                 <div className="text-gray-600">
-                  {acceptedDates.length < 2 
-                    ? "Once you have 2 dates approved, you can select your coupon here!"
-                    : "Once both users upload their photos for 2 dates, you can select your coupon here!"
+                  {!sel1 || !sel2 
+                    ? "Select 2 dates with the same person to access coupons."
+                    : "Once both users upload photos for the selected dates, you can select your coupon here!"
                   }
                 </div>
               </div>
@@ -385,7 +427,25 @@ export default function DashMyCoupons() {
               </div>
               {/* PARTNER */}
               <div className="border-2 border-dashed rounded h-48 flex items-center justify-center text-gray-400">
-                {persisted ? 'Waiting for partner' : 'Your upload locks this slot'}
+                {dateObj?.photos?.[partnerId]?.uploaded ? (
+                  <img 
+                    src={dateObj.photos[partnerId].url} 
+                    className="w-full h-full object-cover rounded" 
+                    alt={`${partner}'s photo`}
+                  />
+                ) : persisted ? (
+                  <div className="text-center">
+                    <div className="text-2xl mb-2">⏳</div>
+                    <div className="text-sm">Waiting for {partner}</div>
+                    <div className="text-xs text-gray-500">to upload their photo</div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="text-2xl mb-2">🔒</div>
+                    <div className="text-sm">Upload your photo first</div>
+                    <div className="text-xs text-gray-500">to unlock partner's upload</div>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -406,6 +466,21 @@ export default function DashMyCoupons() {
           </div>
         );
       })}
+
+      {/* View Coupons button - only show when selected dates are with same person and both have photos */}
+      {canAccessCoupons() && (
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <button
+            className="w-full bg-indigo-600 hover:bg-indigo-800 text-white px-6 py-3 rounded-lg shadow-lg font-semibold text-lg"
+            onClick={async () => {
+              await fetchCoupons();
+              setShowCouponModal(true);
+            }}
+          >
+            🎫 View Available Coupons
+          </button>
+        </div>
+      )}
 
     </div>
   );
