@@ -19,7 +19,7 @@ const thirdDateSteps = [
   }
 ];
 
-export function ThirdDatesOnUs() {
+export function ThirdDatesOnUs({ showHeader = true }) {
   const navigate = useNavigate();
 
   return (
