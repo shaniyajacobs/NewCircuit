@@ -12,6 +12,7 @@ const AdminCoupons = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [newCoupon, setNewCoupon] = useState({
     title: '',
@@ -81,8 +82,19 @@ const AdminCoupons = () => {
       return;
     }
     try {
+      // Fetch the business document to get the legalBusinessName
+      const businessDoc = await getDoc(doc(db, 'businesses', newCoupon.businessId));
+      if (!businessDoc.exists()) {
+        alert('Selected business not found');
+        return;
+      }
+      
+      const businessData = businessDoc.data();
+      const legalBusinessName = businessData.legalBusinessName || 'Unknown Business';
+      
       const couponData = {
         ...newCoupon,
+        legalBusinessName: legalBusinessName,
         createdAt: new Date().toISOString(),
         redeemedCount: 0,
         totalRevenue: 0
@@ -148,7 +160,7 @@ const AdminCoupons = () => {
         <table className="min-w-full bg-white border border-gray-200 rounded-lg">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coupon</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid Until</th>
@@ -179,10 +191,19 @@ const AdminCoupons = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{coupon.title}</div>
-                        <div className="text-sm text-gray-500 max-w-xs truncate">{coupon.description}</div>
+                        <div 
+                          className="text-sm text-gray-500 max-w-xs truncate cursor-pointer hover:text-blue-600 transition-colors"
+                          onClick={() => {
+                            setSelectedCoupon(coupon);
+                            setShowDescriptionModal(true);
+                          }}
+                          title="Click to view full description"
+                        >
+                          {coupon.description}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{coupon.businessName || coupon.business || 'Unknown Business'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{coupon.legalBusinessName}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-lg font-bold text-[#0043F1]">{coupon.discount}</span>
                     </td>
@@ -472,6 +493,28 @@ const AdminCoupons = () => {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Description Modal */}
+      {showDescriptionModal && selectedCoupon && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Description</h2>
+              <button
+                onClick={() => setShowDescriptionModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-gray-800 whitespace-pre-wrap">{selectedCoupon.description}</p>
             </div>
           </div>
         </div>
