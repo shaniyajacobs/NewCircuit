@@ -21,7 +21,7 @@ const HowItWorksContent = () => {
             {/* Testimonials Section */}
             <section className={styles['testimonials-section']}>
                 <div className={styles['testimonials-container']}>
-                    <h2 className={styles['testimonials-heading']}>What they're saying</h2>
+                    <h2 className={styles['testimonials-heading']}>Join thousands already feeling the spark</h2>
                     <div className={styles['testimonials-list-marquee']}>
                       <div className={styles['marquee-track']}>
                         {[...Array(6)].map((_, i) => (
