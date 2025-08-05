@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where, onSnapshot } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
@@ -128,6 +128,9 @@ const DashHome = () => {
   const [hasNewSpark, setHasNewSpark] = useState(false);
   const [checkingNewSparks, setCheckingNewSparks] = useState(false);
   const [hideNewSparksNotification, setHideNewSparksNotification] = useState(false);
+  const [hasCouponRequestUpdate, setHasCouponRequestUpdate] = useState(false);
+  const [checkingCouponRequests, setCheckingCouponRequests] = useState(false);
+  const [hideCouponRequestNotification, setHideCouponRequestNotification] = useState(false);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -300,8 +303,62 @@ const DashHome = () => {
     }
   };
 
+  // Function to check for coupon request updates
+  const checkCouponRequestUpdates = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    
+    setCheckingCouponRequests(true);
+    try {
+      // Get all coupons
+      const couponsRef = collection(db, 'coupons');
+      const couponsSnapshot = await getDocs(couponsRef);
+      
+      let hasUpdate = false;
+      
+      // Check each coupon for redemption requests by this user
+      for (const couponDoc of couponsSnapshot.docs) {
+        const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
+        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', user.uid));
+        const redemptionsSnapshot = await getDocs(redemptionsQuery);
+        
+        if (!redemptionsSnapshot.empty) {
+          // Check if any request has been approved or rejected (status changed from 'redeemed')
+          const hasStatusUpdate = redemptionsSnapshot.docs.some(doc => {
+            const data = doc.data();
+            return data.status === 'approved' || data.status === 'rejected';
+          });
+          
+          if (hasStatusUpdate) {
+            hasUpdate = true;
+            break;
+          }
+        }
+      }
+      
+      setHasCouponRequestUpdate(hasUpdate);
+    } catch (error) {
+      console.error('Error checking coupon request updates:', error);
+      setHasCouponRequestUpdate(false);
+    } finally {
+      setCheckingCouponRequests(false);
+    }
+  };
+
   useEffect(() => {
     fetchConnections();
+    checkCouponRequestUpdates();
+    
+    // Set up real-time listener for coupon request updates
+    const user = auth.currentUser;
+    if (!user) return;
+    
+    const unsubscribe = onSnapshot(collection(db, 'coupons'), async (snapshot) => {
+      // Check for updates when coupon data changes
+      await checkCouponRequestUpdates();
+    });
+    
+    return () => unsubscribe();
   }, [auth.currentUser]);
 
   // Helper to check if event is past (for sign-up: event start; for upcoming: event start + 90min)
@@ -707,6 +764,10 @@ const getEventData = async (eventID) => {
     navigate('dashMyConnections');
   };
 
+  const handleCouponRequestsClick = () => {
+    navigate('dashMyCoupons');
+  };
+
   const handlePurchaseMoreDatesClick = () => {
     navigate('/dashboard/dashDateCalendar');
   };
@@ -845,6 +906,41 @@ const getEventData = async (eventID) => {
                     className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#d4f85a] transition"
                   >
                     See my sparks
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Coupon Request Updates Notification */}
+            {checkingCouponRequests ? null : (hasCouponRequestUpdate && !hideCouponRequestNotification) && (
+              <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center mb-6">
+                <img src={homeSeeMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
+                <div className="absolute inset-0 bg-[#211F20] bg-opacity-10"
+                  style={{
+                    background: `
+                      linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%),
+                      linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%),
+                      linear-gradient(0deg, rgba(255,193,7,0.25) 0%, rgba(255,193,7,0.25) 100%)
+                    `
+                  }}
+                />
+                {/* X icon in top-right corner */}
+                <div className="absolute top-4 right-4 z-20 cursor-pointer" onClick={() => setHideCouponRequestNotification(true)}>
+                  <img src={xIcon} alt="Close" className="w-6 h-6 filter brightness-0 invert" />
+                </div>
+                <div className="relative z-10 flex flex-col items-start p-6">
+                  <span
+                    className="flex items-center font-medium text-white leading-[130%] font-bricolage text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px] mb-4"
+                  >
+                    <SmallFlashIcon className="w-6 h-6 mr-2" />
+                    Your coupon request has been updated! Check the status.
+                  </span>
+                  <button
+                    onClick={handleCouponRequestsClick}
+                    className="bg-[#FFC107] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#FFB300] transition"
+                  >
+                    View My Coupons
                   </button>
                 </div>
               </div>

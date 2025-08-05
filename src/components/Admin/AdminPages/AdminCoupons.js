@@ -220,14 +220,50 @@ const AdminCoupons = () => {
         redeemedCount: increment(1)
       });
       
-      // Delete the request document entirely
+      // Update the request status to approved instead of deleting
       const requestRef = doc(db, 'coupons', selectedCoupon.id, 'redemptions', request.id);
-      await deleteDoc(requestRef);
+      await updateDoc(requestRef, {
+        status: 'approved',
+        approvedAt: new Date(),
+        approvedBy: auth.currentUser.uid
+      });
+      
+      // Delete the dates from conversations collection so they can't be used again
+      await deleteDatesFromConversations(request.date1, request.date2);
       
       // Refresh requests
       await fetchRequests(selectedCoupon.id);
     } catch (error) {
       console.error('Error approving request:', error);
+    }
+  };
+
+  // Function to delete dates from conversations collection after approval
+  const deleteDatesFromConversations = async (date1, date2) => {
+    try {
+      // Delete date1 from conversations collection
+      if (date1 && date1.convoId && date1.id) {
+        const convoRef = doc(db, 'conversations', date1.convoId);
+        const convoDoc = await getDoc(convoRef);
+        if (convoDoc.exists()) {
+          const convoData = convoDoc.data();
+          const updatedDates = convoData.dates.filter(d => d.id !== date1.id);
+          await updateDoc(convoRef, { dates: updatedDates });
+        }
+      }
+
+      // Delete date2 from conversations collection
+      if (date2 && date2.convoId && date2.id) {
+        const convoRef = doc(db, 'conversations', date2.convoId);
+        const convoDoc = await getDoc(convoRef);
+        if (convoDoc.exists()) {
+          const convoData = convoDoc.data();
+          const updatedDates = convoData.dates.filter(d => d.id !== date2.id);
+          await updateDoc(convoRef, { dates: updatedDates });
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting dates from conversations:', error);
     }
   };
 
@@ -244,9 +280,14 @@ const AdminCoupons = () => {
     
     setRejecting(true);
     try {
-      // Delete the request document entirely
+      // Update the request status to rejected instead of deleting
       const requestRef = doc(db, 'coupons', selectedCoupon.id, 'redemptions', selectedRequest.id);
-      await deleteDoc(requestRef);
+      await updateDoc(requestRef, {
+        status: 'rejected',
+        rejectedAt: new Date(),
+        rejectedBy: auth.currentUser.uid,
+        rejectionReason: rejectReason.trim()
+      });
       
       // Refresh requests
       await fetchRequests(selectedCoupon.id);
