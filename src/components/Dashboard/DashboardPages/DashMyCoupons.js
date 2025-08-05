@@ -32,6 +32,12 @@ export default function DashMyCoupons() {
   const [loadingCoupons, setLoadingCoupons] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showApprovedCouponsModal, setShowApprovedCouponsModal] = useState(false);
+  const [approvedCoupons, setApprovedCoupons] = useState([]);
+  const [loadingApprovedCoupons, setLoadingApprovedCoupons] = useState(false);
+  const [showRejectedCouponsModal, setShowRejectedCouponsModal] = useState(false);
+  const [rejectedCoupons, setRejectedCoupons] = useState([]);
+  const [loadingRejectedCoupons, setLoadingRejectedCoupons] = useState(false);
 
   // Function to fetch coupons from Firebase
   const fetchCoupons = async () => {
@@ -47,11 +53,114 @@ export default function DashMyCoupons() {
           businessName: couponData.legalBusinessName || 'Unknown Business'
         };
       });
-      setCoupons(couponsList);
+      
+      // Filter out coupons that have been approved by this user
+      const approvedCouponIds = await getApprovedCouponIds();
+      const availableCoupons = couponsList.filter(coupon => !approvedCouponIds.includes(coupon.id));
+      
+      setCoupons(availableCoupons);
     } catch (error) {
       console.error('Error fetching coupons:', error);
     } finally {
       setLoadingCoupons(false);
+    }
+  };
+
+  // Function to get IDs of coupons that have been approved by this user
+  const getApprovedCouponIds = async () => {
+    try {
+      const approvedIds = [];
+      const couponsRef = collection(db, 'coupons');
+      const couponsSnapshot = await getDocs(couponsRef);
+      
+      for (const couponDoc of couponsSnapshot.docs) {
+        const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
+        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', me), where('status', '==', 'approved'));
+        const redemptionsSnapshot = await getDocs(redemptionsQuery);
+        
+        if (!redemptionsSnapshot.empty) {
+          // Only filter out approved coupons
+          approvedIds.push(couponDoc.id);
+        }
+      }
+      
+      return approvedIds;
+    } catch (error) {
+      console.error('Error getting approved coupon IDs:', error);
+      return [];
+    }
+  };
+
+  // Function to fetch approved coupons for the current user
+  const fetchApprovedCoupons = async () => {
+    setLoadingApprovedCoupons(true);
+    try {
+      const approvedCouponsList = [];
+      const couponsRef = collection(db, 'coupons');
+      const couponsSnapshot = await getDocs(couponsRef);
+      
+      for (const couponDoc of couponsSnapshot.docs) {
+        const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
+        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', me), where('status', '==', 'approved'));
+        const redemptionsSnapshot = await getDocs(redemptionsQuery);
+        
+        if (!redemptionsSnapshot.empty) {
+          const redemptionData = redemptionsSnapshot.docs[0].data();
+          const couponData = couponDoc.data();
+          
+          approvedCouponsList.push({
+            id: couponDoc.id,
+            ...couponData,
+            businessName: couponData.legalBusinessName || 'Unknown Business',
+            approvedAt: redemptionData.approvedAt,
+            date1: redemptionData.date1,
+            date2: redemptionData.date2
+          });
+        }
+      }
+      
+      setApprovedCoupons(approvedCouponsList);
+    } catch (error) {
+      console.error('Error fetching approved coupons:', error);
+    } finally {
+      setLoadingApprovedCoupons(false);
+    }
+  };
+
+  // Function to fetch rejected coupons for the current user
+  const fetchRejectedCoupons = async () => {
+    setLoadingRejectedCoupons(true);
+    try {
+      const rejectedCouponsList = [];
+      const couponsRef = collection(db, 'coupons');
+      const couponsSnapshot = await getDocs(couponsRef);
+      
+      for (const couponDoc of couponsSnapshot.docs) {
+        const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
+        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', me), where('status', '==', 'rejected'));
+        const redemptionsSnapshot = await getDocs(redemptionsQuery);
+        
+        if (!redemptionsSnapshot.empty) {
+          const redemptionData = redemptionsSnapshot.docs[0].data();
+          const couponData = couponDoc.data();
+          
+          rejectedCouponsList.push({
+            id: couponDoc.id,
+            ...couponData,
+            businessName: couponData.legalBusinessName || 'Unknown Business',
+            rejectedAt: redemptionData.rejectedAt,
+            rejectionReason: redemptionData.rejectionReason,
+            date1: redemptionData.date1,
+            date2: redemptionData.date2
+          });
+        }
+      }
+      
+      setRejectedCoupons(rejectedCouponsList);
+    } catch (error) {
+      console.error('Error fetching rejected coupons:', error);
+    } finally {
+      setLoadingRejectedCoupons(false);
     }
   };
 
@@ -155,11 +264,36 @@ export default function DashMyCoupons() {
            photos2[me]?.uploaded && photos2[date2.partnerId]?.uploaded;
   };
 
+  // Function to check if user has enough available dates for coupons
+  const hasAvailableDatesForCoupons = () => {
+    // Group dates by partner
+    const datesByPartner = {};
+    acceptedDates.forEach(date => {
+      const partnerId = date.partnerId;
+      if (!datesByPartner[partnerId]) {
+        datesByPartner[partnerId] = [];
+      }
+      datesByPartner[partnerId].push(date);
+    });
+
+    // Check if any partner has at least 2 dates with photos uploaded
+    return Object.values(datesByPartner).some(partnerDates => {
+      const datesWithPhotos = partnerDates.filter(date => {
+        const photos = date.photos || {};
+        return photos[me]?.uploaded && photos[date.partnerId]?.uploaded;
+      });
+      return datesWithPhotos.length >= 2;
+    });
+  };
+
   // local preview + persisted URL
   const [date1Url, setDate1Url] = useState('');
   const [date2Url, setDate2Url] = useState('');
   const [preview1, setPreview1] = useState(null);
   const [preview2, setPreview2] = useState(null);
+  const [isResubmitting1, setIsResubmitting1] = useState(false);
+  const [isResubmitting2, setIsResubmitting2] = useState(false);
+  const [currentlyUploadingSlot, setCurrentlyUploadingSlot] = useState(null);
 
   const [sel1, setSel1] = useState('');
   const [sel2, setSel2] = useState('');
@@ -187,7 +321,7 @@ export default function DashMyCoupons() {
       setConversations(convos);
       const dates = convos.flatMap(c =>
         (c.dates || [])
-          .filter(d => d.status === 'accepted')
+          .filter(d => d.status === 'accepted' && !d.consumedForCoupon)
           .map(d => ({
             ...d,
             convoId: c.id,
@@ -236,27 +370,49 @@ export default function DashMyCoupons() {
 
   // 3️⃣ whenever sel1 changes, reset slot1 state unless that date really has a URL
   useEffect(() => {
+    // Don't update slot1 if slot1 is currently being uploaded
+    if (currentlyUploadingSlot === 1) return;
+    
     const d = acceptedDates.find(d => d.id === sel1);
     if (d?.photos?.[me]?.uploaded) {
       setDate1Url(d.photos[me].url);
       setPreview1(null);
+      // Only reset resubmission state if we're not currently resubmitting
+      if (!isResubmitting1) {
+        setIsResubmitting1(false);
+      }
     } else {
       setDate1Url('');
       setPreview1(null);
+      // Only reset resubmission state if we're not currently resubmitting
+      if (!isResubmitting1) {
+        setIsResubmitting1(false);
+      }
     }
-  }, [sel1, acceptedDates, me]);
+  }, [sel1, acceptedDates, me, isResubmitting1, currentlyUploadingSlot]);
 
   // 4️⃣ same for slot2
   useEffect(() => {
+    // Don't update slot2 if slot2 is currently being uploaded
+    if (currentlyUploadingSlot === 2) return;
+    
     const d = acceptedDates.find(d => d.id === sel2);
     if (d?.photos?.[me]?.uploaded) {
       setDate2Url(d.photos[me].url);
       setPreview2(null);
+      // Only reset resubmission state if we're not currently resubmitting
+      if (!isResubmitting2) {
+        setIsResubmitting2(false);
+      }
     } else {
       setDate2Url('');
       setPreview2(null);
+      // Only reset resubmission state if we're not currently resubmitting
+      if (!isResubmitting2) {
+        setIsResubmitting2(false);
+      }
     }
-  }, [sel2, acceptedDates, me]);
+  }, [sel2, acceptedDates, me, isResubmitting2, currentlyUploadingSlot]);
 
   const onFile = (slot, e) => {
     setError('');
@@ -277,6 +433,7 @@ export default function DashMyCoupons() {
     if (!selected) { setError(`Select date ${slot}`); return; }
     if (!preview)  { setError(`Upload your photo for date ${slot}`); return; }
 
+    setCurrentlyUploadingSlot(slot);
     setLoading(true);
     try {
       const d = acceptedDates.find(x => x.id === selected);
@@ -307,15 +464,30 @@ export default function DashMyCoupons() {
       if (slot === 1) {
         setDate1Url(url);
         setPreview1(null);
+        setIsResubmitting1(false);
       } else {
         setDate2Url(url);
         setPreview2(null);
+        setIsResubmitting2(false);
       }
     } catch (err) {
       console.error(err);
       setError('Upload failed');
     } finally {
       setLoading(false);
+      setCurrentlyUploadingSlot(null);
+    }
+  };
+
+  const startResubmit = (slot) => {
+    if (slot === 1) {
+      setIsResubmitting1(true);
+      setDate1Url('');
+      setPreview1(null);
+    } else {
+      setIsResubmitting2(true);
+      setDate2Url('');
+      setPreview2(null);
     }
   };
 
@@ -459,10 +631,43 @@ export default function DashMyCoupons() {
           </div>
         </div>
       )}
-      <h2 className="text-2xl mb-2">My Coupons</h2>
-      <p className="text-gray-600 mb-6 text-sm">
+      <h2
+        className="
+          font-semibold
+          text-[#211F20]
+          leading-[110%]
+          font-bricolage
+          text-[24px] sm:text-[28px] md:text-[32px]
+          mb-2
+        "
+      >
+        My Coupons
+      </h2>
+      <p className="text-gray-600 mb-6 text-sm font-poppins">
         Upload a picture of your first 2 dates with a spark. Then, we offer you both a drink for your 3rd date.
       </p>
+
+      {/* View Approved/Rejected Coupons buttons */}
+      <div className="mb-6 flex gap-4">
+        <button
+          className="self-start px-4 py-2 text-white rounded-lg font-medium text-sm bg-black hover:bg-gray-800"
+          onClick={async () => {
+            await fetchApprovedCoupons();
+            setShowApprovedCouponsModal(true);
+          }}
+        >
+          View Approved Coupons
+        </button>
+        <button
+          className="self-start px-4 py-2 text-white rounded-lg font-medium text-sm bg-black hover:bg-gray-800"
+          onClick={async () => {
+            await fetchRejectedCoupons();
+            setShowRejectedCouponsModal(true);
+          }}
+        >
+          View Rejected Coupons
+        </button>
+      </div>
       {error && <div className="mb-4 text-red-500">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -518,11 +723,19 @@ export default function DashMyCoupons() {
               </div>
 
               {/* Photo Upload Stack */}
-              <div className="flex flex-col gap-4 mb-6">
+              <div className="flex flex-row gap-4 mb-6">
                 {/* YOU */}
-                <div className="border-2 border-dashed rounded-lg h-48 flex items-center justify-center">
-                  {persisted ? (
-                    <img src={persisted} className="w-full h-full object-cover rounded-lg" />
+                <div className="border-2 border-dashed rounded-lg w-80 h-80 flex items-center justify-center relative">
+                  {persisted && !(slot === 1 ? isResubmitting1 : isResubmitting2) ? (
+                    <>
+                      <img src={persisted} className="w-full h-full object-cover rounded-lg" />
+                      <button
+                        onClick={() => startResubmit(slot)}
+                        className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm hover:bg-opacity-90 transition-all"
+                      >
+                        Change Photo
+                      </button>
+                    </>
                   ) : (
                     <>
                       <input
@@ -540,8 +753,8 @@ export default function DashMyCoupons() {
                           ? <img src={preview} className="w-full h-full object-cover rounded-lg" />
                           : <>
                               <div className="relative">
-                                <div className="w-20 h-20 rounded-lg flex items-center justify-center">
-                                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-black">
+                                <div className="w-12 h-12 rounded-lg flex items-center justify-center">
+                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-black">
                                     <path d="M9 10C10.1046 10 11 9.10457 11 8C11 6.89543 10.1046 6 9 6C7.89543 6 7 6.89543 7 8C7 9.10457 7.89543 10 9 10Z" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     <path d="M13 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                                     <path d="M15.75 5H21.25" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
@@ -550,14 +763,16 @@ export default function DashMyCoupons() {
                                   </svg>
                                 </div>
                               </div>
-                              <span className="mt-2">Upload a photo</span>
+                              <span className="mt-2 text-xs">
+                                {(slot === 1 ? isResubmitting1 : isResubmitting2) ? 'Upload new photo' : 'Upload a photo'}
+                              </span>
                             </>}
                       </label>
                     </>
                   )}
                 </div>
                 {/* PARTNER */}
-                <div className="border-2 border-dashed rounded-lg h-48 flex items-center justify-center text-gray-400">
+                <div className="border-2 border-dashed rounded-lg w-80 h-80 flex items-center justify-center text-gray-400">
                   {dateObj?.photos?.[partnerId]?.uploaded ? (
                     <img 
                       src={dateObj.photos[partnerId].url} 
@@ -566,14 +781,14 @@ export default function DashMyCoupons() {
                     />
                   ) : persisted ? (
                     <div className="text-center">
-                      <div className="text-2xl mb-2">⏳</div>
-                      <div className="text-sm">Waiting for {partner}</div>
+                      <div className="text-xl mb-1">⏳</div>
+                      <div className="text-xs">Waiting for {partner}</div>
                       <div className="text-xs text-gray-500">to upload their photo</div>
                     </div>
                   ) : (
                     <div className="text-center">
-                      <div className="text-2xl mb-2">🔒</div>
-                      <div className="text-sm">Upload your photo first</div>
+                      <div className="text-xl mb-1">🔒</div>
+                      <div className="text-xs">Upload your photo first</div>
                       <div className="text-xs text-gray-500">to unlock partner's upload</div>
                     </div>
                   )}
@@ -583,16 +798,23 @@ export default function DashMyCoupons() {
                           {/* Submit Button */}
             <button
               onClick={() => upload(slot)}
-              disabled={loading || !!persisted}
+              disabled={loading || (!!persisted && !(slot === 1 ? isResubmitting1 : isResubmitting2))}
               className={`self-start px-4 py-2 text-white rounded-lg font-medium text-sm ${
-                persisted
+                persisted && !(slot === 1 ? isResubmitting1 : isResubmitting2)
                   ? 'bg-gray-400 cursor-not-allowed'
                   : loading
                     ? 'bg-gray-600'
                     : 'bg-black hover:bg-gray-800'
               }`}
             >
-              {persisted ? 'Submitted ✅' : loading ? 'Uploading…' : 'Submit'}
+              {persisted && !(slot === 1 ? isResubmitting1 : isResubmitting2) 
+                ? 'Submitted ✅' 
+                : loading 
+                  ? 'Uploading…' 
+                  : (slot === 1 ? isResubmitting1 : isResubmitting2) 
+                    ? 'Resubmit' 
+                    : 'Submit'
+              }
             </button>
             </div>
           );
@@ -603,7 +825,7 @@ export default function DashMyCoupons() {
       {canAccessCoupons() && (
         <div className="mt-8 pt-6 border-t border-gray-200">
           <button
-            className="w-full bg-indigo-600 hover:bg-indigo-800 text-white px-6 py-3 rounded-lg shadow-lg font-semibold text-lg"
+            className="self-start px-4 py-2 text-white rounded-lg font-medium text-sm bg-black hover:bg-gray-800"
             onClick={async () => {
               setError('');
               setSuccessMessage('');
@@ -613,6 +835,217 @@ export default function DashMyCoupons() {
           >
             🎫 View Available Coupons
           </button>
+        </div>
+      )}
+
+      {/* Message when no available dates for coupons */}
+      {!hasAvailableDatesForCoupons() && acceptedDates.length > 0 && (
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="text-yellow-800 font-medium mb-2">No Available Dates for Coupons</div>
+            <div className="text-yellow-700 text-sm">
+              You need at least 2 dates with the same person where both of you have uploaded photos. 
+              Some of your dates may have already been used for previous approved coupon requests and are no longer available.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approved Coupons Modal */}
+      {showApprovedCouponsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white border-2 border-green-400 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold text-green-800">My Approved Coupons</h2>
+              <button
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => setShowApprovedCouponsModal(false)}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {loadingApprovedCoupons ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500">Loading your approved coupons...</div>
+              </div>
+            ) : approvedCoupons.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500">You don't have any approved coupons yet.</div>
+                <div className="text-sm text-gray-400 mt-2">Complete your dates and request coupons to see them here!</div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {approvedCoupons.map((coupon) => (
+                  <div key={coupon.id} className="border border-green-200 rounded-lg p-6 bg-green-50">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-xl font-semibold text-green-800">{coupon.title}</h3>
+                        <p className="text-green-600 text-sm mt-1">{coupon.description}</p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <span className="text-lg font-bold text-green-700">{coupon.discount}</span>
+                          <span className="text-green-600 text-sm">{coupon.businessName}</span>
+                        </div>
+                        <div className="text-green-600 text-sm mt-2">
+                          Approved on: {coupon.approvedAt?.toDate?.() ? 
+                            coupon.approvedAt.toDate().toLocaleString() : 
+                            new Date(coupon.approvedAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                        ✅ Approved
+                      </div>
+                    </div>
+
+                    {/* Date Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      {/* Date 1 */}
+                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <h4 className="font-semibold text-green-800 mb-2">Date 1</h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Date:</strong> {coupon.date1?.timestamp?.toDate?.() ? 
+                            coupon.date1.timestamp.toDate().toLocaleString() : 
+                            new Date(coupon.date1?.timestamp).toLocaleString()}</p>
+                          <p><strong>Location:</strong> {coupon.date1?.location}</p>
+                          <p><strong>Partner:</strong> {coupon.date1?.partnerName}</p>
+                        </div>
+                      </div>
+
+                      {/* Date 2 */}
+                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <h4 className="font-semibold text-green-800 mb-2">Date 2</h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Date:</strong> {coupon.date2?.timestamp?.toDate?.() ? 
+                            coupon.date2.timestamp.toDate().toLocaleString() : 
+                            new Date(coupon.date2?.timestamp).toLocaleString()}</p>
+                          <p><strong>Location:</strong> {coupon.date2?.location}</p>
+                          <p><strong>Partner:</strong> {coupon.date2?.partnerName}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Coupon Details */}
+                    <div className="mt-4 p-4 bg-white rounded-lg border border-green-200">
+                      <h4 className="font-semibold text-green-800 mb-2">Coupon Details</h4>
+                      <div className="space-y-1 text-sm">
+                        {coupon.validUntil && (
+                          <p><strong>Valid Until:</strong> {new Date(coupon.validUntil).toLocaleDateString()}</p>
+                        )}
+                        {coupon.terms && coupon.terms !== "None" && coupon.terms !== "none" && (
+                          <p><strong>Terms:</strong> {coupon.terms}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Rejected Coupons Modal */}
+      {showRejectedCouponsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white border-2 border-red-400 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold text-red-800">My Rejected Coupons</h2>
+              <button
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => setShowRejectedCouponsModal(false)}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {loadingRejectedCoupons ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500">Loading your rejected coupons...</div>
+              </div>
+            ) : rejectedCoupons.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500">You don't have any rejected coupons.</div>
+                <div className="text-sm text-gray-400 mt-2">Great job on your date submissions!</div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {rejectedCoupons.map((coupon) => (
+                  <div key={coupon.id} className="border border-red-200 rounded-lg p-6 bg-red-50">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-xl font-semibold text-red-800">{coupon.title}</h3>
+                        <p className="text-red-600 text-sm mt-1">{coupon.description}</p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <span className="text-lg font-bold text-red-700">{coupon.discount}</span>
+                          <span className="text-red-600 text-sm">{coupon.businessName}</span>
+                        </div>
+                        <div className="text-red-600 text-sm mt-2">
+                          Rejected on: {coupon.rejectedAt?.toDate?.() ? 
+                            coupon.rejectedAt.toDate().toLocaleString() : 
+                            new Date(coupon.rejectedAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+                        ❌ Rejected
+                      </div>
+                    </div>
+
+                    {/* Rejection Reason */}
+                    {coupon.rejectionReason && (
+                      <div className="mb-4 p-4 bg-red-100 border border-red-200 rounded-lg">
+                        <h4 className="font-semibold text-red-800 mb-2">Rejection Reason</h4>
+                        <p className="text-red-700 text-sm">{coupon.rejectionReason}</p>
+                      </div>
+                    )}
+
+                    {/* Date Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      {/* Date 1 */}
+                      <div className="bg-white rounded-lg p-4 border border-red-200">
+                        <h4 className="font-semibold text-red-800 mb-2">Date 1</h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Date:</strong> {coupon.date1?.timestamp?.toDate?.() ? 
+                            coupon.date1.timestamp.toDate().toLocaleString() : 
+                            new Date(coupon.date1?.timestamp).toLocaleString()}</p>
+                          <p><strong>Location:</strong> {coupon.date1?.location}</p>
+                          <p><strong>Partner:</strong> {coupon.date1?.partnerName}</p>
+                        </div>
+                      </div>
+
+                      {/* Date 2 */}
+                      <div className="bg-white rounded-lg p-4 border border-red-200">
+                        <h4 className="font-semibold text-red-800 mb-2">Date 2</h4>
+                        <div className="space-y-1 text-sm">
+                          <p><strong>Date:</strong> {coupon.date2?.timestamp?.toDate?.() ? 
+                            coupon.date2.timestamp.toDate().toLocaleString() : 
+                            new Date(coupon.date2?.timestamp).toLocaleString()}</p>
+                          <p><strong>Location:</strong> {coupon.date2?.location}</p>
+                          <p><strong>Partner:</strong> {coupon.date2?.partnerName}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Coupon Details */}
+                    <div className="mt-4 p-4 bg-white rounded-lg border border-red-200">
+                      <h4 className="font-semibold text-red-800 mb-2">Coupon Details</h4>
+                      <div className="space-y-1 text-sm">
+                        {coupon.validUntil && (
+                          <p><strong>Valid Until:</strong> {new Date(coupon.validUntil).toLocaleDateString()}</p>
+                        )}
+                        {coupon.terms && coupon.terms !== "None" && coupon.terms !== "none" && (
+                          <p><strong>Terms:</strong> {coupon.terms}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
