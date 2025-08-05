@@ -154,10 +154,10 @@ const DashChangePassword = () => {
         </div>
 
         {/* Bottom Buttons */}
-        <div className="mt-auto pt-6 flex space-x-3">
+        <div className="mt-auto pt-6 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
             {/* Back Button */}
             <button 
-                className="flex-1 bg-white text-[#211F20] font-medium hover:bg-gray-50 transition-colors text-center rounded-lg py-2 sm:py-2 xl:py-2 2xl:py-2 px-6 sm:px-5 xl:px-5 2xl:px-5 font-poppins leading-normal text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px] border border-[#211F20]"
+                className="w-full sm:flex-1 bg-white text-[#211F20] font-medium hover:bg-gray-50 transition-colors text-center rounded-lg py-2 sm:py-2 xl:py-2 2xl:py-2 px-6 sm:px-5 xl:px-5 2xl:px-5 font-poppins leading-normal text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px] border border-[#211F20]"
                 onClick={() => navigate('/dashboard/dashSettings')}
             >
                 Back
@@ -165,7 +165,7 @@ const DashChangePassword = () => {
 
             {/* Save New Password Button */}
             <button 
-                className="flex-1 bg-[#211F20] text-white font-medium hover:bg-gray-800 transition-colors text-center rounded-lg py-2 sm:py-2 xl:py-2 2xl:py-2 px-6 sm:px-5 xl:px-5 2xl:px-5 font-poppins leading-normal text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]"
+                className="w-full sm:flex-1 bg-[#211F20] text-white font-medium hover:bg-gray-800 transition-colors text-center rounded-lg py-2 sm:py-2 xl:py-2 2xl:py-2 px-6 sm:px-5 xl:px-5 2xl:px-5 font-poppins leading-normal text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]"
                 onClick={handleSavePassword}
                 disabled={isLoading}
             >
