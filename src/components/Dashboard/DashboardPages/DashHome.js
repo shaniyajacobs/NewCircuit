@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp, increment, query, where } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
@@ -384,6 +384,18 @@ const DashHome = () => {
         const signedUpIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
         setSignedUpEventIds(signedUpIds);
       }
+
+      // Check waitlist for all events after loading
+      setTimeout(async () => {
+        for (const evt of filteredEvents) {
+          if (evt.firestoreID) {
+            const notifiedUser = await checkWaitlistForEvent(evt.firestoreID, userGender);
+            if (notifiedUser) {
+              console.log(`Notified user ${notifiedUser.userID} about available spot for event ${evt.firestoreID}`);
+            }
+          }
+        }
+      }, 1000);
     } finally {
       setLoading(false);
     }
@@ -396,9 +408,52 @@ const DashHome = () => {
     }
   }, [userProfile]);
 
+  // Check waitlist whenever events change
+  useEffect(() => {
+    if (allEvents.length > 0 && userGender) {
+      const checkWaitlistForAllEvents = async () => {
+        let anyEnrollments = false;
+        for (const evt of allEvents) {
+          if (evt.firestoreID) {
+            const notifiedUser = await checkWaitlistForEvent(evt.firestoreID, userGender);
+            if (notifiedUser) {
+              console.log(`Notified user ${notifiedUser.userID} about available spot for event ${evt.firestoreID}`);
+              anyEnrollments = true;
+            }
+          }
+        }
+        // Only reload events if someone was enrolled to avoid infinite loops
+        if (anyEnrollments) {
+          await loadEvents();
+        }
+      };
+      
+      // Small delay to ensure events are fully loaded
+      setTimeout(checkWaitlistForAllEvents, 2000);
+    }
+  }, [allEvents, userGender]);
+
   // Manual refresh button now uses the same loader
   const fetchEventsFromFirebase = async () => {
     await loadEvents();
+  };
+
+  // Function to manually check waitlist
+  const checkWaitlistForCurrentUser = async () => {
+    if (!auth.currentUser || !userGender) return;
+    
+    for (const evt of allEvents) {
+      if (evt.firestoreID) {
+        const notifiedUser = await checkWaitlistForEvent(evt.firestoreID, userGender);
+        if (notifiedUser && notifiedUser.userID === auth.currentUser.uid) {
+          console.log(`You have been enrolled in event ${evt.firestoreID} from waitlist!`);
+          alert('Great news! A spot opened up and you have been automatically enrolled in the event!');
+          // Reload events to show the new enrollment
+          await loadEvents();
+          return;
+        }
+      }
+    }
   };
 
   const postNewEvent = async () => {
@@ -531,6 +586,25 @@ const getEventData = async (eventID) => {
         },
         { merge: true }
       );
+
+      // 3. Add user to Remo event
+      try {
+        const functionsInst = getFunctions();
+        const addUserToRemoEventCF = httpsCallable(functionsInst, 'addUserToRemoEvent');
+        
+        if (user.email && event.eventID) {
+          await addUserToRemoEventCF({ 
+            eventId: event.eventID, 
+            userEmail: user.email 
+          });
+          console.log(`Successfully added user ${user.uid} to Remo event ${event.eventID}`);
+        } else {
+          console.warn(`Missing email for user ${user.uid} or eventID for event ${event.firestoreID}`);
+        }
+      } catch (remoError) {
+        console.error('Error adding user to Remo event:', remoError);
+        // Don't fail the entire signup if Remo fails
+      }
     }
 
     // Update event signup count in Firestore
@@ -557,6 +631,34 @@ const getEventData = async (eventID) => {
         );
       }
     }
+
+    // Check waitlist after someone signs up (in case someone cancelled)
+    setTimeout(async () => {
+      const notifiedUser = await checkWaitlistForEvent(event.firestoreID, userGender);
+      if (notifiedUser) {
+        console.log(`Notified user ${notifiedUser.userID} about available spot`);
+        // Reload events immediately to show updated counts
+        await loadEvents();
+      }
+    }, 1000); // Small delay to ensure signup is processed
+
+    // Also check waitlist for all events when data is refreshed
+    setTimeout(async () => {
+      let anyEnrollments = false;
+      for (const evt of allEvents) {
+        if (evt.firestoreID) {
+          const notifiedUser = await checkWaitlistForEvent(evt.firestoreID, userGender);
+          if (notifiedUser) {
+            console.log(`Notified user ${notifiedUser.userID} about available spot for event ${evt.firestoreID}`);
+            anyEnrollments = true;
+          }
+        }
+      }
+      // Only reload if someone was enrolled
+      if (anyEnrollments) {
+        await loadEvents();
+      }
+    }, 2000); // Check all events after a longer delay
 
     // Optimistically update local signed-up IDs when a user signs up
     setSignedUpEventIds(prev => {
@@ -711,6 +813,102 @@ const getEventData = async (eventID) => {
     navigate('/dashboard/dashDateCalendar');
   };
 
+  // Function to check waitlist when spots become available
+  const checkWaitlistForEvent = async (eventId, userGender) => {
+    try {
+      const waitlistRef = collection(db, 'events', eventId, 'waitlist');
+      const waitlistSnap = await getDocs(waitlistRef);
+      
+      // Find the first person on waitlist for this gender
+      const waitlistEntries = waitlistSnap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(entry => entry.userGender?.toLowerCase() === userGender?.toLowerCase())
+        .sort((a, b) => a.joinTime?.toDate() - b.joinTime?.toDate()); // Sort by join time
+      
+      if (waitlistEntries.length > 0) {
+        const firstInLine = waitlistEntries[0];
+        
+        // Remove from waitlist
+        await deleteDoc(doc(db, 'events', eventId, 'waitlist', firstInLine.id));
+        
+        // Automatically enroll the user in the event
+        const eventDoc = await getDoc(doc(db, 'events', eventId));
+        if (eventDoc.exists()) {
+          const eventData = eventDoc.data();
+          
+          // Add user to signed up events
+          await setDoc(
+            doc(db, 'users', firstInLine.userID, 'signedUpEvents', eventId),
+            {
+              eventID: eventData.eventID,
+              signUpTime: serverTimestamp(),
+              eventTitle: eventData.title || eventData.eventName,
+              eventDate: eventData.date,
+              eventTime: eventData.time,
+              eventLocation: eventData.location,
+              eventAgeRange: eventData.ageRange,
+              eventType: eventData.eventType,
+              fromWaitlist: true, // Mark that this signup came from waitlist
+            },
+            { merge: true }
+          );
+          
+          // Add user to event's signed up users
+          await setDoc(
+            doc(db, 'events', eventId, 'signedUpUsers', firstInLine.userID),
+            {
+              userID: firstInLine.userID,
+              userName: firstInLine.userName || 'Waitlist User',
+              userEmail: firstInLine.userEmail,
+              userPhoneNumber: firstInLine.userPhoneNumber,
+              userGender: firstInLine.userGender,
+              userLocation: firstInLine.userLocation,
+              signUpTime: serverTimestamp(),
+              fromWaitlist: true,
+            },
+            { merge: true }
+          );
+          
+          // Update event signup count
+          if (firstInLine.userGender?.toLowerCase() === 'male') {
+            await updateDoc(doc(db, 'events', eventId), { menSignupCount: increment(1) });
+          } else if (firstInLine.userGender?.toLowerCase() === 'female') {
+            await updateDoc(doc(db, 'events', eventId), { womenSignupCount: increment(1) });
+          }
+
+          // Add user to Remo event
+          try {
+            const functionsInst = getFunctions();
+            const addUserToRemoEventCF = httpsCallable(functionsInst, 'addUserToRemoEvent');
+            
+            // Get user's email from their profile
+            const userProfileDoc = await getDoc(doc(db, 'users', firstInLine.userID));
+            const userEmail = userProfileDoc.exists() ? userProfileDoc.data().email : null;
+            
+            if (userEmail && eventData.eventID) {
+              await addUserToRemoEventCF({ 
+                eventId: eventData.eventID, 
+                userEmail: userEmail 
+              });
+              console.log(`Successfully added user ${firstInLine.userID} to Remo event ${eventData.eventID}`);
+            } else {
+              console.warn(`Missing email for user ${firstInLine.userID} or eventID for event ${eventId}`);
+            }
+          } catch (remoError) {
+            console.error('Error adding user to Remo event:', remoError);
+            // Don't fail the entire enrollment if Remo fails
+          }
+        }
+        
+        console.log(`User ${firstInLine.userID} has been automatically enrolled in event ${eventId} from waitlist`);
+        return firstInLine;
+      }
+    } catch (error) {
+      console.error('Error checking waitlist:', error);
+    }
+    return null;
+  };
+
   // Use the same event limit for sign-up events
   const signUpEventLimit = useResponsiveEventLimit();
   // Filter for upcoming and sign-up events
@@ -728,32 +926,7 @@ const getEventData = async (eventID) => {
         return false;
       }
 
-      // Then check if the event is full for the user's gender
-      if (userGender) {
-        const userGenderLower = userGender.toLowerCase();
-        
-        if (userGenderLower === 'male') {
-          const totalMenSpots = Number(event.menSpots) || 0;
-          const signedUpMen = Number(event.menSignupCount) || 0;
-          const availableMenSpots = totalMenSpots - signedUpMen;
-          
-          // If no spots available for men, exclude this event
-          if (availableMenSpots <= 0) {
-            return false;
-          }
-        } else if (userGenderLower === 'female') {
-          const totalWomenSpots = Number(event.womenSpots) || 0;
-          const signedUpWomen = Number(event.womenSignupCount) || 0;
-          const availableWomenSpots = totalWomenSpots - signedUpWomen;
-          
-          // If no spots available for women, exclude this event
-          if (availableWomenSpots <= 0) {
-            return false;
-          }
-        }
-      }
-
-      // If we get here, the event is available for sign-up
+      // Show all events, even if full (for waitlist functionality)
       return true;
     });
   }, [allEvents, signedUpEventIds, userGender]);
@@ -1109,6 +1282,7 @@ const getEventData = async (eventID) => {
               ) : (
                 <ConnectionsTable connections={connections} />
               )}
+
               {/*              <button
                 className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
                 onClick={() => fetchEventsFromFirebase()}
