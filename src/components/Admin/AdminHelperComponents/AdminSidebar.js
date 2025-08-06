@@ -32,12 +32,6 @@ const AdminSidebar = () => {
   };
 
   const SidebarData = [
-    // {
-    //   title: "Coupons",
-    //   path: "/admin-dashboard/coupons",
-    //   icon: <RiIcons.RiCoupon3Line />,
-    //   cName: "nav-text",
-    // },
     {
       title: "Events Management",
       path: "/admin-dashboard/events",
@@ -48,6 +42,12 @@ const AdminSidebar = () => {
       title: "User Management",
       path: "/admin-dashboard/users",
       icon: <FaIcons.FaUsers />,
+      cName: "nav-text",
+    },
+    {
+      title: "Coupons Management",
+      path: "/admin-dashboard/coupons",
+      icon: <RiIcons.RiCoupon3Line />,
       cName: "nav-text",
     },
     {
