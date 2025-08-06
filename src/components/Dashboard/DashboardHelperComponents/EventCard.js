@@ -91,6 +91,22 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
   const { dayOfWeek, day, month, timeLabel } = dateParts;
   
+  // Calculate time range for display
+  const getTimeRange = () => {
+    if (event.startTime && event.endTime) {
+      const startDt = DateTime.fromMillis(Number(event.startTime));
+      const endDt = DateTime.fromMillis(Number(event.endTime));
+      const startTime = startDt.toFormat('h:mm a');
+      const endTime = endDt.toFormat('h:mm a');
+      return `${startTime} - ${endTime}`;
+    } else if (timeLabel) {
+      return timeLabel;
+    }
+    return '';
+  };
+  
+  const timeRange = getTimeRange();
+  
   return (
     <>
       <div
@@ -203,7 +219,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                   uppercase
                   text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
                 ">
-                  {event.eventType || ''}{event.eventType && timeLabel ? ' @ ' : ''}{timeLabel || ''}
+                  {event.eventType || ''}{event.eventType && timeRange ? ' @ ' : ''}{timeRange}
                 </span>
               </div>
               
