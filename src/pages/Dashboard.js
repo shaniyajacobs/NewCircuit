@@ -33,7 +33,7 @@ const Dashboard = () => {
   return (
     <div className="flex min-h-screen max-md:flex-col">
       <Sidebar />
-      <div className="flex flex-col flex-1 bg-white">
+      <div className="flex flex-col flex-1 bg-white md:ml-[280px]">
         <Header path={currPath} />
           <Routes>
             <Route path="/" element={<DashHome />}/> 
