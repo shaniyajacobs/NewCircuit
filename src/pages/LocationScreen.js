@@ -95,12 +95,7 @@ const LocationScreen = () => {
                 </button>
                 <span className={styles.locationText}>LOCATION</span>
             </div>
-            {/* Progress Bar Margin Layout */}
-            <div className={styles.progressBarMarginLayout}>
-            <div className={styles.progressBarBg}>
-                <div className={styles.progressBarFill} style={{ width: '60%' }} />
-                </div>
-            </div>
+
             {/* Main Content */}
             <div className={styles.contentWrapper}>
                 <h2 className={styles.selectCityTitle}>Select City</h2>
