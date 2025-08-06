@@ -6,6 +6,7 @@ import { FaSearch, FaTrash, FaUserShield } from 'react-icons/fa';
 import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
+import AdminUserDetailModal from './AdminUserDetailModal';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -24,6 +25,9 @@ const AdminUserManagement = () => {
   const [showConnectionsModal, setShowConnectionsModal] = useState(false);
   const [loadingConnections, setLoadingConnections] = useState(false);
   const [userConnections, setUserConnections] = useState([]);
+  // User Detail modal state
+  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -211,6 +215,12 @@ const AdminUserManagement = () => {
     }
   };
 
+  // Show user detail modal
+  const handleShowUserDetail = (user) => {
+    setSelectedUserDetail(user);
+    setShowUserDetailModal(true);
+  };
+
   const filteredUsers = users.filter(user => 
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -246,21 +256,21 @@ const AdminUserManagement = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preference</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sparks</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Events</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan="8" className="text-center py-4">Loading...</td>
+                <td colSpan="9" className="text-center py-4">Loading...</td>
               </tr>
             ) : filteredUsers.map(user => (
               <tr key={user.id} className={user.id === auth.currentUser?.uid ? 'bg-blue-50' : ''}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className="relative text-blue-600 underline cursor-pointer"
+                    className="relative text-gray-900 cursor-default"
                     onMouseEnter={() => setHoverUserId(user.id)}
-                    
                   >
                     {user.firstName} {user.lastName}
                     {hoverUserId === user.id && (
@@ -312,6 +322,15 @@ const AdminUserManagement = () => {
                     className="px-3 py-1 bg-[#0043F1] text-white text-sm rounded-lg hover:bg-[#0034BD] transition-colors"
                   >
                     Events
+                  </button>
+                </td>
+                {/* Dates column */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <button
+                    onClick={() => handleShowUserDetail(user)}
+                    className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Dates
                   </button>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -394,6 +413,15 @@ const AdminUserManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* User Detail Modal */}
+      {showUserDetailModal && selectedUserDetail && (
+        <AdminUserDetailModal
+          isOpen={showUserDetailModal}
+          onClose={() => setShowUserDetailModal(false)}
+          user={selectedUserDetail}
+        />
       )}
 
       {/* User Events Modal */}
