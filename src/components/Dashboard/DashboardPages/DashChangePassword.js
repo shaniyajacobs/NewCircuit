@@ -1,28 +1,32 @@
 import { useState } from "react";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"; // Importing eye icons
 import { useNavigate } from 'react-router-dom';
+import { getAuth, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 
 const DashChangePassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate(); 
+  const auth = getAuth();
 
   const handleSavePassword = async () => {
     // Reset error state
     setError('');
     
     // Validate passwords
-    if (!newPassword || !confirmPassword) {
-      setError('Please fill in both password fields');
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError('Please fill in all password fields');
       return;
     }
     
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('New passwords do not match');
       return;
     }
     
@@ -34,22 +38,42 @@ const DashChangePassword = () => {
     setIsLoading(true);
     
     try {
-      // Here you would typically call your authentication service
-      // For example, if using Firebase Auth:
-      // await updatePassword(auth.currentUser, newPassword);
+      const user = auth.currentUser;
       
-      // For now, we'll simulate the password change
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!user) {
+        throw new Error('No user is currently logged in');
+      }
+
+      // Re-authenticate user before changing password
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
+      
+      await reauthenticateWithCredential(user, credential);
+      
+      // Update password
+      await updatePassword(user, newPassword);
       
       // Clear the form
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       
       // Navigate back to settings with success message
       navigate('/dashboard/dashSettings');
     } catch (err) {
-      setError('Failed to update password. Please try again.');
       console.error('Password update error:', err);
+      
+      if (err.code === 'auth/wrong-password') {
+        setError('Current password is incorrect');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password is too weak. Please choose a stronger password.');
+      } else if (err.code === 'auth/requires-recent-login') {
+        setError('Please log in again before changing your password');
+      } else {
+        setError('Failed to update password. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -74,6 +98,33 @@ const DashChangePassword = () => {
         <div className="flex-1 space-y-6">
             {/* Password Fields */}
             <div className="space-y-3">
+                {/* Current Password Section */}
+                <div>
+                    <h2 className="text-[#211F20] font-poppins text-sm sm:text-base font-medium leading-normal mb-2">
+                        Current Password
+                    </h2>
+                    <div className="relative">
+                        <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            className="w-full px-4 sm:px-6 md:px-8 lg:px-[24px] py-2 sm:py-3 md:py-4 lg:py-[12px] rounded-[8px] border border-[rgba(0,0,0,0.10)] bg-white font-poppins text-sm sm:text-base font-medium leading-normal text-[#211F20] placeholder-[rgba(33,31,32,0.75)] transition-all duration-200"
+                            placeholder="Enter current password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                        />
+                        <button
+                            type="button"
+                            className="absolute inset-y-0 right-4 flex items-center"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        >
+                            {showCurrentPassword ? (
+                            <EyeSlashIcon className="w-7 h-7 text-gray-600" />
+                            ) : (
+                            <EyeIcon className="w-7 h-7 text-gray-600" />
+                            )}
+                        </button>
+                    </div>
+                </div>
+
                 {/* New Password Section */}
                 <div>
                     <h2 className="text-[#211F20] font-poppins text-sm sm:text-base font-medium leading-normal mb-2">
@@ -139,16 +190,10 @@ const DashChangePassword = () => {
             {/* Security Notice */}
             <div>
                 <h2 className="text-[#211F20] font-poppins text-sm sm:text-base font-medium leading-normal mb-2">
-                    Security
+                    Security Note
                 </h2>
                 <p className="font-poppins text-sm sm:text-base font-normal leading-normal text-[#211F20] mb-1">
-                    Note: If you suspect your account has been compromised, please consider changing your password first. {" "}
-                    <a
-                        href="#"
-                        className="font-bold underline text-[#211F20] hover:text-blue-700 transition-colors"
-                    >
-                        Instructions for changing your password can be found on our support site.
-                    </a>
+                    If you suspect your account has been compromised, please consider changing your password first. {" "}
                 </p>
             </div>
         </div>
