@@ -33,7 +33,7 @@ import HowItWorks from './pages/HowItWorks';
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ProfileProvider } from './contexts/ProfileContext';
-import {useDocTitle} from './components/CustomHook';
+import usePageTitle from './utils/usePageTitle';
 import ScrollToTop from './components/ScrollToTop';
 import Dashboard from './pages/Dashboard';
 import NavBar from './components/Navbar/NavBar';
@@ -141,13 +141,22 @@ function App() {
     preloadImages();
   }, []);
 
-  useDocTitle("MLD | Molad e Konsult - Bespoke Web and Mobile Applications");
-
   return (
     <ProfileProvider>
       <Router>
-        <ScrollToTop>
-          <Routes>
+        <AppContent />
+      </Router>
+    </ProfileProvider>
+  );
+}
+
+// Separate component to use Router hooks
+function AppContent() {
+  usePageTitle();
+  
+  return (
+    <ScrollToTop>
+      <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard/*" element={
               <PrivateRoute>
@@ -188,9 +197,7 @@ function App() {
             <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
           </Routes>
         </ScrollToTop>
-      </Router>
-    </ProfileProvider>
-  );
+    );
 }
 
 export default App;
