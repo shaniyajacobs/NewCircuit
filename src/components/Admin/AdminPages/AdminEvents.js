@@ -15,16 +15,12 @@ const AdminEvents = () => {
   const [hoverEventId, setHoverEventId] = useState(null); // for ID tooltip on hover
   const [showEditModal, setShowEditModal] = useState(false);
   const [newEvent, setNewEvent] = useState({
-    title: '',
-    date: '',
+    eventID: '',
     location: '',
-    time: '',
-    timeZone: '',
     menSpots: '',
     womenSpots: '',
     ageRange: '',
-    eventType: '',
-    eventID: ''
+    eventType: ''
   });
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -156,7 +152,7 @@ const AdminEvents = () => {
       await updateDoc(docRef, { id: docRef.id });
 
       setShowAddModal(false);
-      setNewEvent({ title: '', date: '', location: '', time: '', timeZone: '', menSpots: '', womenSpots: '', ageRange: '', eventType: '', eventID: '' });
+      setNewEvent({ eventID: '', location: '', menSpots: '', womenSpots: '', ageRange: '', eventType: '' });
       fetchEvents();
     } catch (error) {
       console.error('Error adding event:', error);
@@ -175,7 +171,10 @@ const AdminEvents = () => {
   };
 
   const filteredEvents = events.filter(evt =>
-    evt.title?.toLowerCase().includes(searchTerm.toLowerCase())
+    (evt.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     evt.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     evt.eventID?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     evt.location?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -210,10 +209,10 @@ const AdminEvents = () => {
         <table className="min-w-full whitespace-nowrap text-sm">
           <thead className="bg-gray-50 sticky top-0">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title/Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Zone</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sign Ups</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -229,10 +228,11 @@ const AdminEvents = () => {
             ) : filteredEvents.map(evt => (
               <tr key={evt.id}>
                 {(() => {
-                  const dt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)) : null;
-                  const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (evt.date ? DateTime.fromISO(evt.date).toFormat('MM/dd/yyyy') : '');
-                  const timeStr = dt ? dt.toFormat('h:mm a') : (evt.time || '');
-                  const tzStr = dt ? dt.offsetNameShort : (evt.timeZone || '');
+                  const startDt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)) : null;
+                  const endDt = evt.endTime ? DateTime.fromMillis(Number(evt.endTime)) : null;
+                  const dateStr = startDt ? startDt.toFormat('MM/dd/yyyy') : (evt.date ? DateTime.fromISO(evt.date).toFormat('MM/dd/yyyy') : '');
+                  const startTimeStr = startDt ? startDt.toFormat('h:mm a') : (evt.time || '');
+                  const endTimeStr = endDt ? endDt.toFormat('h:mm a') : '-';
                   return (
                     <> 
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -240,7 +240,7 @@ const AdminEvents = () => {
                           className="relative text-blue-600 underline cursor-pointer"
                           onMouseEnter={() => setHoverEventId(evt.id)}
                         >
-                          {evt.name || evt.title}
+                          {evt.name || evt.title || 'Untitled'}
                           {hoverEventId === evt.id && (
                             <div
                               className="absolute z-10 left-full ml-4 top-1/2 -translate-y-1/2 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs whitespace-nowrap"
@@ -254,12 +254,12 @@ const AdminEvents = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{dateStr}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{timeStr}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{tzStr}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{startTimeStr}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{endTimeStr}</td>
                        </>
                   );
                 })()}
-                <td className="px-6 py-4 whitespace-nowrap">{evt.location}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{evt.location || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => handleShowUsers(evt)}
@@ -268,8 +268,8 @@ const AdminEvents = () => {
                     Users
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">{evt.eventType}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{evt.ageRange}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{evt.eventType || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{evt.ageRange || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => handleEditEvent(evt)}
@@ -297,7 +297,7 @@ const AdminEvents = () => {
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <h2 className="text-2xl font-semibold mb-4">Delete Event</h2>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete {selectedEvent?.title}? This action cannot be undone.
+              Are you sure you want to delete {selectedEvent?.title || selectedEvent?.name || selectedEvent?.eventID || 'this event'}? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-4">
               <button
@@ -324,12 +324,12 @@ const AdminEvents = () => {
             <h2 className="text-2xl font-semibold mb-4">Add New Event</h2>
             <form onSubmit={handleAddEvent} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event Title</label>
+                <label className="text-sm font-medium text-gray-700">Event ID</label>
                 <input
                   type="text"
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  value={newEvent.eventID}
+                  onChange={(e) => setNewEvent({ ...newEvent, eventID: e.target.value })}
                   required
                 />
               </div>
@@ -344,38 +344,6 @@ const AdminEvents = () => {
                   <option value="" disabled>Select location</option>
                   {LOCATION_OPTIONS.map(loc => (<option key={loc} value={loc}>{loc}</option>))}
                 </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Date</label>
-                <input
-                  type="date"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={newEvent.date}
-                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="flex gap-4">
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Time (e.g., 7:00 PM)</label>
-                  <input
-                    type="text"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none w-full"
-                    value={newEvent.time}
-                    onChange={(e)=>setNewEvent({...newEvent, time:e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Time Zone</label>
-                  <input
-                    type="text"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none w-full"
-                    value={newEvent.timeZone}
-                    onChange={(e)=>setNewEvent({...newEvent, timeZone:e.target.value})}
-                    required
-                  />
-                </div>
               </div>
               <div className="flex gap-4">
                 <div className="flex flex-col gap-1 flex-1">
@@ -421,16 +389,6 @@ const AdminEvents = () => {
                   {['Brunch','Happy Hour','Dinner'].map(t=>(<option key={t} value={t}>{t}</option>))}
                 </select>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event ID</label>
-                <input
-                  type="text"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={newEvent.eventID}
-                  onChange={(e) => setNewEvent({ ...newEvent, eventID: e.target.value })}
-                  required
-                />
-              </div>
               <div className="flex justify-end gap-4 mt-4">
                 <button
                   type="button"
@@ -457,19 +415,19 @@ const AdminEvents = () => {
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
             <h2 className="text-2xl font-semibold mb-4">Edit Event</h2>
             <form onSubmit={handleUpdateEvent} className="flex flex-col gap-4">
-              {/* Event Title */}
+              {/* Event ID */}
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event Title</label>
+                <label className="text-sm font-medium text-gray-700">Event ID</label>
                 <input
                   type="text"
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={selectedEvent.title}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,title:e.target.value})}
+                  value={selectedEvent.eventID}
+                  onChange={(e)=>setSelectedEvent({...selectedEvent,eventID:e.target.value})}
                   required
                 />
               </div>
 
-              {/* Location before Date */}
+              {/* Location */}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Location</label>
                 <select
@@ -480,42 +438,6 @@ const AdminEvents = () => {
                 >
                   {LOCATION_OPTIONS.map(loc=>(<option key={loc} value={loc}>{loc}</option>))}
                 </select>
-              </div>
-
-              {/* Date */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Date</label>
-                <input
-                  type="date"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={selectedEvent.date}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,date:e.target.value})}
-                  required
-                />
-              </div>
-
-              {/* Time & TimeZone Row */}
-              <div className="flex gap-4">
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Time (e.g., 7:00 PM)</label>
-                  <input
-                    type="text"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none w-full"
-                    value={selectedEvent.time}
-                    onChange={(e)=>setSelectedEvent({...selectedEvent,time:e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Time Zone</label>
-                  <input
-                    type="text"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none w-full"
-                    value={selectedEvent.timeZone}
-                    onChange={(e)=>setSelectedEvent({...selectedEvent,timeZone:e.target.value})}
-                    required
-                  />
-                </div>
               </div>
 
               {/* Men & Women Spots Row */}
@@ -565,18 +487,6 @@ const AdminEvents = () => {
                 >
                   {['Brunch','Happy Hour','Dinner'].map(t=>(<option key={t} value={t}>{t}</option>))}
                 </select>
-              </div>
-
-              {/* Event ID */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event ID</label>
-                <input
-                  type="text"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={selectedEvent.eventID}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,eventID:e.target.value})}
-                  required
-                />
               </div>
 
 
