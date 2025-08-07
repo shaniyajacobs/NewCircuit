@@ -93,7 +93,7 @@ const LocationScreen = () => {
                 <button className={styles.backBtn} onClick={() => navigate('/preferencePage')}>
                     <IoChevronBack className={styles.backIcon} />
                 </button>
-                <span className={styles.locationText}>LOCATION</span>
+                <span className={styles.locationText}>GENDER</span>
             </div>
 
             {/* Main Content */}
