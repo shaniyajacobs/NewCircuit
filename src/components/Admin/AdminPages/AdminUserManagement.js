@@ -32,6 +32,11 @@ const AdminUserManagement = () => {
   const [showDeleteEventModal, setShowDeleteEventModal] = useState(false);
   const [selectedEventToDelete, setSelectedEventToDelete] = useState(null);
   const [deletingEvent, setDeletingEvent] = useState(false);
+  // Edit dates modal state
+  const [showEditDatesModal, setShowEditDatesModal] = useState(false);
+  const [selectedUserForDates, setSelectedUserForDates] = useState(null);
+  const [newDatesRemaining, setNewDatesRemaining] = useState(0);
+  const [updatingDates, setUpdatingDates] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -230,6 +235,43 @@ const AdminUserManagement = () => {
     setShowDeleteEventModal(true);
   };
 
+  const handleEditDates = (user) => {
+    setSelectedUserForDates(user);
+    setNewDatesRemaining(user.datesRemaining || 0);
+    setShowEditDatesModal(true);
+  };
+
+  const confirmUpdateDates = async () => {
+    if (!selectedUserForDates) return;
+    
+    try {
+      setUpdatingDates(true);
+      
+      const userDocRef = doc(db, 'users', selectedUserForDates.id);
+      await updateDoc(userDocRef, {
+        datesRemaining: parseInt(newDatesRemaining)
+      });
+      
+      // Update local state
+      setUsers(prev => prev.map(user => 
+        user.id === selectedUserForDates.id 
+          ? { ...user, datesRemaining: parseInt(newDatesRemaining) }
+          : user
+      ));
+      
+      setShowEditDatesModal(false);
+      setSelectedUserForDates(null);
+      setNewDatesRemaining(0);
+      
+      console.log('✅ User dates updated successfully');
+    } catch (error) {
+      console.error('Error updating user dates:', error);
+      alert('Failed to update user dates. Please try again.');
+    } finally {
+      setUpdatingDates(false);
+    }
+  };
+
   const confirmDeleteEvent = async () => {
     if (!selectedEventToDelete || !selectedUser) return;
     
@@ -364,6 +406,7 @@ const AdminUserManagement = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preference</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sparks</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Events</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -415,6 +458,19 @@ const AdminUserManagement = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap capitalize">{user.gender || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap capitalize">{user.sexualPreference || user.genderPreference || '-'}</td>
+                {/* Dates column */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium">{user.datesRemaining || 0}</span>
+                    <button
+                      onClick={() => handleEditDates(user)}
+                      className="text-blue-600 hover:text-blue-900 text-sm"
+                      title="Edit Dates"
+                    >
+                      ✏️
+                    </button>
+                  </div>
+                </td>
                 {/* Sparks column */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
@@ -664,6 +720,51 @@ const AdminUserManagement = () => {
                 disabled={deletingEvent}
               >
                 {deletingEvent ? 'Removing...' : 'Remove User'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Dates Modal */}
+      {showEditDatesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-semibold mb-4">Edit User Dates</h2>
+            <p className="text-gray-600 mb-6">
+              Update the number of dates remaining for <strong>{selectedUserForDates?.firstName} {selectedUserForDates?.lastName}</strong>
+            </p>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Dates Remaining
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={newDatesRemaining}
+                onChange={(e) => setNewDatesRemaining(parseInt(e.target.value) || 0)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter number of dates"
+              />
+            </div>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => {
+                  setShowEditDatesModal(false);
+                  setSelectedUserForDates(null);
+                  setNewDatesRemaining(0);
+                }}
+                disabled={updatingDates}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                onClick={confirmUpdateDates}
+                disabled={updatingDates}
+              >
+                {updatingDates ? 'Updating...' : 'Update Dates'}
               </button>
             </div>
           </div>
