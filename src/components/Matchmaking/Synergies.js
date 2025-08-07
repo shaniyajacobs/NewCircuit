@@ -356,13 +356,22 @@ export function getTopMatches(currentUserAnswers, others) {
   function computeSynergies(userA, userB, userIdB) {
     const synergies = new Map();
     for (const key of questionKeys) {
-      const answerA = userA[key];
-      const answerB = userB[key];
+      let answerA = userA[key];
+      let answerB = userB[key];
+      
+      // Special handling for Question 17 (drag-and-drop ranking)
+      if (key === "Question 17") {
+        // Use the synergy field for the top answer instead of the full array
+        answerA = userA[`${key}_synergy`] || answerA;
+        answerB = userB[`${key}_synergy`] || answerB;
+      }
+      
       if (answerA == null || answerB == null) {
         console.warn(`[MATCH] Missing answer for ${key}:`, { answerA, answerB, userA, userB });
         synergies.set(key, 0.5); // Default/neutral synergy if missing
         continue;
       }
+      
       // Build a sorted set key for lookup, normalize answers
       const setKey = new Set([normalize(answerA), normalize(answerB)]);
       // Convert all sets in the matrix to sorted string keys for comparison
