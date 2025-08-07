@@ -701,7 +701,8 @@ const AdminUserManagement = () => {
               Are you sure you want to remove <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> from the event "{selectedEventToDelete?.title}"?
             </p>
             <p className="text-sm text-red-600 mb-6">
-              This action will remove the user from the event and update the signup counts. This action cannot be undone.
+              This action will remove the user from the event and update the signup counts. This action cannot be undone.<br/>
+              <span className="text-xs text-red-500 block mt-2">Reminder: You must manually remove this user from the Remo event in the Remo dashboard. This is not handled automatically.</span>
             </p>
             <div className="flex justify-end gap-4">
               <button
