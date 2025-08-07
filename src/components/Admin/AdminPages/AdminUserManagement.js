@@ -6,6 +6,7 @@ import { FaSearch, FaTrash, FaUserShield } from 'react-icons/fa';
 import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
+import AdminUserDetailModal from './AdminUserDetailModal';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -24,6 +25,9 @@ const AdminUserManagement = () => {
   const [showConnectionsModal, setShowConnectionsModal] = useState(false);
   const [loadingConnections, setLoadingConnections] = useState(false);
   const [userConnections, setUserConnections] = useState([]);
+  // User Detail modal state
+  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -211,6 +215,12 @@ const AdminUserManagement = () => {
     }
   };
 
+  // Show user detail modal
+  const handleShowUserDetail = (user) => {
+    setSelectedUserDetail(user);
+    setShowUserDetailModal(true);
+  };
+
   const filteredUsers = users.filter(user => 
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -258,9 +268,8 @@ const AdminUserManagement = () => {
               <tr key={user.id} className={user.id === auth.currentUser?.uid ? 'bg-blue-50' : ''}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className="relative text-blue-600 underline cursor-pointer"
+                    className="relative text-gray-900 cursor-default"
                     onMouseEnter={() => setHoverUserId(user.id)}
-                    
                   >
                     {user.firstName} {user.lastName}
                     {hoverUserId === user.id && (
@@ -394,6 +403,15 @@ const AdminUserManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* User Detail Modal */}
+      {showUserDetailModal && selectedUserDetail && (
+        <AdminUserDetailModal
+          isOpen={showUserDetailModal}
+          onClose={() => setShowUserDetailModal(false)}
+          user={selectedUserDetail}
+        />
       )}
 
       {/* User Events Modal */}
