@@ -129,8 +129,16 @@ const PersonalityQuizPage = () => {
   const handleConfirmSubmit = () => {
     console.log("Confirm submit clicked!");
     setShowConfirmation(false);
-    console.log("Calling handleQuizSubmit with answers:", { ...answers, [`Question 17`]: rankList });
-    handleQuizSubmit({ ...answers, [`Question 17`]: rankList });
+    
+    // Store both the full ranking array and the top answer for synergy algorithm
+    const answersWithRanking = {
+      ...answers,
+      [`Question 17`]: rankList, // Full ranking for data completeness
+      [`Question 17_synergy`]: rankList[0] // Top answer for synergy algorithm
+    };
+    
+    console.log("Calling handleQuizSubmit with answers:", answersWithRanking);
+    handleQuizSubmit(answersWithRanking);
   };
 
   const handleCancelSubmit = () => {
