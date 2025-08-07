@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../../../pages/firebaseConfig';
-import { collection, getDocs, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { deleteUser, getAuth, signInWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { FaSearch, FaTrash, FaUserShield } from 'react-icons/fa';
 import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
@@ -28,6 +28,10 @@ const AdminUserManagement = () => {
   // User Detail modal state
   const [showUserDetailModal, setShowUserDetailModal] = useState(false);
   const [selectedUserDetail, setSelectedUserDetail] = useState(null);
+  // Delete event modal state
+  const [showDeleteEventModal, setShowDeleteEventModal] = useState(false);
+  const [selectedEventToDelete, setSelectedEventToDelete] = useState(null);
+  const [deletingEvent, setDeletingEvent] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -134,7 +138,7 @@ const AdminUserManagement = () => {
       const enriched = await Promise.all(
         eventsSnap.docs.map(async (docSnap) => {
           const data = docSnap.data() || {};
-          const eventId = data.eventID || docSnap.id;
+          const eventId = docSnap.id; // Use the document ID consistently for deletion
 
           let remo = {};
           try {
@@ -219,6 +223,112 @@ const AdminUserManagement = () => {
   const handleShowUserDetail = (user) => {
     setSelectedUserDetail(user);
     setShowUserDetailModal(true);
+  };
+
+  const handleDeleteEvent = (event) => {
+    setSelectedEventToDelete(event);
+    setShowDeleteEventModal(true);
+  };
+
+  const confirmDeleteEvent = async () => {
+    if (!selectedEventToDelete || !selectedUser) return;
+    
+    try {
+      setDeletingEvent(true);
+      
+      console.log('Selected event to delete:', selectedEventToDelete);
+      console.log('Selected user:', selectedUser);
+      
+      const userId = selectedUser.id;
+      const eventId = selectedEventToDelete.id;
+      
+      console.log(`Attempting to delete event ${eventId} from user ${userId}`);
+      
+      // Try to delete from both sides, but don't fail if one doesn't exist
+      try {
+        await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', eventId));
+        console.log('✅ Deleted from user signedUpEvents');
+      } catch (error) {
+        console.log('⚠️ Could not delete from user signedUpEvents (might not exist):', error.message);
+      }
+      
+      try {
+        await deleteDoc(doc(db, 'events', eventId, 'signedUpUsers', userId));
+        console.log('✅ Deleted from event signedUpUsers');
+      } catch (error) {
+        console.log('⚠️ Could not delete from event signedUpUsers (might not exist):', error.message);
+      }
+      
+      // Update event signup counts and available spots
+      try {
+        const eventDocRef = doc(db, 'events', eventId);
+        const eventDoc = await getDoc(eventDocRef);
+        if (eventDoc.exists()) {
+          const data = eventDoc.data();
+          const userGender = selectedUser.gender?.toLowerCase();
+          
+          console.log('🔍 Debug signup count update (AdminUserManagement):');
+          console.log('- User gender:', userGender);
+          console.log('- Event data:', data);
+          console.log('- Current menSignupCount:', data.menSignupCount);
+          console.log('- Current womenSignupCount:', data.womenSignupCount);
+          
+          if (userGender === 'male') {
+            await updateDoc(eventDocRef, { 
+              menSignupCount: increment(-1)
+            });
+            console.log('✅ Updated men signup count');
+          } else if (userGender === 'female') {
+            await updateDoc(eventDocRef, { 
+              womenSignupCount: increment(-1)
+            });
+            console.log('✅ Updated women signup count');
+          } else {
+            console.log('⚠️ Unknown gender:', userGender);
+          }
+        } else {
+          console.log('⚠️ Event document does not exist');
+        }
+      } catch (error) {
+        console.log('⚠️ Could not update signup counts:', error.message);
+      }
+      
+      // Update user's datesRemaining count
+      try {
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const currentDatesRemaining = userData.datesRemaining || 0;
+          
+          console.log('🔍 Debug datesRemaining update (AdminUserManagement):');
+          console.log('- Current datesRemaining:', currentDatesRemaining);
+          console.log('- User ID:', userId);
+          
+          await updateDoc(userDocRef, {
+            datesRemaining: increment(1) // Increase available dates by 1
+          });
+          console.log('✅ Updated user datesRemaining count');
+        } else {
+          console.log('⚠️ User document does not exist');
+        }
+      } catch (error) {
+        console.log('⚠️ Could not update user datesRemaining:', error.message);
+      }
+      
+      // Update local state
+      setUserEvents(prev => prev.filter(e => e.id !== selectedEventToDelete.id));
+      
+      setShowDeleteEventModal(false);
+      setSelectedEventToDelete(null);
+      
+      console.log('✅ Event deletion completed successfully');
+    } catch (error) {
+      console.error('Error deleting event from user:', error);
+      alert('Failed to delete event from user. Please try again.');
+    } finally {
+      setDeletingEvent(false);
+    }
   };
 
   const filteredUsers = users.filter(user => 
@@ -427,21 +537,31 @@ const AdminUserManagement = () => {
               <table className="min-w-full text-sm table-fixed">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Title</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Date</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Time</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Signed-Up At</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Event ID</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Title</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Date</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Time</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Signed-Up At</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Event ID</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {userEvents.map(ev => (
                     <tr key={ev.id}>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.title}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.date}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.time}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.signUp}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.id}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.title}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.date}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.time}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.signUp}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.id}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">
+                        <button
+                          onClick={() => handleDeleteEvent(ev)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          title="Remove user from event"
+                        >
+                          Remove
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -510,6 +630,40 @@ const AdminUserManagement = () => {
                 onClick={() => setShowConnectionsModal(false)}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Event Confirmation Modal */}
+      {showDeleteEventModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-semibold mb-4">Remove User from Event</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to remove <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> from the event "{selectedEventToDelete?.title}"?
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              This action will remove the user from the event and update the signup counts. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => {
+                  setShowDeleteEventModal(false);
+                  setSelectedEventToDelete(null);
+                }}
+                disabled={deletingEvent}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                onClick={confirmDeleteEvent}
+                disabled={deletingEvent}
+              >
+                {deletingEvent ? 'Removing...' : 'Remove User'}
               </button>
             </div>
           </div>
