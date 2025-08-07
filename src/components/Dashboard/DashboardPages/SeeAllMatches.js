@@ -43,57 +43,6 @@ const formatEventDate = (dateString, startTime) => {
   return `${dayOfWeek}, ${day}${getOrdinalSuffix(day)} of ${month}`;
 };
 
-// Test data for development - COMMENT OUT BEFORE PUSHING
-const testMatches = [
-  {
-    id: 'test1',
-    name: 'Kelly Rachel',
-    age: 27,
-    image: '/default-profile.png',
-    compatibility: 85,
-    selected: true, // Simulate previously selected
-  },
-  {
-    id: 'test2', 
-    name: 'Sarah Johnson',
-    age: 25,
-    image: '/default-profile.png',
-    compatibility: 72,
-    selected: false,
-  },
-  {
-    id: 'test3',
-    name: 'Emma Davis',
-    age: 29,
-    image: '/default-profile.png',
-    compatibility: 68,
-    selected: false,
-  },
-  {
-    id: 'test4',
-    name: 'Jessica Wilson',
-    age: 26,
-    image: '/default-profile.png',
-    compatibility: 65,
-    selected: false,
-  },
-  {
-    id: 'test5',
-    name: 'Amanda Brown',
-    age: 28,
-    image: '/default-profile.png',
-    compatibility: 62,
-    selected: false,
-  },
-  {
-    id: 'test6',
-    name: 'Michelle Garcia',
-    age: 24,
-    image: '/default-profile.png',
-    compatibility: 58,
-    selected: false,
-  }
-];
 
 const SeeAllMatches = () => {
   const navigate = useNavigate();
@@ -110,19 +59,10 @@ const SeeAllMatches = () => {
       setLoading(true);
       try {
         const user = auth.currentUser;
-        //if (!user) return;
-        console.log('[DEBUG] Current user:', user);
-        if (!user) {
-          console.log('[DEBUG] No user found, using test data');
-          setMatches(testMatches);
-          return;
-        }
+        if (!user) return;
         const matchesDoc = await getDoc(doc(db, 'matches', user.uid));
-        console.log('[DEBUG] Matches doc exists:', matchesDoc.exists());
         if (!matchesDoc.exists()) {
-          console.log('[DEBUG] No matches doc found, using test data');
-          setMatches(testMatches);
-          //setMatches([]);
+          setMatches([]);
           return;
         }
         
@@ -140,21 +80,17 @@ const SeeAllMatches = () => {
           if (eventData) {
             const formattedDate = formatEventDate(eventData.date, eventData.startTime);
             setEventDate(formattedDate);
-            console.log('[DEBUG] Event date formatted:', formattedDate);
           }
         }
         // Fetch any existing selections from the user's connections sub-collection so that
         // previously chosen sparks appear pre-selected.
         const prevConnSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
         const prevSelectedIds = prevConnSnap.docs.map(d => d.id);
-        console.log('[DEBUG] Previous selected IDs from connections:', prevSelectedIds);
 
         const results = (matchesDoc.data().results || []).sort((a,b) => b.score - a.score);
-        console.log('[DEBUG] Results from Firestore:', results);
         const profiles = await Promise.all(
           results.map(async (m) => {
             const userDoc = await getDoc(doc(db, 'users', m.userId));
-            console.log(`[DEBUG] User doc exists for ${m.userId}:`, userDoc.exists());
             if (!userDoc.exists()) return null;
             const d = userDoc.data();
             return {
@@ -168,21 +104,11 @@ const SeeAllMatches = () => {
           })
         );
         const filtered = profiles.filter(Boolean);
-        console.log('[DEBUG] Filtered profiles:', filtered);
-        console.log('[DEBUG] Profiles count:', filtered.length);
-
-        if (filtered.length === 0) {
-          console.log('[DEBUG] No profiles found, using test data');
-          setMatches(testMatches);
-        } else {
-          setMatches(filtered); //delete if statment, just keep this line
-        }
+        setMatches(filtered);
         setSelectedIds(prevSelectedIds.slice(0, MAX_SELECTIONS));
       } catch (err) {
         console.error('Error fetching full matches', err);
-        console.log('[DEBUG] Error occurred, using test data');
-        setMatches(testMatches);
-        //setMatches([]);
+        setMatches([]);
       } finally {
         setLoading(false);
       }
@@ -202,9 +128,7 @@ const SeeAllMatches = () => {
 
   // Handle the card click while respecting the max-selection rule
   const handleCardClick = (match) => {
-    console.log('[DEBUG] Card clicked for match:', match.id, 'Current selected count:', selectedIds.length);
     if (!match.selected && selectedIds.length >= MAX_SELECTIONS) {
-      console.log('[DEBUG] Max selections reached, showing modal');
       setShowMaxModal(true);
       return;
     }
@@ -212,7 +136,6 @@ const SeeAllMatches = () => {
   };
 
   const handleConfirm = async () => {
-    console.log('[DEBUG] Confirm button clicked, selectedIds:', selectedIds);
     if (selectedIds.length === 0) return navigate(-1);
     const user = auth.currentUser;
     if (!user) return;
@@ -229,13 +152,10 @@ const SeeAllMatches = () => {
         // Find the compatibility score for this match in local state
         const matchObj = matches.find(m => m.id === matchedUid);
         const score = matchObj ? matchObj.compatibility : null;
-        console.log('[DEBUG] Processing selection for user:', matchedUid);
-        console.log('[DEBUG] Compatibility score for', matchedUid, ':', score);
 
         const otherRef = doc(db, 'users', matchedUid, 'connections', user.uid);
         const otherSnap = await getDoc(otherRef);
         const isMutual = otherSnap.exists();
-        console.log('[DEBUG] Is mutual connection for', matchedUid, ':', isMutual);
 
         await setDoc(doc(db, 'users', user.uid, 'connections', matchedUid), {
           connectedAt: serverTimestamp(),
@@ -250,7 +170,6 @@ const SeeAllMatches = () => {
       }
 
       await Promise.all(deletions);
-      console.log('[DEBUG] Navigation to dashboard');
       
       // Check if user has reached max selections for this event
       if (selectedIds.length >= MAX_SELECTIONS) {
