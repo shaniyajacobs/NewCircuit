@@ -1,48 +1,38 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react';
 
-const RestaurantPartnerships = () => {
-  const [openIndex, setOpenIndex] = useState(3); // Start with 4th restaurant expanded
-  const [closingIndex, setClosingIndex] = useState(null);
+// Inline FAQSection placeholder
+const faqItems = [
+  {
+    question: "What's your cancellation & no-show policy?",
+    answer:
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cursus nibh mauris, nec turpis orci lectus maecenas. Suspendisse sed magna eget nibh in turpis. Consequat duis diam lacus arcu.",
+  },
+  {
+    question: "What are the ground rules (safety, matching, and disclaimer)?",
+    answer:
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cursus nibh mauris, nec turpis orci lectus maecenas. Suspendisse sed magna eget nibh in turpis. Consequat duis diam lacus arcu.",
+  },
+  {
+    question: "Do I need to keep my phone on the entire time?",
+    answer:
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cursus nibh mauris, nec turpis orci lectus maecenas. Suspendisse sed magna eget nibh in turpis. Consequat duis diam lacus arcu.",
+  },
+  {
+    question: "When should I show up? What happens if I'm late?",
+    answer:
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cursus nibh mauris, nec turpis orci lectus maecenas. Suspendisse sed magna eget nibh in turpis. Consequat duis diam lacus arcu.",
+  },
+  {
+    question:
+      "I want to register for another event. What if a person I have previously gone on a date with also signs up for the same event?",
+    answer:
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cursus nibh mauris, nec turpis orci lectus maecenas. Suspendisse sed magna eget nibh in turpis. Consequat duis diam lacus arcu.",
+  },
+];
 
-  const restaurants = [
-    {
-      id: 1,
-      name: "Restaurant",
-      address: "ADDRESS, CHICAGO, IL",
-      description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
-    },
-    {
-      id: 2,
-      name: "Restaurant",
-      address: "ADDRESS, CHICAGO, IL",
-      description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
-    },
-    {
-      id: 3,
-      name: "Restaurant",
-      address: "ADDRESS, CHICAGO, IL",
-      description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
-    },
-    {
-      id: 4,
-      name: "Restaurant",
-      address: "ADDRESS, CHICAGO, IL",
-      description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
-    },
-    {
-      id: 5,
-      name: "Restaurant",
-      address: "ADDRESS, CHICAGO, IL",
-      description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
-    },
-    {
-      id: 6,
-      name: "Restaurant",
-      address: "ADDRESS, CHICAGO, IL",
-      description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
-    }
-  ];
+function PricingFAQ() {
+  const [openIndex, setOpenIndex] = React.useState(null);
+  const [closingIndex, setClosingIndex] = React.useState(null);
 
   const handleToggle = (idx) => {
     if (openIndex === idx) {
@@ -58,7 +48,7 @@ const RestaurantPartnerships = () => {
   };
 
   return (
-    <div style={{position: 'relative', width: '100%', background: '#FAFFE7'}}>
+    <div style={{position: 'relative', width: '100%'}}>
       <style>{`
         @keyframes dropdown {
           from { max-height: 0; opacity: 0; }
@@ -90,6 +80,50 @@ const RestaurantPartnerships = () => {
           pointerEvents: 'none',
         }}
       >
+        {/* Black circle background */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100px',
+            height: '100px',
+            borderRadius: '50%',
+            background: '#211F20',
+            zIndex: 8,
+          }}
+        />
+        {/* Decorative circle image - centered */}
+        <img
+          src="/Circled_Text_White.svg"
+          alt="decorative circle"
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: '104px',
+            height: '104px',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 10,
+            pointerEvents: 'none',
+          }}
+        />
+        {/* Center minus icon */}
+        <img
+          src="/cir_minus_Black.svg"
+          alt="minus icon"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            width: '56px',
+            height: '56px',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 11,
+            objectFit: 'contain',
+            pointerEvents: 'none',
+          }}
+        />
         {/* Grain overlay */}
         <div
           style={{
@@ -100,7 +134,7 @@ const RestaurantPartnerships = () => {
             height: '100%',
             zIndex: 20,
             pointerEvents: 'none',
-            background: 'url(/grain.png)',
+            background: 'url(/grain.png)', // You must add a grain.png to public
             opacity: 0.35,
             borderRadius: '50%',
           }}
@@ -110,7 +144,7 @@ const RestaurantPartnerships = () => {
         <div
           className="flex flex-col justify-end items-start gap-4 flex-1 min-h-[200px] md:min-h-[260px] p-4 md:p-6 rounded-tl-[8px] md:rounded-l-[8px] rounded-tr-[8px] md:rounded-r-none rounded-bl-none md:rounded-bl-[8px] rounded-br-none md:rounded-br-none relative overflow-hidden"
           style={{
-            background: 'url(/Restolist.webp) center center / cover no-repeat',
+            background: 'url(/lamp.jpg) center center / cover no-repeat',
           }}
         >
           {/* Gradient overlay for text readability */}
@@ -137,16 +171,14 @@ const RestaurantPartnerships = () => {
                 marginBottom: '8px',
               }}
             >
-              Our partnered restaurants
+              Got questions? Let's plug you in.
             </h1>
-            <Link to="/contact">
-              <button
-                className="flex px-2 py-3 justify-center items-center gap-1 rounded-[6px] bg-[#E2FF65] text-[#211F20] font-poppins text-[11px] font-medium leading-normal shadow-md border-none outline-none hover:opacity-80 transition"
-                style={{ fontFamily: 'Poppins, sans-serif', fontSize: '11px', padding: '8px 8px', gap: '4px', marginBottom: '8px', marginTop: '8px' }}
-              >
-                I want to partner with Circuit
-              </button>
-            </Link>
+            <button
+              className="flex px-2 py-3 justify-center items-center gap-1 rounded-[6px] bg-[#E2FF65] text-[#211F20] font-poppins text-[11px] font-medium leading-normal shadow-md border-none outline-none hover:opacity-80 transition"
+              style={{ fontFamily: 'Poppins, sans-serif', fontSize: '11px', padding: '8px 8px', gap: '4px', marginBottom: '8px', marginTop: '8px' }}
+            >
+              See full FAQ
+            </button>
           </div>
         </div>
         <div
@@ -158,7 +190,7 @@ const RestaurantPartnerships = () => {
             flex: '1 0 0',
             alignSelf: 'stretch',
             borderRadius: '0px 8px 8px 0px',
-            background: 'radial-gradient(50% 50% at 50% 50%, #E2FF65 0%, #D2FFD7 100%)',
+            background: 'radial-gradient(50% 50% at 50% 50%, #8EFF7A 0%, #D7FFF8 100%)',
             paddingLeft: '0px',
             paddingRight: '0px',
             minHeight: '260px',
@@ -174,8 +206,14 @@ const RestaurantPartnerships = () => {
               alignSelf: 'stretch',
             }}
           >
+            <h1
+              className="text-[32px] md:text-[48px] font-bricolage font-semibold leading-[110%] text-[#211F20]"
+              style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontSize: '40px', marginBottom: '8px', marginTop: '8px' }}
+            >
+              Pricing
+            </h1>
             <div className="flex flex-col w-full mb-12" style={{ alignSelf: 'stretch' }}>
-              {restaurants.map((restaurant, idx) => (
+              {faqItems.map((item, idx) => (
                 <div key={idx}>
                   <div
                     className="w-full"
@@ -208,7 +246,7 @@ const RestaurantPartnerships = () => {
                       }}
                       onClick={() => handleToggle(idx)}
                     >
-                      {restaurant.name}
+                      Q
                     </button>
                     <span
                       style={{ cursor: 'pointer', minWidth: 28, minHeight: 44, display: 'flex', alignItems: 'center', paddingRight: '0px' }}
@@ -237,11 +275,10 @@ const RestaurantPartnerships = () => {
                         lineHeight: '1.5',
                       }}
                     >
-                      <p style={{ fontWeight: '500', marginBottom: '8px' }}>{restaurant.address}</p>
-                      <p>{restaurant.description}</p>
+                      {item.answer}
                     </div>
                   )}
-                  {idx === restaurants.length - 1 && (
+                  {idx === 4 && (
                     <div
                       className="w-full"
                       style={{
@@ -264,6 +301,6 @@ const RestaurantPartnerships = () => {
       </div>
     </div>
   );
-};
+}
 
-export default RestaurantPartnerships;
+export default PricingFAQ; 

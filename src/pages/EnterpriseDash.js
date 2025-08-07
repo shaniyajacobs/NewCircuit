@@ -3,7 +3,7 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import BusinessSidebar from "../components/Business/BusinessHelperComponents/BusinessSidebar";
 import BusinessHeader from "../components/Business/BusinessHelperComponents/BusinessHeader";
 import BusinessHome from "../components/Business/BusinessPages/BusinessHome";
-// import BusinessCoupons from "../components/Business/BusinessPages/BusinessCoupons";
+import BusinessCoupons from "../components/Business/BusinessPages/BusinessCoupons";
 import BusinessAnalytics from "../components/Business/BusinessPages/BusinessAnalytics";
 import BusinessProfile from "../components/Business/BusinessPages/BusinessProfile";
 import BusinessSettings from "../components/Business/BusinessPages/BusinessSettings";
@@ -28,7 +28,7 @@ const EnterpriseDash = () => {
         <BusinessHeader path={currPath} />
         <Routes>
           <Route index element={<BusinessHome />} />
-          {/* <Route path="coupons/*" element={<BusinessCoupons />} /> */}
+          <Route path="coupons/*" element={<BusinessCoupons />} />
           <Route path="analytics/*" element={<BusinessAnalytics />} />
           <Route path="profile/*" element={<BusinessProfile />} />
           <Route path="settings/*" element={<BusinessSettings />} />

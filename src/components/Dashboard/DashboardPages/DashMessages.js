@@ -129,6 +129,16 @@ export function DashMessages({ connection }) {
         timeStamp: inv.timestamp.toMillis()
       };
       payload.messages = arrayUnion(confirmationMsg);
+    } else {
+      // Add declined message
+      const inv = invites.find(i => i.id === inviteId);
+      const declinedMsg = {
+        senderId: "system",
+        receiverId: null,
+        text: `Date invitation declined for ${new Date(inv.timestamp.toDate()).toLocaleString()} @ ${inv.location}`,
+        timeStamp: Date.now()
+      };
+      payload.messages = arrayUnion(declinedMsg);
     }
 
     await updateDoc(ref, payload);
@@ -256,31 +266,56 @@ export function DashMessages({ connection }) {
 
       {/* Pending Invites */}
       <div className="px-4 py-2">
-        {invites.map(inv => (
-          <div
-            key={inv.id}
-            className="bg-yellow-100 p-4 mb-2 rounded flex justify-between items-center"
-          >
-            <span>
-              {connection.name} invited you on{" "}
-              {new Date(inv.timestamp.toDate()).toLocaleString()} @ {inv.location}
-            </span>
-            <div className="space-x-2">
-              <button
-                onClick={() => handleRespond(inv.id, true)}
-                className="px-3 py-1 bg-green-500 text-white rounded"
+        {invites.map(inv => {
+          const isInviteFromMe = inv.invitedBy === me;
+          
+          if (isInviteFromMe) {
+            // Show sent invite (waiting for response)
+            return (
+              <div
+                key={inv.id}
+                className="bg-blue-100 p-4 mb-2 rounded flex justify-between items-center"
               >
-                Accept
-              </button>
-              <button
-                onClick={() => handleRespond(inv.id, false)}
-                className="px-3 py-1 bg-red-500 text-white rounded"
+                <span>
+                  Date invitation sent to {connection.name} for{" "}
+                  {new Date(inv.timestamp.toDate()).toLocaleString()} @ {inv.location}
+                  <br />
+                  <span className="text-sm text-gray-600">Waiting for response...</span>
+                </span>
+                <div className="text-gray-500 text-sm">
+                  Pending
+                </div>
+              </div>
+            );
+          } else {
+            // Show received invite (can accept/decline)
+            return (
+              <div
+                key={inv.id}
+                className="bg-yellow-100 p-4 mb-2 rounded flex justify-between items-center"
               >
-                Decline
-              </button>
-            </div>
-          </div>
-        ))}
+                <span>
+                  {connection.name} invited you on{" "}
+                  {new Date(inv.timestamp.toDate()).toLocaleString()} @ {inv.location}
+                </span>
+                <div className="space-x-2">
+                  <button
+                    onClick={() => handleRespond(inv.id, true)}
+                    className="px-3 py-1 bg-green-500 text-white rounded"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleRespond(inv.id, false)}
+                    className="px-3 py-1 bg-red-500 text-white rounded"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            );
+          }
+        })}
       </div>
 
       {/* Chat Messages */}

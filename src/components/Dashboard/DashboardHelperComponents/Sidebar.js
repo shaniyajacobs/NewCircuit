@@ -25,7 +25,6 @@ const Sidebar = () => {
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showTabletMenu, setShowTabletMenu] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [hasNewSpark, setHasNewSpark] = useState(false);
 
   // Duplicate new sparks logic from DashHome.js
@@ -78,7 +77,9 @@ const Sidebar = () => {
   ];
 
   const handleSignOut = (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
     setShowSignOutModal(true);
     setShowSettingsDropdown(false);
   };
@@ -137,19 +138,19 @@ const Sidebar = () => {
       ),
       cName: "nav-text",
     },
-    //{
-    //  title: "My Coupons",
-    //  path: "/dashboard/dashMyCoupons",
-    //  icon: (
-        //<TicketIcon
-          //className="w-5 h-5"
-          //style={{
-            //color: location.pathname === "/dashboard/dashMyCoupons" ? "#1C50D8" : "#211f20"
-          //}}
-        ///>
-    //  ),
-    //  cName: "nav-text",
-    //},
+    {
+     title: "My Coupons",
+     path: "/dashboard/dashMyCoupons",
+     icon: (
+        <TicketIcon
+          className="w-5 h-5"
+          style={{
+            color: location.pathname === "/dashboard/dashMyCoupons" ? "#1C50D8" : "#211f20"
+          }}
+        />
+     ),
+     cName: "nav-text",
+    },
     {
       title: "My Profile",
       path: "/dashboard/DashMyProfile",
@@ -181,7 +182,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Desktop Sidebar (1280px and above) */}
-      <div className="hidden md:flex flex-col gap-2 sm:gap-2 md:gap-3 lg:gap-4 px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full border border-[rgba(33,31,32,0.10)]">  
+      <div className="hidden md:flex flex-col h-screen px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full border border-[rgba(33,31,32,0.10)] fixed left-0 top-0">  
         <Link to="/dashboard" className="p-6 sm:p-6 md:p-6 lg:p-6">
           <img
             loading="lazy"
@@ -192,7 +193,7 @@ const Sidebar = () => {
         </Link>
 
         {/* Main navigation items with top padding */}
-        <div className="pt-6">
+        <div className="pt-6 flex-1 overflow-y-auto">
           <div className="flex flex-col gap-2"> {/* Add vertical gap between options */}
             {SidebarData.slice(0, -2).map((item, index) => (
               <Link key={item.path} to={item.path} className="w-full">
@@ -226,11 +227,8 @@ const Sidebar = () => {
           </div>
         </div>
 
-        {/* Spacer to push Settings and Sign Out to bottom */}
-        <div className="flex-1"></div>
-
-        {/* Settings and Sign Out at bottom with bottom padding */}
-        <div className="pb-6 flex flex-col gap-2"> {/* Add vertical gap between settings and logout */}
+        {/* Settings and Sign Out at bottom - fixed */}
+        <div className="pb-6 flex flex-col gap-2 mt-auto"> {/* Add vertical gap between settings and logout */}
           {SidebarData.slice(-2).map((item, index) => (
             <div key={index}>
               {item.onClick ? (
@@ -314,11 +312,23 @@ const Sidebar = () => {
               </button>
             </div>
 
-            {/* Tablet Menu Items */}
+            {/* Tablet/Mobile Menu Items */}
             <div className="flex-1 px-6 py-4">
               {SidebarData.map((item, index) => (
                 <div key={index} className="mb-2">
-                  {item.hasDropdown ? (
+                  {item.onClick ? (
+                    // Logout button with onClick handler
+                    <button
+                      onClick={() => {
+                        setShowTabletMenu(false);
+                        item.onClick();
+                      }}
+                      className="flex gap-4 items-center px-4 py-3 text-lg rounded-xl transition-all cursor-pointer duration-[0.2s] text-red-600 border border-transparent hover:bg-red-50 hover:border-[rgba(255,72,72,0.20)] w-full text-left"
+                    >
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </button>
+                  ) : item.hasDropdown ? (
                     <div className="relative">
                       <div
                         className={`flex gap-4 items-center px-4 py-3 text-lg rounded-xl transition-all cursor-pointer duration-[0.2s] text-slate-500 border
@@ -368,20 +378,6 @@ const Sidebar = () => {
                   )}
                 </div>
               ))}
-            </div>
-
-            {/* Tablet Menu Footer - Log Out Button */}
-            <div className="px-6 py-4 border-t border-[rgba(33,31,32,0.10)]">
-              <button
-                onClick={() => {
-                  handleSignOut();
-                  setShowTabletMenu(false);
-                }}
-                className="flex gap-4 items-center px-4 py-3 text-lg text-red-600 hover:bg-red-50 rounded-xl transition-colors duration-200 w-full"
-              >
-                <LogoutIcon className="w-5 h-5" />
-                <span>Log out</span>
-              </button>
             </div>
           </div>
         </div>
