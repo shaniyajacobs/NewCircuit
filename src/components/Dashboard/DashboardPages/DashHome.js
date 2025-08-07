@@ -817,16 +817,15 @@ const getEventData = async (eventID) => {
   const signUpEventLimit = useResponsiveEventLimit();
   // Filter for upcoming and sign-up events
   const upcomingEvents = useMemo(() => {
-    return getUpcomingEvents(allEvents, userProfile?.location);
-  }, [allEvents, signedUpEventIds, userProfile?.location]);
+    return allEvents.filter(event =>
+      signedUpEventIds.has(event.firestoreID)
+    );
+  }, [allEvents, signedUpEventIds,]);
 
-  // Show upcoming events (future dates only) that the user has not yet signed up for
+  // Show *all* events (regardless of date) that the user has not yet signed up for
   const upcomingSignupEvents = useMemo(() => {
-    // First filter by upcoming dates
-    const upcomingEvents = getUpcomingEvents(allEvents, userProfile?.location);
-    
-    return upcomingEvents.filter(event => {
-      // Exclude events the user has already signed up for
+    return allEvents.filter(event => {
+      // First, exclude events the user has already signed up for
       if (signedUpEventIds.has(event.firestoreID)) {
         return false;
       }
@@ -859,7 +858,7 @@ const getEventData = async (eventID) => {
       // If we get here, the event is available for sign-up
       return true;
     });
-  }, [allEvents, signedUpEventIds, userGender, userProfile?.location]);
+  }, [allEvents, signedUpEventIds, userGender]);
 
   return (
     <div>
