@@ -23,11 +23,11 @@ const Home = () => {
             <Navbar />
             <Hero />  
             <ThirdDatesOnUs />
-            <MapPage />
+            {/* <MapPage /> */}
             <Current />
-            <Values/>
+            {/* <Values/> */}
             <Pricing/>
-            <FAQSection/>
+            {/* <FAQSection/> */}
             <Waiting />
             <Footer />
         </>
