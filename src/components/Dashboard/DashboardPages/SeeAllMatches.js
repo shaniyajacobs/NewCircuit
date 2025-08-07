@@ -92,6 +92,10 @@ const SeeAllMatches = () => {
 
       // 2️⃣ Upsert current selections
       for (const matchedUid of selectedIds) {
+        // Find the compatibility score for this match in local state
+        const matchObj = matches.find(m => m.id === matchedUid);
+        const score = matchObj ? matchObj.compatibility : null;
+
         const otherRef = doc(db, 'users', matchedUid, 'connections', user.uid);
         const otherSnap = await getDoc(otherRef);
         const isMutual = otherSnap.exists();
@@ -99,10 +103,12 @@ const SeeAllMatches = () => {
         await setDoc(doc(db, 'users', user.uid, 'connections', matchedUid), {
           connectedAt: serverTimestamp(),
           status: isMutual ? 'mutual' : 'pending',
+          matchScore: score,
         }, { merge: true });
 
         if (isMutual) {
-          await setDoc(otherRef, { status: 'mutual' }, { merge: true });
+          // Also store the match score on the other user's document if it wasn't set before
+          await setDoc(otherRef, { status: 'mutual', matchScore: score }, { merge: true });
         }
       }
 

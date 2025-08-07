@@ -4,10 +4,13 @@ const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const Stripe = require("stripe");
 const util = require('util');
+const nodemailer = require('nodemailer');
 
 const stripeSecret = defineSecret("STRIPE_SECRET");
 const remoSecret = defineSecret('REMO_API_KEY');
 const remoCompanyIdSecret = defineSecret('REMO_COMPANY_ID');
+const emailUser = defineSecret('EMAIL_USER');
+const emailPass = defineSecret('EMAIL_PASS');
 
 admin.initializeApp();
 
@@ -314,6 +317,42 @@ exports.deleteUser = onCall({
   } catch (err) {
     console.error('❌ deleteUser error:', err);
     throw new functions.https.HttpsError('internal', 'Failed to fully delete user');
+  }
+});
+
+// ⭐️ Contact form email sender
+exports.sendContactEmail = onCall({
+  region: 'us-central1',
+  secrets: [emailUser, emailPass],
+  runtime: 'nodejs18',
+}, async (data, context) => {
+  const { name, email, phone, message } = data?.data || data;
+
+  if (!name || !email || !message) {
+    throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: emailUser.value(),
+      pass: emailPass.value(),
+    },
+  });
+
+  const mailOptions = {
+    from: `Circuit Website <${emailUser.value()}>`,
+    to: 'michael.guerrero0704@gmail.com',
+    subject: 'New Contact Form Submission',
+    text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\n\nMessage:\n${message}`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (err) {
+    console.error('sendContactEmail error:', err);
+    throw new functions.https.HttpsError('internal', 'Failed to send email');
   }
 });
 

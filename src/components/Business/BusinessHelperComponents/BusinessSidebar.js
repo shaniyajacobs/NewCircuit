@@ -44,18 +44,18 @@ const BusinessSidebar = () => {
       icon: <MdIcons.MdAnalytics />,
       cName: "nav-text",
     },
-    {
-      title: "Profile",
-      path: "/enterprise-dash/profile",
-      icon: <FaIcons.FaUser />,
-      cName: "nav-text",
-    },
     // {
     //   title: "Coupons",
     //   path: "/enterprise-dash/coupons",
     //   icon: <RiIcons.RiCoupon3Line />,
     //   cName: "nav-text",
     // },
+    {
+      title: "Profile",
+      path: "/enterprise-dash/profile",
+      icon: <FaIcons.FaUser />,
+      cName: "nav-text",
+    },
     {
       title: "Settings",
       path: "/enterprise-dash/settings",

@@ -3,9 +3,13 @@ import { getAuth } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from '../../../pages/firebaseConfig';
 import { IoPersonCircle } from 'react-icons/io5';
+import { ReactComponent as VectorIcon } from '../../../images/Vector 6.svg';
+import { useNavigate } from 'react-router-dom';
+
 
 const Header = (props) => {
   const auth = getAuth();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState(() => {
@@ -37,12 +41,13 @@ const Header = (props) => {
 
   const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "My Sparks", 
     "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
-    "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashSignOut": "Sign Out"}
+    "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashChangePassword": "Change Password", 
+    "/dashboard/dashDeleteAccount": "Delete Account", "/dashboard/dashDeactivateAccount": "Deactivate Account", "/dashboard/dashSignOut": "Sign Out"}
   const { path } = props;
 
   if (isLoading) {
     return (
-      <div className="flex justify-between items-center px-10 py-7 bg-white rounded-xl">
+      <div className="flex justify-between items-center p-6 bg-white rounded-xl">
         <div className="text-4xl font-semibold text-indigo-950">Loading...</div>
         <div className="flex gap-5 items-center animate-pulse">
           <div className="h-[60px] w-[60px] bg-gray-200 rounded-2xl" />
@@ -57,9 +62,28 @@ const Header = (props) => {
   
 
   return (
-    <div className="flex justify-between items-center px-10 py-7 bg-white rounded-xl max-sm:flex-col max-sm:gap-5 max-sm:p-5">
-      <div className="text-4xl font-semibold text-indigo-950 max-sm:text-2xl">
-        {PathTitleMappings[path]}
+    <div className="hidden md:flex justify-between items-center p-6 bg-white max-sm:flex-col max-sm:gap-5 max-sm:p-6 border border-[rgba(33,31,32,0.10)]">
+      <div 
+        className={`        
+          font-medium
+          text-[#211F20]
+          font-bricolage
+          text-base
+          font-normal
+          leading-[130%]
+          uppercase
+          tracking-wide
+          ${["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(path) ? "cursor-pointer hover:opacity-70" : ""}`}
+        onClick={["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(path) ? () => navigate('/dashboard/dashSettings') : undefined}
+      >
+        {["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(path) ? (
+          <span className="flex items-center">
+            <img src="/arrow-left.svg" alt="Back" className="w-4 h-4 mr-2" />
+            {PathTitleMappings[path]}
+          </span>
+        ) : (
+          PathTitleMappings[path]
+        )}
       </div>
       <div className="flex gap-5 items-center">
         <div className="flex justify-center items-center h-[66px] w-[62px]">
@@ -67,29 +91,47 @@ const Header = (props) => {
         </div>
         {userData ? (
           userData.get("image") ? (
-            <img
-              src={userData.get("image")}
-              alt="User Profile"
-              className="object-cover rounded-2xl h-[60px] w-[60px]"
-            />
+            <div className="flex items-center gap-2">
+              {/* Profile Picture - Direct image */}
+              <img
+                src={userData.get("image")}
+                alt="User Profile"
+                className="w-[48px] h-[48px] object-cover rounded-full"
+              />
+              
+              {/* User Info */}
+              <div className="flex flex-col">
+                {/* Name - Body-S-Med */}
+                <div className="text-[#211F20] font-poppins text-base font-medium leading-normal">
+                  {userData.get("firstName")} {userData.get("lastName")}
+                </div>
+                {/* Email - Body-S-Reg */}
+                <div className="text-[rgba(33,31,32,0.75)] font-poppins text-base font-normal leading-normal">
+                  {userData.get("email")}
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="flex items-center justify-center rounded-2xl h-[60px] w-[60px] bg-gray-200">
-              <IoPersonCircle className="w-full h-full text-gray-400" />
+            <div className="flex items-center gap-2">
+              {/* Profile Picture - Fallback icon */}
+              <div className="w-[48px] h-[48px] rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                <IoPersonCircle className="text-[52px] text-gray-400 -m-1" />
+              </div>
+              
+              {/* User Info */}
+              <div className="flex flex-col">
+                {/* Name - Body-S-Med */}
+                <div className="text-[#211F20] font-poppins text-base font-medium leading-normal">
+                  {userData.get("firstName")} {userData.get("lastName")}
+                </div>
+                {/* Email - Body-S-Reg */}
+                <div className="text-[rgba(33,31,32,0.75)] font-poppins text-base font-normal leading-normal">
+                  {userData.get("email")}
+                </div>
+              </div>
             </div>
           )
-        ) : (
-          <div className="flex items-center justify-center rounded-2xl h-[60px] w-[60px] bg-gray-200">
-            <IoPersonCircle className="w-full h-full text-gray-400" />
-          </div>
-        )}
-        <div className="flex flex-col gap-1">
-          <div className="text-base font-medium text-indigo-950">
-            {userData ? `${userData.get("firstName")} ${userData.get("lastName")}` : ""}
-          </div>
-          <div className="text-sm text-slate-500">
-            {userData ? userData.get("email") : ""}
-          </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );

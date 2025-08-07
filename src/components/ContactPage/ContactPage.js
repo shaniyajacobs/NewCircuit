@@ -1,16 +1,28 @@
 import React, { useState } from 'react';
 import styles from './ContactPage.module.css';
+import { functions } from '../../firebaseConfig';
+import { httpsCallable } from 'firebase/functions';
 
 const ContactPage = () => {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
+  const [modal, setModal] = useState({ open: false, success: true });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
+
+    try {
+      const sendContactEmail = httpsCallable(functions, 'sendContactEmail');
+      await sendContactEmail(form);
+      setForm({ name: '', email: '', phone: '', message: '' });
+      setModal({ open: true, success: true });
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      setModal({ open: true, success: false });
+    }
   };
 
   return (
@@ -77,6 +89,26 @@ const ContactPage = () => {
           </div>
         </div>
       </div>
+      {modal.open && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalTitle}>
+              {modal.success ? 'Message Sent!' : 'Something went wrong'}
+            </div>
+            <div className={styles.modalMessage}>
+              {modal.success
+                ? 'Thank you for reaching out – we’ll be in touch shortly.'
+                : 'Sorry, we could not send your message. Please try again later.'}
+            </div>
+            <button
+              className={styles.modalButton}
+              onClick={() => setModal({ ...modal, open: false })}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
