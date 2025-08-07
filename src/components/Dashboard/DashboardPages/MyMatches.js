@@ -10,61 +10,18 @@ const MyMatches = () => {
   const [loading, setLoading] = useState(true);
   const [visibleMatches, setVisibleMatches] = useState([]);
 
-  // Test data for development, delete before pushing
-  const testMatches = [
-    {
-      id: 'test1',
-      name: 'Kelly Rachel',
-      age: 27,
-      image: '/default-profile.png',
-      compatibility: 85,
-    },
-    {
-      id: 'test2', 
-      name: 'Sarah Johnson',
-      age: 25,
-      image: '/default-profile.png',
-      compatibility: 72,
-    },
-    {
-      id: 'test3',
-      name: 'Emma Davis',
-      age: 29,
-      image: '/default-profile.png',
-      compatibility: 68,
-    },
-    {
-      id: 'test4',
-      name: 'Belly Bachel',
-      age: 24,
-      image: '/default-profile.png',
-      compatibility: 65,
-    }
-  ];
-
   useEffect(() => {
     const fetchMatches = async () => {
       setLoading(true);
       try {
         const user = auth.currentUser;
-        //if (!user) return;
-        console.log('[DEBUG] Current user:', user);
-        if (!user) {
-          console.log('[DEBUG] No user found, using test data');
-          setMatches(testMatches);
-          return;
-        }
+        if (!user) return;
         const matchesDoc = await getDoc(doc(db, 'matches', user.uid));
-        console.log('[DEBUG] Matches doc exists:', matchesDoc.exists());
         if (!matchesDoc.exists()) {
-          // Use test data instead of empty array
-          console.log('[DEBUG] No matches doc, using test data');
-          setMatches(testMatches);
-          //setMatches([]);
+          setMatches([]);
           return;
         }
         const results = (matchesDoc.data().results || []).sort((a,b) => b.score - a.score);
-        console.log('[DEBUG] Results from Firestore:', results);
         const profiles = await Promise.all(
           results.map(async (m) => {
             const userDoc = await getDoc(doc(db, 'users', m.userId));
@@ -79,28 +36,16 @@ const MyMatches = () => {
             };
           })
         );
-        console.log('[DEBUG] Profiles after processing:', profiles.filter(Boolean));
         setMatches(profiles.filter(Boolean));
-      } catch (e) {
+      } catch (e) {        
         console.error('Error fetching matches', e);
-        // Use test data instead of empty array
-        console.log('[DEBUG] Error occurred, using test data');
-        setMatches(testMatches);
-        //setMatches([]);
+        setMatches([]);
       } finally {
         setLoading(false);
       }
     };
     fetchMatches();
   }, []);
-
-  // For development: Always show test data if no real matches
-  useEffect(() => {
-    if (!loading && matches.length === 0) {
-      console.log('[DEBUG] No matches found, showing test data');
-      setMatches(testMatches); 
-    }
-  }, [loading, matches.length]);
 
   // animation when matches list changes
   useEffect(() => {
@@ -129,41 +74,6 @@ const MyMatches = () => {
       </div>
 
       {/* Matches Container */}
-      {/* OLD MATCHES CONTAINER - COMMENTED OUT
-      <div className="max-w-3xl mx-auto space-y-6">
-        {topThree.map((match, index) => (
-          <div key={match.id} className={`flex items-center bg-white rounded-lg overflow-hidden border-2 border-[#85A2F2] transition-all duration-500 transform ${visibleMatches.includes(index) ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full'}`}>
-            <div className="w-12 flex items-center justify-center">
-              <span className={`text-2xl font-bold text-[#85A2F2] transition-all duration-500 transform ${visibleMatches.includes(index) ? 'scale-100' : 'scale-0'}`}>#{index+1}</span>
-            </div>
-            <div className="w-20 bg-[#85A2F2] h-full flex items-center justify-center p-4">
-              <div className={`text-white text-3xl transition-transform duration-500 ${visibleMatches.includes(index) ? 'scale-100' : 'scale-0'}`}>♥</div>
-            </div>
-            <div className="flex flex-col p-4 flex-grow">
-              <div className="flex items-center mb-2">
-                <div className="w-16 h-16 rounded-full overflow-hidden mr-4">
-                  <img src={match.image} alt={match.name} className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <div className="flex items-center">
-                    <span className="text-2xl font-bold mr-2">{match.name},</span>
-                    <span className="text-2xl">{match.age}</span>
-                  </div>
-                  <div className="flex items-center mt-1">
-                    <div className="w-48 h-2 bg-gray-200 rounded-full mr-3 overflow-hidden">
-                      <div className="h-full bg-[#85A2F2] rounded-full transition-all duration-1000" style={{ width: visibleMatches.includes(index) ? `${match.compatibility}%` : 0 }} />
-                    </div>
-                    <span className={`text-sm font-medium text-gray-600 transition-opacity duration-500 ${visibleMatches.includes(index) ? 'opacity-100' : 'opacity-0'}`}>{match.compatibility}% Match</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      */}
-
-      {/* NEW MATCHES CONTAINER - FOLLOWING CONNECTIONSTABLE LAYOUT */}
       <div className="max-w-[1292px] mx-auto">
         <div className="flex flex-col gap-4">
           {topThree.map((match, index) => {
