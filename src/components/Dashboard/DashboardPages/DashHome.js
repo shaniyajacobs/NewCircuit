@@ -14,6 +14,7 @@ import { DateTime } from 'luxon';
 import PopUp from '../DashboardHelperComponents/PopUp';
 import { calculateAge } from '../../../utils/ageCalculator';
 import { filterByGenderPreference } from '../../../utils/genderPreferenceFilter';
+import { formatUserName } from '../../../utils/nameFormatter';
 import homeSelectMySparks from '../../../images/home_select_my_sparks.jpg';
 import imgNoise from '../../../images/noise.png';
 import homeSeeMySparks from '../../../images/home_see_my_sparks.jpg';
@@ -354,7 +355,7 @@ const DashHome = () => {
           if (connectionData.status !== 'mutual') return null;
           return {
             userId: uid,
-            name: data.firstName ? `${data.firstName} ${data.lastName || ''}`.trim() : data.displayName || 'Unknown',
+            name: formatUserName(data),
             age: calculateAge(data.birthDate),
             image: data.image || null,
             compatibility: Math.round(connectionData.matchScore || 0),
@@ -716,9 +717,13 @@ const getEventData = async (eventID) => {
 
   const handleMatchesClick = async () => {
     const currentUser = auth.currentUser;
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('[DASHHOME] No authenticated user found');
+      return;
+    }
 
     try {
+      console.log('[DASHHOME] handleMatchesClick started');
       setSelectingMatches(true);
 
     // 1. Get latestEventId from user doc
@@ -734,116 +739,146 @@ const getEventData = async (eventID) => {
     }
     console.log('[MATCHES] latestEventId:', latestEventId);
 
-    // 2. Find the event doc where eventID === latestEventId
-    const eventsSnapshot = await getDocs(collection(db, 'events'));
-    let eventDocId = null;
-    eventsSnapshot.forEach(docSnap => {
-      if (docSnap.data().eventID === latestEventId) {
-        eventDocId = docSnap.id;
-      }
-    });
-    if (!eventDocId) {
-      setErrorModal({
-        open: true,
-        title: "Event Not Found",
-        message: "The event you are trying to access could not be found. It may have been removed or is no longer available.",
+      // 2. Find the event doc where eventID === latestEventId
+      const eventsSnapshot = await getDocs(collection(db, 'events'));
+      let eventDocId = null;
+      eventsSnapshot.forEach(docSnap => {
+        if (docSnap.data().eventID === latestEventId) {
+          eventDocId = docSnap.id;
+        }
       });
-      return;
-    }
-    console.log('[MATCHES] Found event doc ID:', eventDocId);
+      if (!eventDocId) {
+        console.log('[DASHHOME] Event not found, showing error modal');
+        setErrorModal({
+          open: true,
+          title: "Event Not Found",
+          message: "The event you are trying to access could not be found. It may have been removed or is no longer available.",
+        });
+        return;
+      }
+      console.log('[DASHHOME] Found event doc ID:', eventDocId);
 
-    // 3. Get signedUpUsers subcollection from that event doc
-    const signedUpUsersCol = collection(db, 'events', eventDocId, 'signedUpUsers');
-    const signedUpUsersSnap = await getDocs(signedUpUsersCol);
-    const userIds = signedUpUsersSnap.docs.map(d => d.id);
-    console.log('[MATCHES] User IDs from signedUpUsers:', userIds);
+      // 3. Get signedUpUsers subcollection from that event doc
+      const signedUpUsersCol = collection(db, 'events', eventDocId, 'signedUpUsers');
+      const signedUpUsersSnap = await getDocs(signedUpUsersCol);
+      const userIds = signedUpUsersSnap.docs.map(d => d.id);
+      console.log('[DASHHOME] User IDs from signedUpUsers:', userIds);
 
-    // 4. Fetch quiz responses and user profiles for each user ID
-    const quizResponses = [];
-    const userProfiles = [];
-    
-    for (const uid of userIds) {
-      const quizDocRef = doc(db, 'users', uid, 'quizResponses', 'latest');
-      const userProfileRef = doc(db, 'users', uid);
+      // 4. Get existing connections to preserve compatibility scores
+      const existingConnectionsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'connections'));
+      const existingConnections = {};
+      existingConnectionsSnap.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.status === 'mutual' && data.matchScore) {
+          existingConnections[doc.id] = data.matchScore;
+        }
+      });
+      console.log('[DASHHOME] Existing connections with scores:', existingConnections);
+
+      // 5. Fetch quiz responses and user profiles for each user ID
+      const quizResponses = [];
+      const userProfiles = [];
       
-      console.log(`[MATCHES] Fetching quiz and profile for user ${uid}`);
-      
-      const [quizDoc, userProfileDoc] = await Promise.all([
-        getDoc(quizDocRef),
-        getDoc(userProfileRef)
-      ]);
-      
-      console.log(`[MATCHES] Quiz exists for user ${uid}:`, quizDoc.exists());
-      console.log(`[MATCHES] Profile exists for user ${uid}:`, userProfileDoc.exists());
-      
-      if (quizDoc.exists()) {
-        const quizData = { userId: uid, answers: quizDoc.data().answers };
-        quizResponses.push(quizData);
+      for (const uid of userIds) {
+        const quizDocRef = doc(db, 'users', uid, 'quizResponses', 'latest');
+        const userProfileRef = doc(db, 'users', uid);
         
-        // Also store user profile data for gender preference filtering
-        if (userProfileDoc.exists()) {
-          userProfiles.push({
-            userId: uid,
-            ...userProfileDoc.data()
-          });
+        console.log(`[DASHHOME] Fetching quiz and profile for user ${uid}`);
+        
+        const [quizDoc, userProfileDoc] = await Promise.all([
+          getDoc(quizDocRef),
+          getDoc(userProfileRef)
+        ]);
+        
+        console.log(`[DASHHOME] Quiz exists for user ${uid}:`, quizDoc.exists());
+        console.log(`[DASHHOME] Profile exists for user ${uid}:`, userProfileDoc.exists());
+        
+        if (quizDoc.exists()) {
+          const quizData = { userId: uid, answers: quizDoc.data().answers };
+          quizResponses.push(quizData);
+          
+          // Also store user profile data for gender preference filtering
+          if (userProfileDoc.exists()) {
+            userProfiles.push({
+              userId: uid,
+              ...userProfileDoc.data()
+            });
+          }
         }
       }
-    }
 
-    // 5. Find current user's answers and profile
-    const currentUserAnswers = quizResponses.find(q => q.userId === currentUser.uid)?.answers;
-    const currentUserProfile = userProfiles.find(p => p.userId === currentUser.uid);
-    
-    if (!currentUserAnswers) {
-      alert('You must complete your quiz to get matches.');
-      return;
-    }
-
-    if (!currentUserProfile) {
-      alert('User profile not found. Please complete your profile setup.');
-      return;
-    }
-
-    // 6. Filter other users by gender preference
-    const otherUsers = quizResponses.filter(q => q.userId !== currentUser.uid);
-    const otherUserProfiles = userProfiles.filter(p => p.userId !== currentUser.uid);
-    
-    console.log('[MATCHES] Before gender filtering:', {
-      totalUsers: otherUsers.length,
-      currentUserProfile: {
-        gender: currentUserProfile.gender,
-        sexualPreference: currentUserProfile.sexualPreference
+      // 6. Find current user's answers and profile
+      const currentUserAnswers = quizResponses.find(q => q.userId === currentUser.uid)?.answers;
+      const currentUserProfile = userProfiles.find(p => p.userId === currentUser.uid);
+      
+      if (!currentUserAnswers) {
+        console.log('[DASHHOME] No quiz answers found for current user');
+        alert('You must complete your quiz to get matches.');
+        return;
       }
-    });
 
-    // Create combined user objects with both quiz answers and profile data
-    const otherUsersWithProfiles = otherUsers.map(quizUser => {
-      const profile = otherUserProfiles.find(p => p.userId === quizUser.userId);
-      return {
-        ...quizUser,
-        ...profile
-      };
-    });
+      if (!currentUserProfile) {
+        console.log('[DASHHOME] No user profile found for current user');
+        alert('User profile not found. Please complete your profile setup.');
+        return;
+      }
 
-    // Apply gender preference filtering
-    const filteredUsers = filterByGenderPreference(currentUserProfile, otherUsersWithProfiles);
-    
-    console.log('[MATCHES] After gender filtering:', {
-      filteredUsers: filteredUsers.length,
-      filteredUserIds: filteredUsers.map(u => u.userId)
-    });
+      // 7. Filter other users by gender preference
+      const otherUsers = quizResponses.filter(q => q.userId !== currentUser.uid);
+      const otherUserProfiles = userProfiles.filter(p => p.userId !== currentUser.uid);
+      
+      console.log('[DASHHOME] Before gender filtering:', {
+        totalUsers: otherUsers.length,
+        currentUserProfile: {
+          gender: currentUserProfile.gender,
+          sexualPreference: currentUserProfile.sexualPreference
+        }
+      });
 
-    // 7. Run matchmaking algorithm only on filtered users
-    const { getTopMatches } = await import('../../Matchmaking/Synergies.js');
-    const matches = getTopMatches(currentUserAnswers, filteredUsers); // [{ userId, score }]
+      // Create combined user objects with both quiz answers and profile data
+      const otherUsersWithProfiles = otherUsers.map(quizUser => {
+        const profile = otherUserProfiles.find(p => p.userId === quizUser.userId);
+        return {
+          ...quizUser,
+          ...profile
+        };
+      });
 
-    console.log('[MATCHES] Final matches:', matches);
+      // Apply gender preference filtering
+      const filteredUsers = filterByGenderPreference(currentUserProfile, otherUsersWithProfiles);
+      
+      console.log('[DASHHOME] After gender filtering:', {
+        filteredUsers: filteredUsers.length,
+        filteredUserIds: filteredUsers.map(u => u.userId)
+      });
 
-    // 8. Save matches to Firestore
-    await setDoc(doc(db, 'matches', currentUser.uid), {
-      timestamp: serverTimestamp(),
-      results: matches
-    });
+      // 8. Run matchmaking algorithm only on filtered users
+      const { getTopMatches } = await import('../../Matchmaking/Synergies.js');
+      const newMatches = getTopMatches(currentUserAnswers, filteredUsers); // [{ userId, score }]
+
+      console.log('[DASHHOME] New matches:', newMatches);
+
+      // 9. Merge new matches with existing connections, preserving existing scores
+      const mergedMatches = [...newMatches];
+      
+      // Add existing connections that weren't in the new matches
+      Object.keys(existingConnections).forEach(userId => {
+        const existsInNewMatches = newMatches.some(match => match.userId === userId);
+        if (!existsInNewMatches) {
+          mergedMatches.push({
+            userId: userId,
+            score: existingConnections[userId]
+          });
+        }
+      });
+
+      console.log('[DASHHOME] Merged matches (preserving existing scores):', mergedMatches);
+
+      // 10. Save merged matches to Firestore
+      await setDoc(doc(db, 'matches', currentUser.uid), {
+        timestamp: serverTimestamp(),
+        results: mergedMatches
+      });
 
     // 9. Redirect to MyMatches
     navigate('myMatches');

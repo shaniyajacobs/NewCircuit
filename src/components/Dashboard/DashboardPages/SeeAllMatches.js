@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../../../firebaseConfig';
-import { doc, getDoc, getDocs, setDoc, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, deleteDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../../../firebaseConfig';
 import { calculateAge } from '../../../utils/ageCalculator';
 import { DateTime } from 'luxon';
 import PopUp from '../DashboardHelperComponents/PopUp';
+import { formatUserName } from '../../../utils/nameFormatter';
 
 const MAX_SELECTIONS = 3; // maximum matches a user can choose
 
@@ -96,7 +97,7 @@ const SeeAllMatches = () => {
             const d = userDoc.data();
             return {
               id: m.userId,
-              name: d.firstName ? `${d.firstName} ${d.lastName || ''}`.trim() : d.displayName || 'Unknown',
+              name: formatUserName(d),
               age: calculateAge(d.birthDate),
               image: d.image || '/default-profile.png',
               compatibility: Math.round(m.score),
