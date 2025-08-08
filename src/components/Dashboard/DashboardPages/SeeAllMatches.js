@@ -4,6 +4,7 @@ import { auth, db } from '../../../firebaseConfig';
 import { doc, getDoc, getDocs, setDoc, serverTimestamp, collection, deleteDoc } from 'firebase/firestore';
 import { calculateAge } from '../../../utils/ageCalculator';
 import { DateTime } from 'luxon';
+import PopUp from '../DashboardHelperComponents/PopUp';
 
 const MAX_SELECTIONS = 3; // maximum matches a user can choose
 
@@ -288,20 +289,18 @@ const SeeAllMatches = () => {
 
 
       {/* Modal shown when user tries to exceed the maximum selections */}
-      {showMaxModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-            <h2 className="text-xl font-semibold mb-4 text-center">Maximum selections reached</h2>
-            <p className="mb-6 text-center">You can only select up to {MAX_SELECTIONS} connections. Deselect a current selection to choose another.</p>
-            <button
-              onClick={() => setShowMaxModal(false)}
-              className="bg-[#0043F1] text-white px-4 py-2 rounded-lg w-full"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showMaxModal}
+        onClose={() => setShowMaxModal(false)}
+        title="Maximum selections reached"
+        subtitle={`You can only select up to ${MAX_SELECTIONS} connections. Deselect a current selection to choose another.`}
+        icon="⚠"
+        iconColor="yellow"
+        primaryButton={{
+          text: "Got it",
+          onClick: () => setShowMaxModal(false)
+        }}
+      />
     </>
   );
 };
