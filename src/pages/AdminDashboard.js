@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Route, Routes, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { auth, db } from "./firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
-// import AdminCoupons from "../components/Admin/AdminPages/AdminCoupons";
+import AdminCoupons from "../components/Admin/AdminPages/AdminCoupons";
 import AdminUserManagement from "../components/Admin/AdminPages/AdminUserManagement";
 import AdminBusinessManagement from "../components/Admin/AdminPages/AdminBusinessManagement";
 import AdminAnalytics from "../components/Admin/AdminPages/AdminAnalytics";
@@ -51,8 +51,7 @@ const AdminDashboard = () => {
       <div className="flex flex-col flex-1 gap-8">
         <AdminHeader path={currPath} />
         <Routes>
-          {/* <Route path="/" element={<AdminCoupons />} /> */}
-          {/* <Route path="/coupons/*" element={<AdminCoupons />} /> */}
+          <Route path="/coupons/*" element={<AdminCoupons />} />
           <Route path="/users/*" element={<AdminUserManagement />} />
           <Route path="/businesses/*" element={<AdminBusinessManagement />} />
           <Route path="/events/*" element={<AdminEvents />} />
