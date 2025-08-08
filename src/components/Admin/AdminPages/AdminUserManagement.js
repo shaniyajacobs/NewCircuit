@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../../../pages/firebaseConfig';
-import { collection, getDocs, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { deleteUser, getAuth, signInWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { FaSearch, FaTrash, FaUserShield } from 'react-icons/fa';
 import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import AdminUserDetailModal from './AdminUserDetailModal';
 import { DateTime } from 'luxon';
+import { signOutFromEvent, calculateActualCounts, reconcileCounts } from '../../../utils/eventSpotsUtils';
 import { formatUserName } from '../../../utils/nameFormatter';
 
 const AdminUserManagement = () => {
@@ -16,9 +17,8 @@ const AdminUserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showRemoveAdminModal, setShowRemoveAdminModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
-  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [hoverUserId, setHoverUserId] = useState(null);
   // Events modal state
   const [showEventsModal, setShowEventsModal] = useState(false);
@@ -28,6 +28,18 @@ const AdminUserManagement = () => {
   const [showConnectionsModal, setShowConnectionsModal] = useState(false);
   const [loadingConnections, setLoadingConnections] = useState(false);
   const [userConnections, setUserConnections] = useState([]);
+  // User Detail modal state
+  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
+  // Delete event modal state
+  const [showDeleteEventModal, setShowDeleteEventModal] = useState(false);
+  const [selectedEventToDelete, setSelectedEventToDelete] = useState(null);
+  const [deletingEvent, setDeletingEvent] = useState(false);
+  // Edit dates modal state
+  const [showEditDatesModal, setShowEditDatesModal] = useState(false);
+  const [selectedUserForDates, setSelectedUserForDates] = useState(null);
+  const [newDatesRemaining, setNewDatesRemaining] = useState(0);
+  const [updatingDates, setUpdatingDates] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -69,6 +81,11 @@ const AdminUserManagement = () => {
     setShowAdminModal(true);
   };
 
+  const handleRemoveAdmin = (user) => {
+    setSelectedUser(user);
+    setShowRemoveAdminModal(true);
+  };
+
   const confirmMakeAdmin = async () => {
     try {
       setLoading(true);
@@ -84,6 +101,23 @@ const AdminUserManagement = () => {
       setSelectedUser(null);
     } catch (error) {
       console.error('Error making user admin:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmRemoveAdmin = async () => {
+    try {
+      setLoading(true);
+      // Remove from adminUsers collection
+      await deleteDoc(doc(db, 'adminUsers', selectedUser.id));
+
+      // Update local state
+      setAdminUsers(adminUsers.filter(id => id !== selectedUser.id));
+      setShowRemoveAdminModal(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error removing admin status:', error);
     } finally {
       setLoading(false);
     }
@@ -134,7 +168,7 @@ const AdminUserManagement = () => {
       const enriched = await Promise.all(
         eventsSnap.docs.map(async (docSnap) => {
           const data = docSnap.data() || {};
-          const eventId = data.eventID || docSnap.id;
+          const eventId = docSnap.id; // Use the document ID consistently for deletion
 
           let remo = {};
           try {
@@ -213,6 +247,158 @@ const AdminUserManagement = () => {
     }
   };
 
+  // Show user detail modal
+  const handleShowUserDetail = (user) => {
+    setSelectedUserDetail(user);
+    setShowUserDetailModal(true);
+  };
+
+  const handleDeleteEvent = (event) => {
+    setSelectedEventToDelete(event);
+    setShowDeleteEventModal(true);
+  };
+
+  const handleEditDates = (user) => {
+    setSelectedUserForDates(user);
+    setNewDatesRemaining(user.datesRemaining || 0);
+    setShowEditDatesModal(true);
+  };
+
+  const confirmUpdateDates = async () => {
+    if (!selectedUserForDates) return;
+    
+    try {
+      setUpdatingDates(true);
+      
+      const userDocRef = doc(db, 'users', selectedUserForDates.id);
+      await updateDoc(userDocRef, {
+        datesRemaining: parseInt(newDatesRemaining)
+      });
+      
+      // Update local state
+      setUsers(prev => prev.map(user => 
+        user.id === selectedUserForDates.id 
+          ? { ...user, datesRemaining: parseInt(newDatesRemaining) }
+          : user
+      ));
+      
+      setShowEditDatesModal(false);
+      setSelectedUserForDates(null);
+      setNewDatesRemaining(0);
+      
+      console.log('✅ User dates updated successfully');
+    } catch (error) {
+      console.error('Error updating user dates:', error);
+      alert('Failed to update user dates. Please try again.');
+    } finally {
+      setUpdatingDates(false);
+    }
+  };
+
+  const confirmDeleteEvent = async () => {
+    if (!selectedEventToDelete || !selectedUser) return;
+    
+    try {
+      setDeletingEvent(true);
+      
+      console.log('Selected event to delete:', selectedEventToDelete);
+      console.log('Selected user:', selectedUser);
+      
+      const userId = selectedUser.id;
+      const eventId = selectedEventToDelete.id;
+      
+      console.log(`Attempting to delete event ${eventId} from user ${userId}`);
+      
+      // Try to delete from both sides, but don't fail if one doesn't exist
+      try {
+        await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', eventId));
+        console.log('✅ Deleted from user signedUpEvents');
+      } catch (error) {
+        console.log('⚠️ Could not delete from user signedUpEvents (might not exist):', error.message);
+      }
+      
+      try {
+        await deleteDoc(doc(db, 'events', eventId, 'signedUpUsers', userId));
+        console.log('✅ Deleted from event signedUpUsers');
+      } catch (error) {
+        console.log('⚠️ Could not delete from event signedUpUsers (might not exist):', error.message);
+      }
+      
+      // Update event signup counts and available spots
+      try {
+        const eventDocRef = doc(db, 'events', eventId);
+        const eventDoc = await getDoc(eventDocRef);
+        if (eventDoc.exists()) {
+          const data = eventDoc.data();
+          const userGender = selectedUser.gender?.toLowerCase();
+          
+          console.log('🔍 Debug signup count update (AdminUserManagement):');
+          console.log('- User gender:', userGender);
+          console.log('- Event data:', data);
+          console.log('- Current menSignupCount:', data.menSignupCount);
+          console.log('- Current womenSignupCount:', data.womenSignupCount);
+          
+          // Use transaction-based signout for reliable count updates
+          if (userGender === 'male' || userGender === 'female') {
+            try {
+              await signOutFromEvent(eventId, userId, userGender);
+              console.log('✅ User removed from event using transaction');
+            } catch (error) {
+              console.log('⚠️ Transaction-based removal failed, falling back to manual count update:', error.message);
+              // Fallback: manually update counts
+              const actualCounts = await calculateActualCounts(eventId);
+              await reconcileCounts(eventId, actualCounts);
+            }
+          } else {
+            console.log('⚠️ Unknown gender, reconciling counts manually');
+            const actualCounts = await calculateActualCounts(eventId);
+            await reconcileCounts(eventId, actualCounts);
+          }
+        } else {
+          console.log('⚠️ Event document does not exist');
+        }
+      } catch (error) {
+        console.log('⚠️ Could not update signup counts:', error.message);
+      }
+      
+      // Update user's datesRemaining count
+      try {
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const currentDatesRemaining = userData.datesRemaining || 0;
+          
+          console.log('🔍 Debug datesRemaining update (AdminUserManagement):');
+          console.log('- Current datesRemaining:', currentDatesRemaining);
+          console.log('- User ID:', userId);
+          
+          await updateDoc(userDocRef, {
+            datesRemaining: increment(1) // Increase available dates by 1
+          });
+          console.log('✅ Updated user datesRemaining count');
+        } else {
+          console.log('⚠️ User document does not exist');
+        }
+      } catch (error) {
+        console.log('⚠️ Could not update user datesRemaining:', error.message);
+      }
+      
+      // Update local state
+      setUserEvents(prev => prev.filter(e => e.id !== selectedEventToDelete.id));
+      
+      setShowDeleteEventModal(false);
+      setSelectedEventToDelete(null);
+      
+      console.log('✅ Event deletion completed successfully');
+    } catch (error) {
+      console.error('Error deleting event from user:', error);
+      alert('Failed to delete event from user. Please try again.');
+    } finally {
+      setDeletingEvent(false);
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -246,6 +432,7 @@ const AdminUserManagement = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preference</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sparks</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Events</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -260,9 +447,8 @@ const AdminUserManagement = () => {
               <tr key={user.id} className={user.id === auth.currentUser?.uid ? 'bg-blue-50' : ''}>
                 <td className="px-6 py-4 whitespace-nowrap cursor-pointer text-blue-700 hover:underline" onClick={() => { setSelectedUserDetail(user); setShowUserDetailModal(true); }}>
                   <span
-                    className="relative text-blue-600 underline cursor-pointer"
+                    className="relative text-gray-900 cursor-default"
                     onMouseEnter={() => setHoverUserId(user.id)}
-                    
                   >
                     {formatUserName(user)}
                     {hoverUserId === user.id && (
@@ -298,6 +484,19 @@ const AdminUserManagement = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap capitalize">{user.gender || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap capitalize">{user.sexualPreference || user.genderPreference || '-'}</td>
+                {/* Dates column */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium">{user.datesRemaining || 0}</span>
+                    <button
+                      onClick={() => handleEditDates(user)}
+                      className="text-blue-600 hover:text-blue-900 text-sm"
+                      title="Edit Dates"
+                    >
+                      ✏️
+                    </button>
+                  </div>
+                </td>
                 {/* Sparks column */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
@@ -323,6 +522,15 @@ const AdminUserManagement = () => {
                         onClick={() => handleMakeAdmin(user)}
                         className="text-purple-600 hover:text-purple-900"
                         title="Make Admin"
+                      >
+                        <FaUserShield />
+                      </button>
+                    )}
+                    {adminUsers.includes(user.id) && user.id !== auth.currentUser?.uid && (
+                      <button
+                        onClick={() => handleRemoveAdmin(user)}
+                        className="text-orange-600 hover:text-orange-900"
+                        title="Remove Admin"
                       >
                         <FaUserShield />
                       </button>
@@ -398,6 +606,33 @@ const AdminUserManagement = () => {
         </div>
       )}
 
+      {/* Remove Admin Modal */}
+      {showRemoveAdminModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-semibold mb-4">Remove Admin Status</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to remove admin status from {selectedUser?.firstName} {selectedUser?.lastName}? 
+              They will lose administrative access.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => setShowRemoveAdminModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                onClick={confirmRemoveAdmin}
+              >
+                Remove Admin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* User Detail Modal */}
       {showUserDetailModal && selectedUserDetail && (
         <AdminUserDetailModal
@@ -420,21 +655,31 @@ const AdminUserManagement = () => {
               <table className="min-w-full text-sm table-fixed">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Title</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Date</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Time</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Signed-Up At</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Event ID</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Title</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Date</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Time</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Signed-Up At</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Event ID</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {userEvents.map(ev => (
                     <tr key={ev.id}>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.title}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.date}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.time}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.signUp}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{ev.id}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.title}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.date}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.time}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.signUp}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.id}</td>
+                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">
+                        <button
+                          onClick={() => handleDeleteEvent(ev)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          title="Remove user from event"
+                        >
+                          Remove
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -503,6 +748,86 @@ const AdminUserManagement = () => {
                 onClick={() => setShowConnectionsModal(false)}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Event Confirmation Modal */}
+      {showDeleteEventModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-semibold mb-4">Remove User from Event</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to remove <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> from the event "{selectedEventToDelete?.title}"?
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              This action will remove the user from the event and update the signup counts. This action cannot be undone.<br/>
+              <span className="text-xs text-red-500 block mt-2">Reminder: You must manually remove this user from the Remo event in the Remo dashboard. This is not handled automatically.</span>
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => {
+                  setShowDeleteEventModal(false);
+                  setSelectedEventToDelete(null);
+                }}
+                disabled={deletingEvent}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                onClick={confirmDeleteEvent}
+                disabled={deletingEvent}
+              >
+                {deletingEvent ? 'Removing...' : 'Remove User'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Dates Modal */}
+      {showEditDatesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-semibold mb-4">Edit User Dates</h2>
+            <p className="text-gray-600 mb-6">
+              Update the number of dates remaining for <strong>{selectedUserForDates?.firstName} {selectedUserForDates?.lastName}</strong>
+            </p>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Dates Remaining
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={newDatesRemaining}
+                onChange={(e) => setNewDatesRemaining(parseInt(e.target.value) || 0)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter number of dates"
+              />
+            </div>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => {
+                  setShowEditDatesModal(false);
+                  setSelectedUserForDates(null);
+                  setNewDatesRemaining(0);
+                }}
+                disabled={updatingDates}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                onClick={confirmUpdateDates}
+                disabled={updatingDates}
+              >
+                {updatingDates ? 'Updating...' : 'Update Dates'}
               </button>
             </div>
           </div>

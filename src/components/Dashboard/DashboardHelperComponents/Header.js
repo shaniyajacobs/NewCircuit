@@ -4,11 +4,13 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from '../../../pages/firebaseConfig';
 import { IoPersonCircle } from 'react-icons/io5';
 import { ReactComponent as VectorIcon } from '../../../images/Vector 6.svg';
+import { useNavigate } from 'react-router-dom';
 import { formatUserName } from "../../../utils/nameFormatter";
 
 
 const Header = (props) => {
   const auth = getAuth();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState(() => {
@@ -40,7 +42,8 @@ const Header = (props) => {
 
   const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "Sparks", 
     "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
-    "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashSignOut": "Sign Out"}
+    "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashChangePassword": "Change Password", 
+    "/dashboard/dashDeleteAccount": "Delete Account", "/dashboard/dashDeactivateAccount": "Deactivate Account", "/dashboard/dashSignOut": "Sign Out"}
   const { path } = props;
 
   if (isLoading) {
@@ -61,16 +64,27 @@ const Header = (props) => {
 
   return (
     <div className="hidden md:flex justify-between items-center p-6 bg-white max-sm:flex-col max-sm:gap-5 max-sm:p-6 border border-[rgba(33,31,32,0.10)]">
-      <div className="        
-        font-medium
-        text-[#211F20]
-        font-bricolage
-        text-base
-        font-normal
-        leading-[130%]
-        uppercase
-        tracking-wide">
-        {PathTitleMappings[path]}
+      <div 
+        className={`        
+          font-medium
+          text-[#211F20]
+          font-bricolage
+          text-base
+          font-normal
+          leading-[130%]
+          uppercase
+          tracking-wide
+          ${["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(path) ? "cursor-pointer hover:opacity-70" : ""}`}
+        onClick={["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(path) ? () => navigate('/dashboard/dashSettings') : undefined}
+      >
+        {["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(path) ? (
+          <span className="flex items-center">
+            <img src="/arrow-left.svg" alt="Back" className="w-4 h-4 mr-2" />
+            {PathTitleMappings[path]}
+          </span>
+        ) : (
+          PathTitleMappings[path]
+        )}
       </div>
       <div className="flex gap-5 items-center">
         <div className="flex justify-center items-center h-[66px] w-[62px]">

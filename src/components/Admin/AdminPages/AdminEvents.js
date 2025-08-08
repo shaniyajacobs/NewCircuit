@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../../pages/firebaseConfig';
-import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, query, where, getDoc, increment } from 'firebase/firestore';
 import { FaSearch, FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
+import { signOutFromEvent, calculateActualCounts, reconcileCounts } from '../../../utils/eventSpotsUtils';
 import { formatUserName } from '../../../utils/nameFormatter';
 
 const AdminEvents = () => {
@@ -16,22 +17,21 @@ const AdminEvents = () => {
   const [hoverEventId, setHoverEventId] = useState(null); // for ID tooltip on hover
   const [showEditModal, setShowEditModal] = useState(false);
   const [newEvent, setNewEvent] = useState({
-    title: '',
-    date: '',
+    eventID: '',
     location: '',
-    time: '',
-    timeZone: '',
     menSpots: '',
     womenSpots: '',
     ageRange: '',
-    eventType: '',
-    eventID: ''
+    eventType: ''
   });
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [eventUsers, setEventUsers] = useState([]);
   const [maleUsers, setMaleUsers] = useState([]);
   const [femaleUsers, setFemaleUsers] = useState([]);
+  const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
+  const [selectedUserToDelete, setSelectedUserToDelete] = useState(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   const LOCATION_OPTIONS = [
     'Atlanta',
@@ -101,7 +101,8 @@ const AdminEvents = () => {
 
       const attendees = Array.isArray(res?.data) ? res.data : [];
 
-      const normalized = attendees.map((a) => {
+      // Normalize Remo attendees
+      const remoUsers = attendees.map((a) => {
         const profile = a.user?.profile || {};
         const nameCombined = profile.name || formatUserName(profile);
 
@@ -115,15 +116,55 @@ const AdminEvents = () => {
           id: a.user?.id || a.user?._id || a.invite?._id || a._id || email,
           name: nameCombined || email,
           email,
+          userGender: profile.gender || 'Unknown', // Add gender information for Remo users
           // Use createdAt from root or invite object as sign-up timestamp
           signedUpAt: a.createdAt || a.invite?.createdAt || a.invite?.updatedAt || '',
           status,
           accepted,
+          source: 'remo' // Mark as Remo user
         };
       });
-      setEventUsers(normalized);
+
+      // Fetch Firebase users from the event's signedUpUsers subcollection
+      const firebaseUsers = [];
+      try {
+        const signedUpUsersRef = collection(db, 'events', event.id, 'signedUpUsers');
+        const signedUpUsersSnapshot = await getDocs(signedUpUsersRef);
+        
+        signedUpUsersSnapshot.docs.forEach(doc => {
+          const userData = doc.data();
+          console.log('🔍 Firebase user data:', userData); // Debug log
+          firebaseUsers.push({
+            id: doc.id, // This is the user ID
+            name: userData.userName || 'Unknown',
+            email: userData.userEmail || 'N/A',
+            userGender: userData.userGender || 'Unknown', // Add gender information
+            signedUpAt: userData.signUpTime ? userData.signUpTime.toDate().toLocaleString() : 'N/A',
+            status: 'Signed Up',
+            accepted: 'Yes',
+            source: 'firebase' // Mark as Firebase user
+          });
+        });
+      } catch (error) {
+        console.error('Error fetching Firebase signed up users:', error);
+      }
+
+      // Filter out Firebase users whose emails match Remo users
+      // Create a set of Remo user emails for efficient lookup
+      const remoEmails = new Set(remoUsers.map(user => user.email.toLowerCase()).filter(email => email !== '-'));
+      
+      // Filter Firebase users to exclude those with emails that exist in Remo
+      const filteredFirebaseUsers = firebaseUsers.filter(user => {
+        return !remoEmails.has(user.email.toLowerCase());
+      });
+
+      // Combine users - Remo users take priority
+      const combinedUsers = [...remoUsers, ...filteredFirebaseUsers];
+      
+      console.log('Combined users:', combinedUsers);
+      setEventUsers(combinedUsers);
     } catch (error) {
-      console.error('Error fetching Remo members:', error);
+      console.error('Error fetching event members:', error);
     } finally {
       setLoadingUsers(false);
     }
@@ -132,10 +173,41 @@ const AdminEvents = () => {
   const confirmDelete = async () => {
     try {
       setLoading(true);
+      
+      // First, get all users signed up for this event
+      const signedUpUsersRef = collection(db, 'events', selectedEvent.id, 'signedUpUsers');
+      const signedUpUsersSnapshot = await getDocs(signedUpUsersRef);
+      
+      // Update datesRemaining and remove event from signedUpEvents for all signed up users
+      const updatePromises = signedUpUsersSnapshot.docs.map(async (userDoc) => {
+        const userId = userDoc.id;
+        const userDocRef = doc(db, 'users', userId);
+        
+        try {
+          // Update datesRemaining (+1 date back)
+          await updateDoc(userDocRef, {
+            datesRemaining: increment(1) // Increase available dates by 1
+          });
+          console.log(`✅ Updated datesRemaining for user ${userId}`);
+          
+          // Remove event from user's signedUpEvents collection
+          await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', selectedEvent.id));
+          console.log(`✅ Removed event from user ${userId}'s signedUpEvents`);
+        } catch (error) {
+          console.log(`⚠️ Could not update user ${userId}:`, error.message);
+        }
+      });
+      
+      // Wait for all user updates to complete
+      await Promise.all(updatePromises);
+      
+      // Now delete the event
       await deleteDoc(doc(db, 'events', selectedEvent.id));
       setEvents(events.filter(evt => evt.id !== selectedEvent.id));
       setShowDeleteModal(false);
       setSelectedEvent(null);
+      
+      console.log('✅ Event deleted and all user data cleaned up successfully');
     } catch (error) {
       console.error('Error deleting event:', error);
     } finally {
@@ -157,7 +229,7 @@ const AdminEvents = () => {
       await updateDoc(docRef, { id: docRef.id });
 
       setShowAddModal(false);
-      setNewEvent({ title: '', date: '', location: '', time: '', timeZone: '', menSpots: '', womenSpots: '', ageRange: '', eventType: '', eventID: '' });
+      setNewEvent({ eventID: '', location: '', menSpots: '', womenSpots: '', ageRange: '', eventType: '' });
       fetchEvents();
     } catch (error) {
       console.error('Error adding event:', error);
@@ -175,8 +247,164 @@ const AdminEvents = () => {
     }
   };
 
+  const handleDeleteUser = (user) => {
+    setSelectedUserToDelete(user);
+    setShowDeleteUserModal(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!selectedUserToDelete || !selectedEvent) return;
+    
+    try {
+      setDeletingUser(true);
+      
+      console.log('Selected user to delete:', selectedUserToDelete);
+      console.log('Selected event:', selectedEvent);
+      console.log('🔍 User data structure:', {
+        id: selectedUserToDelete.id,
+        name: selectedUserToDelete.name,
+        email: selectedUserToDelete.email,
+        userGender: selectedUserToDelete.userGender,
+        source: selectedUserToDelete.source
+      });
+      
+      // For Firebase users, we have the actual user ID
+      // For Remo users, we need to find them in Firebase if they exist
+      let userId = selectedUserToDelete.id;
+      let eventId = selectedEvent.id;
+      
+      if (selectedUserToDelete.source === 'remo') {
+        // For Remo users, try to find their Firebase entry by email
+        if (selectedUserToDelete.email && selectedUserToDelete.email !== '-') {
+          try {
+            const q = query(collection(db, 'users'), where('email', '==', selectedUserToDelete.email));
+            const userSnap = await getDocs(q);
+            if (!userSnap.empty) {
+              userId = userSnap.docs[0].id; // Use the actual Firebase user ID
+              console.log(`Found Firebase user for Remo user: ${userId}`);
+            }
+          } catch (error) {
+            console.log('Could not find Firebase user for Remo user');
+          }
+        }
+      }
+      
+      console.log(`Attempting to delete user ${userId} from event ${eventId}`);
+      
+      // Try to delete from both sides, but don't fail if one doesn't exist
+      try {
+        await deleteDoc(doc(db, 'events', eventId, 'signedUpUsers', userId));
+        console.log('✅ Deleted from event signedUpUsers');
+      } catch (error) {
+        console.log('⚠️ Could not delete from event signedUpUsers (might not exist):', error.message);
+      }
+      
+      try {
+        await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', eventId));
+        console.log('✅ Deleted from user signedUpEvents');
+      } catch (error) {
+        console.log('⚠️ Could not delete from user signedUpEvents (might not exist):', error.message);
+      }
+      
+      // Update signup counts for all users (both Firebase and Remo)
+      try {
+        const eventDocRef = doc(db, 'events', eventId);
+        const eventDoc = await getDoc(eventDocRef);
+        if (eventDoc.exists()) {
+          const data = eventDoc.data();
+          let userGender = selectedUserToDelete.userGender?.toLowerCase();
+          
+          // If gender is unknown, try to find it from Firebase user data
+          if (!userGender || userGender === 'unknown') {
+            if (selectedUserToDelete.email && selectedUserToDelete.email !== '-') {
+              try {
+                const q = query(collection(db, 'users'), where('email', '==', selectedUserToDelete.email));
+                const userSnap = await getDocs(q);
+                if (!userSnap.empty) {
+                  const firebaseUserData = userSnap.docs[0].data();
+                  userGender = firebaseUserData.gender?.toLowerCase();
+                  console.log('🔍 Found gender from Firebase user:', userGender);
+                }
+              } catch (error) {
+                console.log('⚠️ Could not find Firebase user for gender lookup:', error.message);
+              }
+            }
+          }
+          
+          console.log('🔍 Debug signup count update:');
+          console.log('- User gender:', userGender);
+          console.log('- User source:', selectedUserToDelete.source);
+          console.log('- Event ID being used:', eventId);
+          console.log('- Event data:', data);
+          console.log('- Current menSignupCount:', data.menSignupCount);
+          console.log('- Current womenSignupCount:', data.womenSignupCount);
+          
+          // Use transaction-based signout for reliable count updates
+          if (userGender === 'male' || userGender === 'female') {
+            try {
+              await signOutFromEvent(eventId, userId, userGender);
+              console.log('✅ User removed from event using transaction');
+            } catch (error) {
+              console.log('⚠️ Transaction-based removal failed, falling back to manual count update:', error.message);
+              // Fallback: manually update counts
+              const actualCounts = await calculateActualCounts(eventId);
+              await reconcileCounts(eventId, actualCounts);
+            }
+          } else {
+            console.log('⚠️ Unknown gender, reconciling counts manually');
+            const actualCounts = await calculateActualCounts(eventId);
+            await reconcileCounts(eventId, actualCounts);
+          }
+        } else {
+          console.log('⚠️ Event document does not exist');
+        }
+      } catch (error) {
+        console.log('⚠️ Could not update signup counts:', error.message);
+      }
+      
+      // Update user's datesRemaining count (for both Firebase and Remo users)
+      try {
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const currentDatesRemaining = userData.datesRemaining || 0;
+          
+          console.log('🔍 Debug datesRemaining update:');
+          console.log('- Current datesRemaining:', currentDatesRemaining);
+          console.log('- User ID:', userId);
+          
+          await updateDoc(userDocRef, {
+            datesRemaining: increment(1) // Increase available dates by 1
+          });
+          console.log('✅ Updated user datesRemaining count');
+        } else {
+          console.log('⚠️ User document does not exist');
+        }
+      } catch (error) {
+        console.log('⚠️ Could not update user datesRemaining:', error.message);
+      }
+      
+      // Update local state
+      setEventUsers(prev => prev.filter(u => u.id !== selectedUserToDelete.id));
+      
+      setShowDeleteUserModal(false);
+      setSelectedUserToDelete(null);
+      
+      console.log('✅ User deletion completed successfully');
+    } catch (error) {
+      console.error('Error deleting user from event:', error);
+      alert('Failed to delete user from event. Please try again.');
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
   const filteredEvents = events.filter(evt =>
-    evt.title?.toLowerCase().includes(searchTerm.toLowerCase())
+    (evt.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     evt.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     evt.eventID?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     evt.location?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -211,10 +439,10 @@ const AdminEvents = () => {
         <table className="min-w-full whitespace-nowrap text-sm">
           <thead className="bg-gray-50 sticky top-0">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title/Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Zone</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sign Ups</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -230,10 +458,11 @@ const AdminEvents = () => {
             ) : filteredEvents.map(evt => (
               <tr key={evt.id}>
                 {(() => {
-                  const dt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)) : null;
-                  const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (evt.date ? DateTime.fromISO(evt.date).toFormat('MM/dd/yyyy') : '');
-                  const timeStr = dt ? dt.toFormat('h:mm a') : (evt.time || '');
-                  const tzStr = dt ? dt.offsetNameShort : (evt.timeZone || '');
+                  const startDt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)) : null;
+                  const endDt = evt.endTime ? DateTime.fromMillis(Number(evt.endTime)) : null;
+                  const dateStr = startDt ? startDt.toFormat('MM/dd/yyyy') : (evt.date ? DateTime.fromISO(evt.date).toFormat('MM/dd/yyyy') : '');
+                  const startTimeStr = startDt ? startDt.toFormat('h:mm a') : (evt.time || '');
+                  const endTimeStr = endDt ? endDt.toFormat('h:mm a') : '-';
                   return (
                     <> 
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -241,7 +470,7 @@ const AdminEvents = () => {
                           className="relative text-blue-600 underline cursor-pointer"
                           onMouseEnter={() => setHoverEventId(evt.id)}
                         >
-                          {evt.name || evt.title}
+                          {evt.name || evt.title || 'Untitled'}
                           {hoverEventId === evt.id && (
                             <div
                               className="absolute z-10 left-full ml-4 top-1/2 -translate-y-1/2 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs whitespace-nowrap"
@@ -255,12 +484,12 @@ const AdminEvents = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{dateStr}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{timeStr}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{tzStr}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{startTimeStr}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{endTimeStr}</td>
                        </>
                   );
                 })()}
-                <td className="px-6 py-4 whitespace-nowrap">{evt.location}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{evt.location || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => handleShowUsers(evt)}
@@ -269,8 +498,8 @@ const AdminEvents = () => {
                     Users
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">{evt.eventType}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{evt.ageRange}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{evt.eventType || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{evt.ageRange || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => handleEditEvent(evt)}
@@ -298,7 +527,7 @@ const AdminEvents = () => {
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <h2 className="text-2xl font-semibold mb-4">Delete Event</h2>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete {selectedEvent?.title}? This action cannot be undone.
+              Are you sure you want to delete {selectedEvent?.title || selectedEvent?.name || selectedEvent?.eventID || 'this event'}? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-4">
               <button
@@ -325,12 +554,12 @@ const AdminEvents = () => {
             <h2 className="text-2xl font-semibold mb-4">Add New Event</h2>
             <form onSubmit={handleAddEvent} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event Title</label>
+                <label className="text-sm font-medium text-gray-700">Event ID</label>
                 <input
                   type="text"
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  value={newEvent.eventID}
+                  onChange={(e) => setNewEvent({ ...newEvent, eventID: e.target.value })}
                   required
                 />
               </div>
@@ -345,38 +574,6 @@ const AdminEvents = () => {
                   <option value="" disabled>Select location</option>
                   {LOCATION_OPTIONS.map(loc => (<option key={loc} value={loc}>{loc}</option>))}
                 </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Date</label>
-                <input
-                  type="date"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={newEvent.date}
-                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="flex gap-4">
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Time (e.g., 7:00 PM)</label>
-                  <input
-                    type="text"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none w-full"
-                    value={newEvent.time}
-                    onChange={(e)=>setNewEvent({...newEvent, time:e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Time Zone</label>
-                  <input
-                    type="text"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none w-full"
-                    value={newEvent.timeZone}
-                    onChange={(e)=>setNewEvent({...newEvent, timeZone:e.target.value})}
-                    required
-                  />
-                </div>
               </div>
               <div className="flex gap-4">
                 <div className="flex flex-col gap-1 flex-1">
@@ -422,16 +619,6 @@ const AdminEvents = () => {
                   {['Brunch','Happy Hour','Dinner'].map(t=>(<option key={t} value={t}>{t}</option>))}
                 </select>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event ID</label>
-                <input
-                  type="text"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={newEvent.eventID}
-                  onChange={(e) => setNewEvent({ ...newEvent, eventID: e.target.value })}
-                  required
-                />
-              </div>
               <div className="flex justify-end gap-4 mt-4">
                 <button
                   type="button"
@@ -458,19 +645,19 @@ const AdminEvents = () => {
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
             <h2 className="text-2xl font-semibold mb-4">Edit Event</h2>
             <form onSubmit={handleUpdateEvent} className="flex flex-col gap-4">
-              {/* Event Title */}
+              {/* Event ID */}
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event Title</label>
+                <label className="text-sm font-medium text-gray-700">Event ID</label>
                 <input
                   type="text"
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={selectedEvent.title}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,title:e.target.value})}
+                  value={selectedEvent.eventID}
+                  onChange={(e)=>setSelectedEvent({...selectedEvent,eventID:e.target.value})}
                   required
                 />
               </div>
 
-              {/* Location before Date */}
+              {/* Location */}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Location</label>
                 <select
@@ -481,42 +668,6 @@ const AdminEvents = () => {
                 >
                   {LOCATION_OPTIONS.map(loc=>(<option key={loc} value={loc}>{loc}</option>))}
                 </select>
-              </div>
-
-              {/* Date */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Date</label>
-                <input
-                  type="date"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={selectedEvent.date}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,date:e.target.value})}
-                  required
-                />
-              </div>
-
-              {/* Time & TimeZone Row */}
-              <div className="flex gap-4">
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Time (e.g., 7:00 PM)</label>
-                  <input
-                    type="text"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none w-full"
-                    value={selectedEvent.time}
-                    onChange={(e)=>setSelectedEvent({...selectedEvent,time:e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Time Zone</label>
-                  <input
-                    type="text"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none w-full"
-                    value={selectedEvent.timeZone}
-                    onChange={(e)=>setSelectedEvent({...selectedEvent,timeZone:e.target.value})}
-                    required
-                  />
-                </div>
               </div>
 
               {/* Men & Women Spots Row */}
@@ -568,18 +719,6 @@ const AdminEvents = () => {
                 </select>
               </div>
 
-              {/* Event ID */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event ID</label>
-                <input
-                  type="text"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none"
-                  value={selectedEvent.eventID}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,eventID:e.target.value})}
-                  required
-                />
-              </div>
-
 
               <div className="flex justify-end gap-4 mt-4">
                 <button type="button" className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onClick={()=>setShowEditModal(false)}>Cancel</button>
@@ -603,26 +742,70 @@ const AdminEvents = () => {
               <div className="text-center py-8 text-gray-600">No users have signed up yet.</div>
             ) : (
               <div className="space-y-10">
+                {/* Summary Statistics */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-3">Summary</h3>
+                  <div className="flex gap-6">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                      <span className="text-sm">
+                        Remo Users: {eventUsers.filter(u => u.source === 'remo').length}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                      <span className="text-sm">
+                        Firebase Users: {eventUsers.filter(u => u.source === 'firebase').length}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        Total: {eventUsers.length}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
                 <div>
                   <h3 className="text-xl font-semibold mb-2">All Users</h3>
                   <table className="min-w-full text-sm table-fixed">
                     <thead className="bg-gray-50 sticky z-10">
                       <tr>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Name</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Signed Up At</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Email</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Status</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Accepted</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Name</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Signed Up At</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Email</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Status</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Accepted</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Source</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {eventUsers.map(u => (
                         <tr key={u.id}>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.name}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.signedUpAt ? new Date(u.signedUpAt).toLocaleString() : '-'}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.email}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate capitalize">{u.status}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/5 truncate">{u.accepted}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">{u.name}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">{u.signedUpAt ? new Date(u.signedUpAt).toLocaleString() : '-'}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">{u.email}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate capitalize">{u.status}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">{u.accepted}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              u.source === 'remo' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {u.source === 'remo' ? 'Remo' : 'Firebase'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">
+                            <button
+                              onClick={() => handleDeleteUser(u)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium"
+                              title="Delete user from event"
+                            >
+                              Delete
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -636,6 +819,41 @@ const AdminEvents = () => {
                 onClick={() => setShowUsersModal(false)}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {showDeleteUserModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-semibold mb-4">Delete User from Event</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to remove <strong>{selectedUserToDelete?.name}</strong> from the event "{selectedEvent?.name || selectedEvent?.title}"?
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              This action will remove the user from the event and update the signup counts. This action cannot be undone.<br/>
+              <span className="text-xs text-red-500 block mt-2">Reminder: You must manually remove this user from the Remo event in the Remo dashboard. This is not handled automatically.</span>
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => {
+                  setShowDeleteUserModal(false);
+                  setSelectedUserToDelete(null);
+                }}
+                disabled={deletingUser}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                onClick={confirmDeleteUser}
+                disabled={deletingUser}
+              >
+                {deletingUser ? 'Deleting...' : 'Delete User'}
               </button>
             </div>
           </div>
