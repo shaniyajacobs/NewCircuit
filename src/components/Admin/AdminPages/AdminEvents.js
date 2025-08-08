@@ -177,18 +177,23 @@ const AdminEvents = () => {
       const signedUpUsersRef = collection(db, 'events', selectedEvent.id, 'signedUpUsers');
       const signedUpUsersSnapshot = await getDocs(signedUpUsersRef);
       
-      // Update datesRemaining for all signed up users
+      // Update datesRemaining and remove event from signedUpEvents for all signed up users
       const updatePromises = signedUpUsersSnapshot.docs.map(async (userDoc) => {
         const userId = userDoc.id;
         const userDocRef = doc(db, 'users', userId);
         
         try {
+          // Update datesRemaining (+1 date back)
           await updateDoc(userDocRef, {
             datesRemaining: increment(1) // Increase available dates by 1
           });
           console.log(`✅ Updated datesRemaining for user ${userId}`);
+          
+          // Remove event from user's signedUpEvents collection
+          await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', selectedEvent.id));
+          console.log(`✅ Removed event from user ${userId}'s signedUpEvents`);
         } catch (error) {
-          console.log(`⚠️ Could not update datesRemaining for user ${userId}:`, error.message);
+          console.log(`⚠️ Could not update user ${userId}:`, error.message);
         }
       });
       
@@ -201,7 +206,7 @@ const AdminEvents = () => {
       setShowDeleteModal(false);
       setSelectedEvent(null);
       
-      console.log('✅ Event deleted and user datesRemaining updated successfully');
+      console.log('✅ Event deleted and all user data cleaned up successfully');
     } catch (error) {
       console.error('Error deleting event:', error);
     } finally {
