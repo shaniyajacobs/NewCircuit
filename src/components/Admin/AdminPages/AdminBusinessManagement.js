@@ -4,6 +4,7 @@ import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { FaSearch, FaTrash } from 'react-icons/fa';
 import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { formatUserName } from '../../../utils/nameFormatter';
 
 const AdminBusinessManagement = () => {
   const [businesses, setBusinesses] = useState([]);
@@ -100,7 +101,7 @@ const AdminBusinessManagement = () => {
                   {business.legalBusinessName}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {(business.firstName || business.lastName) ? `${business.firstName || ''} ${business.lastName || ''}`.trim() : 'N/A'}
+                  {formatUserName(business)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {business.email}

@@ -61,6 +61,7 @@ const Sidebar = () => {
         );
         setHasNewSpark(newSparks.some(isNew => isNew));
       } catch (err) {
+        console.error('Error fetching connections for sidebar:', err);
         setHasNewSpark(false);
       }
     };
