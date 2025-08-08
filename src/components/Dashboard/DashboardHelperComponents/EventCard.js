@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DateTime } from 'luxon';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from '../../../pages/firebaseConfig';
@@ -6,6 +6,8 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../pages/firebaseConfig';
 import { ReactComponent as LocationIcon } from '../../../images/location.svg';
 import { ReactComponent as TimerIcon } from '../../../images/timer.svg';
+import { getEventSpots } from '../../../utils/eventSpotsUtils';
+import PopUp from './PopUp';
 
 function getDateParts(dateString, timeString, timeZone) {
   const normalizedTime = timeString ? timeString.replace(/am|pm/i, m => m.toUpperCase()).trim() : '';
@@ -87,9 +89,38 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [spotsData, setSpotsData] = useState({ menCount: 0, womenCount: 0, menSpots: 0, womenSpots: 0 });
+  
   // Prefer Remo timestamp if available
   const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
   const { dayOfWeek, day, month, timeLabel } = dateParts;
+  
+  // Fetch reliable spot data
+  useEffect(() => {
+    const fetchSpots = async () => {
+      if (event?.firestoreID) {
+        const spots = await getEventSpots(event.firestoreID);
+        setSpotsData(spots);
+      }
+    };
+    fetchSpots();
+  }, [event?.firestoreID]);
+  
+  // Calculate time range for display
+  const getTimeRange = () => {
+    if (event.startTime && event.endTime) {
+      const startDt = DateTime.fromMillis(Number(event.startTime));
+      const endDt = DateTime.fromMillis(Number(event.endTime));
+      const startTime = startDt.toFormat('h:mm a');
+      const endTime = endDt.toFormat('h:mm a');
+      return `${startTime} - ${endTime}`;
+    } else if (timeLabel) {
+      return timeLabel;
+    }
+    return '';
+  };
+  
+  const timeRange = getTimeRange();
   
   return (
     <>
@@ -203,25 +234,17 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                   uppercase
                   text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
                 ">
-                  {event.eventType || ''}{event.eventType && timeLabel ? ' @ ' : ''}{timeLabel || ''}
+                  {event.eventType || ''}{event.eventType && timeRange ? ' @ ' : ''}{timeRange}
                 </span>
               </div>
               
               {/* Open Spots Group */}
               <div className="flex flex-col gap-0">
                 <div className="text-sm text-gray-600">
-                  Open Spots for Men: {(() => {
-                    const total = Number(event.menSpots) || 0;
-                    const signedUp = Number(event.menSignupCount) || 0;
-                    return `${Math.max(total - signedUp, 0)}/${total}`;
-                  })()}
+                  Open Spots for Men: {Math.max(spotsData.menSpots - spotsData.menCount, 0)}/{spotsData.menSpots}
                 </div>
                 <div className="text-sm text-gray-600">
-                  Open Spots for Women: {(() => {
-                    const total = Number(event.womenSpots) || 0;
-                    const signedUp = Number(event.womenSignupCount) || 0;
-                    return `${Math.max(total - signedUp, 0)}/${total}`;
-                  })()}
+                  Open Spots for Women: {Math.max(spotsData.womenSpots - spotsData.womenCount, 0)}/{spotsData.womenSpots}
                 </div>
               </div>
             </div>
@@ -297,7 +320,8 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
             disabled={joining}
             onClick={async () => {
               if (!event?.eventID) {
-                alert('Missing event ID');
+                setErrorMessage('Missing event ID');
+                setShowErrorModal(true);
                 return;
               }
               try {
@@ -314,7 +338,8 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 console.log('getEventData response:', res);
                 const { event: remoEvent } = res.data || {};
                 if (!remoEvent) {
-                  alert('Event data not available yet.');
+                  setErrorMessage('Event data not available yet.');
+                  setShowErrorModal(true);
                   return;
                 }
                 // Record the latest event this user joined
@@ -327,10 +352,12 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     { merge: true }
                   );
                 }
-                // Do NOT redirect to Remo site for signup events
+                // Show success modal
+                setShowSuccessModal(true);
               } catch (err) {
                 console.error('Error fetching join URL:', err);
-                alert('Unable to fetch join link. Please try again later.');
+                setErrorMessage('Unable to fetch join link. Please try again later.');
+                setShowErrorModal(true);
               } finally {
                 setJoining(false);
               }
@@ -357,50 +384,32 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
       </div>
 
       {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <div className="text-center">
-              <div className="text-green-500 text-4xl mb-4">✓</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Successfully Signed Up!
-              </h3>
-              <p className="text-gray-600 mb-4">
-                You've been successfully signed up for this event. Please check your email for the virtual event invitation.
-              </p>
-              <button
-                onClick={() => setShowSuccessModal(false)}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Got it!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Successfully Signed Up!"
+        subtitle="You've been successfully signed up for this event. Please check your email for the virtual event invitation."
+        icon="✓"
+        iconColor="green"
+        primaryButton={{
+          text: "Got it!",
+          onClick: () => setShowSuccessModal(false)
+        }}
+      />
 
       {/* Error Modal */}
-      {showErrorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <div className="text-center">
-              <div className="text-red-500 text-4xl mb-4">✗</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Sign Up Failed
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {errorMessage}
-              </p>
-              <button
-                onClick={() => setShowErrorModal(false)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Sign Up Failed"
+        subtitle={errorMessage}
+        icon="✗"
+        iconColor="red"
+        primaryButton={{
+          text: "Try Again",
+          onClick: () => setShowErrorModal(false)
+        }}
+      />
     </>
   );
 };

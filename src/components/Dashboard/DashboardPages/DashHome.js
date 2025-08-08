@@ -3,13 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where, onSnapshot } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
 import { auth } from "../../../firebaseConfig";
+import { signUpForEventWithDates } from '../../../utils/eventSpotsUtils';
 import { onAuthStateChanged } from "firebase/auth";
 import { DateTime } from 'luxon';
+import PopUp from '../DashboardHelperComponents/PopUp';
 import { calculateAge } from '../../../utils/ageCalculator';
 import { filterByGenderPreference } from '../../../utils/genderPreferenceFilter';
 import { formatUserName } from '../../../utils/nameFormatter';
@@ -20,6 +22,9 @@ import homePurchaseMoreDates from '../../../images/home_purchase_more_dates.jpg'
 import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.svg';
 import filterIcon from '../../../images/setting-4.svg';
 import xIcon from "../../../images/x.svg";
+import tickCircle from "../../../images/tick-circle.svg";
+
+const MAX_SELECTIONS = 3; // maximum matches a user can choose
 
 // Helper: map city to IANA time zone
 const cityToTimeZone = {
@@ -97,6 +102,72 @@ function useResponsiveEventLimit() {
   return isMobile ? 4 : 6;
 }
 
+// Helper: check if latest event was within 48 hours
+async function isLatestEventWithin48Hours(userId) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const latestEventId = userDoc.data()?.latestEventId;
+    
+    if (!latestEventId) {
+      return false;
+    }
+    
+    // Find the event document
+    const eventsSnapshot = await getDocs(collection(db, 'events'));
+    let eventData = null;
+    eventsSnapshot.forEach(docSnap => {
+      if (docSnap.data().eventID === latestEventId) {
+        eventData = docSnap.data();
+      }
+    });
+    
+    if (!eventData) {
+      return false;
+    }
+    
+    // Calculate event end time
+    let eventDateTime;
+    if (eventData.startTime) {
+      // Use startTime if available (Remo events)
+      eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
+    } else if (eventData.date && eventData.time && eventData.timeZone) {
+      // Use date/time for regular events
+      const normalizedTime = eventData.time.replace(/am|pm/i, match => match.toUpperCase());
+      const eventZone = eventZoneMap[eventData.timeZone] || eventData.timeZone || 'UTC';
+      
+      eventDateTime = DateTime.fromFormat(
+        `${eventData.date} ${normalizedTime}`,
+        'yyyy-MM-dd h:mma',
+        { zone: eventZone }
+      );
+      
+      if (!eventDateTime.isValid) {
+        eventDateTime = DateTime.fromFormat(
+          `${eventData.date} ${normalizedTime}`,
+          'yyyy-MM-dd H:mm',
+          { zone: eventZone }
+        );
+      }
+    }
+    
+    if (!eventDateTime || !eventDateTime.isValid) {
+      return false;
+    }
+    
+    // Add 90 minutes for event duration
+    const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+    
+    // Check if event ended within the last 48 hours
+    const now = DateTime.now();
+    const hoursSinceEvent = now.diff(eventEndDateTime, 'hours').hours;
+    
+    return hoursSinceEvent <= 48;
+  } catch (error) {
+    console.error('[48HOURS] Error checking event time:', error);
+    return false;
+  }
+}
+
 // Helper: convert emails to user IDs
 async function emailsToUserIds(emails) {
   if (!emails || emails.length === 0) return [];
@@ -129,6 +200,12 @@ const DashHome = () => {
   const [hasNewSpark, setHasNewSpark] = useState(false);
   const [checkingNewSparks, setCheckingNewSparks] = useState(false);
   const [hideNewSparksNotification, setHideNewSparksNotification] = useState(false);
+  const [hasCouponRequestUpdate, setHasCouponRequestUpdate] = useState(false);
+  const [checkingCouponRequests, setCheckingCouponRequests] = useState(false);
+  const [hideCouponRequestNotification, setHideCouponRequestNotification] = useState(false);
+  const [showSelectSparksCard, setShowSelectSparksCard] = useState(false);
+  const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
+  const [selectingMatches, setSelectingMatches] = useState(false);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -237,6 +314,23 @@ const DashHome = () => {
             : Number(data.datesRemaining);
           setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
+          
+          // Check if latest event was within 48 hours to show "Select my sparks" card
+          const within48Hours = await isLatestEventWithin48Hours(user.uid);
+          
+          // Check if user has already made max selections for the latest event
+          let hasMaxSelections = false;
+          if (within48Hours && data.latestEventId) {
+            const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+            const connectionDocs = connectionsSnap.docs;
+            
+            // If user has reached max selections
+            if (connectionDocs.length >= MAX_SELECTIONS) {
+              hasMaxSelections = true;
+            }
+          }
+          
+          setShowSelectSparksCard(within48Hours && !hasMaxSelections);
         }
       }
     });
@@ -292,6 +386,11 @@ const DashHome = () => {
       }));
       setConnections(connectionsWithNewFlag);
       setHasNewSpark(newSparks.some(isNew => isNew));
+      
+      // Hide select sparks card if user has max selections
+      if (filteredProfiles.length >= MAX_SELECTIONS) {
+        setShowSelectSparksCard(false);
+      }
     } catch (err) {
       setConnections([]);
       setHasNewSpark(false);
@@ -301,9 +400,72 @@ const DashHome = () => {
     }
   };
 
+  // Function to check for coupon request updates
+  const checkCouponRequestUpdates = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    
+    setCheckingCouponRequests(true);
+    try {
+      // Get all coupons
+      const couponsRef = collection(db, 'coupons');
+      const couponsSnapshot = await getDocs(couponsRef);
+      
+      let hasUpdate = false;
+      
+      // Check each coupon for redemption requests by this user
+      for (const couponDoc of couponsSnapshot.docs) {
+        const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
+        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', user.uid));
+        const redemptionsSnapshot = await getDocs(redemptionsQuery);
+        
+        if (!redemptionsSnapshot.empty) {
+          // Check if any request has been approved or rejected (status changed from 'redeemed')
+          const hasStatusUpdate = redemptionsSnapshot.docs.some(doc => {
+            const data = doc.data();
+            return data.status === 'approved' || data.status === 'rejected';
+          });
+          
+          if (hasStatusUpdate) {
+            hasUpdate = true;
+            break;
+          }
+        }
+      }
+      
+      setHasCouponRequestUpdate(hasUpdate);
+    } catch (error) {
+      console.error('Error checking coupon request updates:', error);
+      setHasCouponRequestUpdate(false);
+    } finally {
+      setCheckingCouponRequests(false);
+    }
+  };
+
   useEffect(() => {
     fetchConnections();
+    checkCouponRequestUpdates();
+    
+    // Set up real-time listener for coupon request updates
+    const user = auth.currentUser;
+    if (!user) return;
+    
+    const unsubscribe = onSnapshot(collection(db, 'coupons'), async (snapshot) => {
+      // Check for updates when coupon data changes
+      await checkCouponRequestUpdates();
+    });
+    
+    return () => unsubscribe();
   }, [auth.currentUser]);
+
+  // Check for congratulations modal on component mount
+  useEffect(() => {
+    const shouldShowCongratulations = localStorage.getItem('showCongratulationsModal');
+    if (shouldShowCongratulations === 'true') {
+      setShowCongratulationsModal(true);
+      localStorage.removeItem('showCongratulationsModal'); // Clear the flag
+    }
+  }, []);
 
   // Helper to check if event is past (for sign-up: event start; for upcoming: event start + 90min)
   function isEventPast(event, addMinutes = 0) {
@@ -347,22 +509,30 @@ const DashHome = () => {
       const functionsInst = getFunctions();
       const getEventDataCF = httpsCallable(functionsInst, "getEventData");
 
-      const eventsList = await Promise.all(
-        querySnapshot.docs.map(async (docSnapshot) => {
-          const docData = docSnapshot.data() || {};
-          const eventId = docData.eventID || docSnapshot.id;
-          try {
-            const res = await getEventDataCF({ eventId });
-            const remoEvent = res.data?.event;
-            if (remoEvent) {
-              return { ...remoEvent, ...docData, firestoreID: docSnapshot.id, eventID: eventId };
+        const eventsList = await Promise.all(
+          querySnapshot.docs.map(async (docSnapshot) => {
+            const docData = docSnapshot.data() || {};
+            const eventId = docData.eventID || docSnapshot.id; // fallback
+            try {
+              const res = await getEventDataCF({ eventId });
+              const remoEvent = res.data?.event;
+              if (remoEvent) {
+                const finalTitle = remoEvent.name || remoEvent.title || docData.title || docData.eventName || 'Untitled';
+                return {
+                  ...remoEvent,
+                  ...docData, // firebase fields (eventType etc.) override Remo
+                  title: finalTitle,
+                  eventType: docData.eventType || docData.type || remoEvent.eventType,
+                  firestoreID: docSnapshot.id,
+                  eventID: eventId,
+                };
+              }
+            } catch (err) {
+              console.error(`Failed fetching Remo event for ${eventId}:`, err);
             }
-          } catch (err) {
-            console.error(`Failed fetching Remo event for ${eventId}:`, err);
-          }
-          return null;
-        })
-      );
+            return null;
+          })
+        );
 
       const filteredEvents = eventsList.filter(Boolean);
       setAllEvents(filteredEvents);
@@ -467,125 +637,107 @@ const getEventData = async (eventID) => {
   }
 };
 
-  // Handle sign up logic
+    // Handle sign up logic
   const handleSignUp = async (event) => {
-    // 🐛 DEBUGGING LOGS
     console.log("[JOIN NOW] Event:", event);
     console.log("[JOIN NOW] Event ID:", event.eventID);
     console.log("[JOIN NOW] Current user:", auth.currentUser?.uid);
+    
     const currentRemaining = Number.isFinite(datesRemaining) ? datesRemaining : 0;
-    if (currentRemaining <= 0) return;
-    setDatesRemaining(prev => (Number.isFinite(prev) ? prev - 1 : 0));
+    if (currentRemaining <= 0) {
+      console.log('[JOIN NOW] No dates remaining - cannot sign up');
+      alert('You have no dates remaining. Please purchase more dates to join events.');
+      return;
+    }
 
     const user = auth.currentUser;
-    if (user) {
-      // 0️⃣ Guard: skip if user already signed up
-      const existingSignupRef = doc(db, 'events', event.firestoreID, 'signedUpUsers', user.uid);
-      const existingSignupSnap = await getDoc(existingSignupRef);
-      if (existingSignupSnap.exists()) {
-        console.log('[JOIN NOW] User already signed up – skipping duplicate');
-        return;
-      }
-
-      const userDocRef = doc(db, 'users', user.uid);
-      // Update remaining dates for the user
-      await setDoc(userDocRef, { 
-        datesRemaining: currentRemaining - 1, 
-        latestEventId: event.eventID // <-- ensure this is set
-      }, { merge: true });
-
-      // 1. Add a document in the user's sub-collection
-      await setDoc(
-        doc(db, 'users', user.uid, 'signedUpEvents', event.firestoreID),
-        {
-          eventID: event.eventID,
-          signUpTime: serverTimestamp(),
-          eventTitle: event.title || null,
-          eventDate: event.date || null,
-          eventTime: event.time || null,
-          eventLocation: event.location || null,
-          eventAgeRange: event.ageRange || null,
-          eventType: event.eventType || null,
-        },
-        { merge: true }
-      );
-
-      // 2. Add a document in the event's sub-collection
-      await setDoc(
-        doc(db, 'events', event.firestoreID, 'signedUpUsers', user.uid),
-        {
-          userID: user.uid,
-          userName: formatUserName(userProfile || user),
-          userEmail: user.email || null,
-          userPhoneNumber: (userProfile && userProfile.phoneNumber) || user.phoneNumber || null,
-          userGender: userGender || null,
-          userLocation: (userProfile && userProfile.location) || null,
-          signUpTime: serverTimestamp(),
-        },
-        { merge: true }
-      );
+    if (!user) {
+      console.error('[JOIN NOW] No authenticated user found');
+      alert('Please log in to join events.');
+      return;
     }
 
-    // Update event signup count in Firestore
-    const eventDocRef = doc(db, 'events', event.firestoreID);
-    const eventDoc = await getDoc(eventDocRef);
-    let updatedEvents = [...firebaseEvents];
-    if (eventDoc.exists()) {
-      const data = eventDoc.data();
-      if (userGender && userGender.toLowerCase() === 'male') {
-        await updateDoc(eventDocRef, { menSignupCount: increment(1) });
-        // Update local state
-        updatedEvents = updatedEvents.map(ev =>
-          ev.firestoreID === event.firestoreID
-            ? { ...ev, menSignupCount: (Number(ev.menSignupCount) || 0) + 1 }
-            : ev
-        );
-      } else if (userGender && userGender.toLowerCase() === 'female') {
-        await updateDoc(eventDocRef, { womenSignupCount: increment(1) });
-        // Update local state
-        updatedEvents = updatedEvents.map(ev =>
-          ev.firestoreID === event.firestoreID
-            ? { ...ev, womenSignupCount: (Number(ev.womenSignupCount) || 0) + 1 }
-            : ev
-        );
-      }
-    }
+    try {
+      // Use combined transaction-based signup with dates update
+      const userData = {
+        userName: userProfile && userProfile.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : (user.displayName || null),
+        userEmail: user.email || null,
+        userPhoneNumber: (userProfile && userProfile.phoneNumber) || user.phoneNumber || null,
+        userGender: userGender || null,
+        userLocation: (userProfile && userProfile.location) || null,
+      };
 
-    // Optimistically update local signed-up IDs when a user signs up
-    setSignedUpEventIds(prev => {
-      const next = new Set(prev);
-      next.add(event.firestoreID);
-      return next;
-    });
-    // Re-fetch from Firestore to confirm
-    if (auth.currentUser) {
-      const confirmedIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
-      setSignedUpEventIds(confirmedIds);
+      const result = await signUpForEventWithDates(event.firestoreID, user.uid, userData, -1);
+      
+      if (result.success) {
+        // Add a document in the user's sub-collection
+        await setDoc(
+          doc(db, 'users', user.uid, 'signedUpEvents', event.firestoreID),
+          {
+            eventID: event.eventID,
+            signUpTime: serverTimestamp(),
+            eventTitle: event.title || null,
+            eventDate: event.date || null,
+            eventTime: event.time || null,
+            eventLocation: event.location || null,
+            eventAgeRange: event.ageRange || null,
+            eventType: event.eventType || null,
+          },
+          { merge: true }
+        );
+
+        // Add user to Remo event
+        try {
+          const functionsInst = getFunctions();
+          const addUserToRemoEvent = httpsCallable(functionsInst, 'addUserToRemoEvent');
+          await addUserToRemoEvent({ 
+            eventId: event.eventID, 
+            userEmail: user.email 
+          });
+          console.log('✅ User added to Remo event successfully');
+        } catch (error) {
+          console.error('❌ Failed to add user to Remo event:', error);
+        }
+
+        // Update local state with transaction results
+        setDatesRemaining(result.newDates);
+        setSignedUpEventIds(prev => {
+          const next = new Set(prev);
+          next.add(event.firestoreID);
+          return next;
+        });
+
+        console.log('✅ Event signup completed successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error during event signup:', error);
+      alert(error.message || 'Failed to sign up for event. Please try again.');
     }
   };
 
   const handleMatchesClick = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      console.error('[DASHHOME] No authenticated user found');
+      return;
+    }
+
     try {
       console.log('[DASHHOME] handleMatchesClick started');
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.error('[DASHHOME] No authenticated user found');
-        return;
-      }
+      setSelectingMatches(true);
 
-      // 1. Get latestEventId from user doc
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      const latestEventId = userDoc.data()?.latestEventId;
-      if (!latestEventId) {
-        console.log('[DASHHOME] No latestEventId found, showing error modal');
-        setErrorModal({
-          open: true,
-          title: "No Event Found",
-          message: "You have not joined any events yet, or the event you are trying to access does not exist.",
-        });
-        return;
-      }
-      console.log('[DASHHOME] latestEventId:', latestEventId);
+    // 1. Get latestEventId from user doc
+    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+    const latestEventId = userDoc.data()?.latestEventId;
+    if (!latestEventId) {
+      setErrorModal({
+        open: true,
+        title: "No Event Found",
+        message: "You have not joined any events yet, or the event you are trying to access does not exist.",
+      });
+      return;
+    }
+    console.log('[MATCHES] latestEventId:', latestEventId);
 
       // 2. Find the event doc where eventID === latestEventId
       const eventsSnapshot = await getDocs(collection(db, 'events'));
@@ -728,34 +880,26 @@ const getEventData = async (eventID) => {
         results: mergedMatches
       });
 
-      // 11. Redirect to MyMatches
-      console.log('[DASHHOME] Navigating to myMatches');
-      navigate('/dashboard/myMatches');
+    // 9. Redirect to MyMatches
+    navigate('myMatches');
     } catch (error) {
-      console.error('[DASHHOME] Error in handleMatchesClick:', error);
-      // Fallback: try to navigate directly even if matchmaking fails
-      try {
-        console.log('[DASHHOME] Attempting fallback navigation to myMatches');
-        navigate('/dashboard/myMatches');
-      } catch (navError) {
-        console.error('[DASHHOME] Fallback navigation also failed:', navError);
-        setErrorModal({
-          open: true,
-          title: "Error",
-          message: "An error occurred while processing your matches. Please try again.",
-        });
-      }
+      console.error('Error in handleMatchesClick:', error);
+      setErrorModal({
+        open: true,
+        title: "Error",
+        message: "An error occurred while processing your matches. Please try again.",
+      });
+    } finally {
+      setSelectingMatches(false);
     }
-  };
-
-  // Simple direct navigation function as backup
-  const handleDirectMatchesClick = () => {
-    console.log('[DASHHOME] Direct navigation to myMatches');
-    navigate('/dashboard/myMatches');
   };
 
   const handleConnectionsClick = () => {
     navigate('dashMyConnections');
+  };
+
+  const handleCouponRequestsClick = () => {
+    navigate('dashMyCoupons');
   };
 
   const handlePurchaseMoreDatesClick = () => {
@@ -769,7 +913,7 @@ const getEventData = async (eventID) => {
     return allEvents.filter(event =>
       signedUpEventIds.has(event.firestoreID)
     );
-  }, [allEvents, signedUpEventIds]);
+  }, [allEvents, signedUpEventIds,]);
 
   // Show *all* events (regardless of date) that the user has not yet signed up for
   const upcomingSignupEvents = useMemo(() => {
@@ -830,7 +974,8 @@ const getEventData = async (eventID) => {
               Welcome back, {userProfile?.firstName}
             </h2>
 
-            {/* Select my sparks card */}
+            {/* Select my sparks card - only show if latest event was within 48 hours */}
+            {showSelectSparksCard && (
             <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
               <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
               <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
@@ -859,13 +1004,19 @@ const getEventData = async (eventID) => {
                 </span>
                 <button
                   onClick={handleMatchesClick}
-                  onDoubleClick={handleDirectMatchesClick}
-                  className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#d4f85a] transition"
+                  disabled={selectingMatches}
+                  className={`bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition ${
+                    selectingMatches 
+                      ? 'opacity-60 cursor-not-allowed' 
+                      : 'hover:bg-[#d4f85a]'
+                  }`}
                 >
-                  Select my sparks
+                  {selectingMatches ? 'Loading…' : 'Select my sparks'}
                 </button>
               </div>
             </div>
+            )}
+
 
             {/* See my sparks card */}
             {checkingNewSparks ? null : (hasNewSpark && !hideNewSparksNotification) && (
@@ -897,6 +1048,41 @@ const getEventData = async (eventID) => {
                     className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#d4f85a] transition"
                   >
                     See my sparks
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Coupon Request Updates Notification */}
+            {checkingCouponRequests ? null : (hasCouponRequestUpdate && !hideCouponRequestNotification) && (
+              <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center mb-6">
+                <img src={homeSeeMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
+                <div className="absolute inset-0 bg-[#211F20] bg-opacity-10"
+                  style={{
+                    background: `
+                      linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%),
+                      linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%),
+                      linear-gradient(0deg, rgba(255,193,7,0.25) 0%, rgba(255,193,7,0.25) 100%)
+                    `
+                  }}
+                />
+                {/* X icon in top-right corner */}
+                <div className="absolute top-4 right-4 z-20 cursor-pointer" onClick={() => setHideCouponRequestNotification(true)}>
+                  <img src={xIcon} alt="Close" className="w-6 h-6 filter brightness-0 invert" />
+                </div>
+                <div className="relative z-10 flex flex-col items-start p-6">
+                  <span
+                    className="flex items-center font-medium text-white leading-[130%] font-bricolage text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px] mb-4"
+                  >
+                    <SmallFlashIcon className="w-6 h-6 mr-2" />
+                    Your coupon request has been updated! Check the status.
+                  </span>
+                  <button
+                    onClick={handleCouponRequestsClick}
+                    className="bg-[#FFC107] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#FFB300] transition"
+                  >
+                    View My Coupons
                   </button>
                 </div>
               </div>
@@ -1180,37 +1366,33 @@ const getEventData = async (eventID) => {
       </div> {/* Close the outer container with padding */}
 
       {/* Error Modal Overlay */}
-      {errorModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black opacity-50"
-            onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
-          />
-          {/* Modal content */}
-          <div className="relative bg-white rounded-2xl shadow-lg max-w-md w-full p-8 z-10">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-indigo-950">{errorModal.title}</h2>
-              <button
-                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
-                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
-                aria-label="Close modal"
-              >
-                &times;
-              </button>
-            </div>
-            <p className="text-gray-700 whitespace-pre-line mb-6">{errorModal.message}</p>
-            <div className="flex justify-end">
-              <button
-                className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
-                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={errorModal.open}
+        onClose={() => setErrorModal(prev => ({ ...prev, open: false }))}
+        title={errorModal.title}
+        subtitle={errorModal.message}
+        icon="✗"
+        iconColor="red"
+        primaryButton={{
+          text: "OK",
+          onClick: () => setErrorModal(prev => ({ ...prev, open: false }))
+        }}
+      />
+
+      {/* Congratulations Modal Overlay */}
+      <PopUp
+        isOpen={showCongratulationsModal}
+        onClose={() => setShowCongratulationsModal(false)}
+        title="Congratulations!"
+        subtitle="You picked your matches. We'll notify you if they match back and you have new sparks."
+        icon="✓"
+        iconColor="green"
+        maxWidth="max-w-2xl"
+        primaryButton={{
+          text: "Got It",
+          onClick: () => setShowCongratulationsModal(false)
+        }}
+      />
 
     </div>
   );

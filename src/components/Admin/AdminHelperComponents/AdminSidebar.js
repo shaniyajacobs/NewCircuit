@@ -8,6 +8,7 @@ import * as AiIcons from "react-icons/ai";
 import * as IoIcons from "react-icons/io";
 import * as RiIcons from "react-icons/ri";
 import * as MdIcons from "react-icons/md";
+import PopUp from '../../Dashboard/DashboardHelperComponents/PopUp';
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -32,12 +33,6 @@ const AdminSidebar = () => {
   };
 
   const SidebarData = [
-    // {
-    //   title: "Coupons",
-    //   path: "/admin-dashboard/coupons",
-    //   icon: <RiIcons.RiCoupon3Line />,
-    //   cName: "nav-text",
-    // },
     {
       title: "Events Management",
       path: "/admin-dashboard/events",
@@ -48,6 +43,12 @@ const AdminSidebar = () => {
       title: "User Management",
       path: "/admin-dashboard/users",
       icon: <FaIcons.FaUsers />,
+      cName: "nav-text",
+    },
+    {
+      title: "Coupons Management",
+      path: "/admin-dashboard/coupons",
+      icon: <RiIcons.RiCoupon3Line />,
       cName: "nav-text",
     },
     {
@@ -137,28 +138,22 @@ const AdminSidebar = () => {
         ))}
       </div>
 
-      {showSignOutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-semibold mb-4">Sign Out</h2>
-            <p className="text-gray-600 mb-6">Are you sure you want to sign out?</p>
-            <div className="flex justify-end gap-4">
-              <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={() => setShowSignOutModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-[#0043F1] text-white rounded-lg hover:bg-[#0034BD] transition-colors"
-                onClick={handleSignOutConfirm}
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        title="Sign Out"
+        subtitle="Are you sure you want to sign out?"
+        icon="🚪"
+        iconColor="blue"
+        primaryButton={{
+          text: "Sign Out",
+          onClick: handleSignOutConfirm
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowSignOutModal(false)
+        }}
+      />
     </>
   );
 };

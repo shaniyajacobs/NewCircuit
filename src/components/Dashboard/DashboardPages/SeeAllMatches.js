@@ -3,9 +3,48 @@ import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, getDocs, setDoc, deleteDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../../firebaseConfig';
 import { calculateAge } from '../../../utils/ageCalculator';
+import { DateTime } from 'luxon';
+import PopUp from '../DashboardHelperComponents/PopUp';
 import { formatUserName } from '../../../utils/nameFormatter';
 
-const MAX_SELECTIONS = 5; // maximum matches a user can choose
+const MAX_SELECTIONS = 3; // maximum matches a user can choose
+
+// Function to format date as "Wed, 10th of June"
+const formatEventDate = (dateString, startTime) => {
+  let dt;
+  
+  if (startTime) {
+    // Use startTime if available (Remo events)
+    dt = DateTime.fromMillis(Number(startTime));
+  } else if (dateString) {
+    // Use dateString for regular events
+    dt = DateTime.fromISO(dateString);
+  } else {
+    return '';
+  }
+  
+  if (!dt.isValid) {
+    return '';
+  }
+  
+  const dayOfWeek = dt.toFormat('ccc');
+  const day = dt.toFormat('d');
+  const month = dt.toFormat('LLLL');
+  
+  // Add ordinal suffix to day
+  const getOrdinalSuffix = (day) => {
+    if (day >= 11 && day <= 13) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+  
+  return `${dayOfWeek}, ${day}${getOrdinalSuffix(day)} of ${month}`;
+};
+
 
 const SeeAllMatches = () => {
   const navigate = useNavigate();
@@ -14,6 +53,8 @@ const SeeAllMatches = () => {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]); // up to 3
   const [showMaxModal, setShowMaxModal] = useState(false); // controls the "max reached" modal visibility
+  const [showCongratulationsModal, setShowCongratulationsModal] = useState(false); // controls the congratulations modal
+  const [eventDate, setEventDate] = useState(''); // stores the formatted event date
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -25,6 +66,23 @@ const SeeAllMatches = () => {
         if (!matchesDoc.exists()) {
           setMatches([]);
           return;
+        }
+        
+        // Get the latest event details to display the date
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const latestEventId = userDoc.data()?.latestEventId;
+        if (latestEventId) {
+          const eventsSnapshot = await getDocs(collection(db, 'events'));
+          let eventData = null;
+          eventsSnapshot.forEach(docSnap => {
+            if (docSnap.data().eventID === latestEventId) {
+              eventData = docSnap.data();
+            }
+          });
+          if (eventData) {
+            const formattedDate = formatEventDate(eventData.date, eventData.startTime);
+            setEventDate(formattedDate);
+          }
         }
         // Fetch any existing selections from the user's connections sub-collection so that
         // previously chosen sparks appear pre-selected.
@@ -114,6 +172,13 @@ const SeeAllMatches = () => {
       }
 
       await Promise.all(deletions);
+      
+      // Check if user has reached max selections for this event
+      if (selectedIds.length >= MAX_SELECTIONS) {
+        // Store flag in localStorage to show congratulations modal on dashboard
+        localStorage.setItem('showCongratulationsModal', 'true');
+      }
+      
       navigate('/dashboard');
     } catch (err) {
       console.error('Error saving selections', err);
@@ -131,65 +196,112 @@ const SeeAllMatches = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 p-8">
-        <h1 className="text-4xl font-bold text-center mb-8">Select your Connections</h1>
-        <div className="grid grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {matches.map(match => {
-            const isDisabled = !match.selected && selectedIds.length >= MAX_SELECTIONS;
-            return (
-              <div
-                key={match.id}
-                onClick={() => handleCardClick(match)}
-                className={`flex items-center rounded-2xl overflow-hidden border-2 transition-opacity ${match.selected ? 'border-[#0043F1] bg-[#0043F1]' : 'bg-white border-[#85A2F2]'} ${isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-              >
-                <div className={`w-20 flex items-center justify-center p-4 ${match.selected ? 'bg-[#0043F1]' : 'bg-[#85A2F2]'}`}>
-                  <div className={`h-10 w-10 ${match.selected ? 'text-[#9FE870]' : 'text-white'}`}>♥</div>
-                </div>
-                <div className="flex flex-col p-4 flex-grow bg-white">
-                  <div className="flex items-center mb-2">
-                    <div className="w-16 h-16 rounded-full overflow-hidden mr-4">
-                      <img src={match.image} alt={match.name} className="w-full h-full object-cover" />
-                    </div>
-                    <div>
-                      <div className="flex items-center">
-                        <span className="text-2xl font-bold mr-2">{match.name},</span>
-                        <span className="text-2xl">{match.age}</span>
-                      </div>
-                      <div className="flex items-center mt-1">
-                        <div className="w-32 h-2 bg-gray-200 rounded-full mr-3">
-                          <div className="h-full bg-[#85A2F2] rounded-full" style={{ width: `${match.compatibility}%` }} />
-                        </div>
-                        <span className="text-sm font-medium text-gray-600">{match.compatibility}% Match</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      <div className="min-h-screen bg-white p-8">
+        {/* Header */}
+        <div className="max-w-[1292px] mx-auto">
+          <div className="mb-4 xl:mb-5 2xl:mb-6">
+            <h2 className="text-[#211F20] font-bricolage text-[32px] md:text-[40px] lg:text-[48px] font-semibold leading-[110%]">Select your Matches</h2>
+          </div>
+          <div className="mb-6 sm:mb-[50px] xl:mb-[75px] 2xl:mb-[100px]">
+            <p className="text-[rgba(33,31,32,0.75)] font-bricolage text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] font-medium leading-[130%]">
+              Pick who you'd like to match with from your speed date on: {eventDate && <span>{eventDate}</span>}
+            </p>
+          </div>
+        </div>
+       
+        <div className="max-w-[1292px] mx-auto flex flex-col gap-4">
+  {matches.map((match, index) => {
+    const isDisabled = !match.selected && selectedIds.length >= MAX_SELECTIONS;
+    return (
+      <div
+        key={match.id}
+        onClick={() => handleCardClick(match)}
+        className={`relative flex flex-col md:flex-row items-start md:items-center gap-y-3 md:gap-y-0 md:gap-x-0 w-full bg-white rounded-2xl border border-gray-200 p-[24px] xl:p-[20px] md:p-[16px] sm:p-[12px] shadow-sm transition-all duration-500 cursor-pointer ${match.selected ? 'ring-2 ring-[#211F20]' : ''} ${isDisabled ? 'opacity-50 pointer-events-none' : ''}`}
+      >
+        {/* 1. Rank Number */}
+        {/* 2. Profile picture + name/age */}
+        <div className="flex items-center min-w-[200px]">
+        <span className="text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] leading-[130%] font-bricolage font-medium text-[rgba(33,31,32,0.50)]">
+            #{index + 1}
+          </span>
+          <div className="w-2 sm:w-3 xl:w-3.5 2xl:w-4"></div>
+          {match.image ? (
+            <img
+              src={match.image}
+              alt={match.name}
+              className="w-12 h-12 rounded-full object-cover border border-gray-300"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+              <span className="text-gray-400 text-xl">👤</span>
+            </div>
+          )}
+          <div className="w-2 sm:w-3 xl:w-3.5 2xl:w-4"></div>
+          <span className="text-[14px] sm:text-[14px] md:text-[16px] lg:text-[20px] leading-[130%] font-poppins font-normal text-[#211F20]">
+            {match.name}, {match.age}
+          </span>
         </div>
 
-        <div className="flex justify-between mt-8 max-w-5xl mx-auto">
-          <button onClick={() => navigate(-1)} className="bg-[#85A2F2] text-white px-8 py-2 rounded-lg text-lg font-semibold hover:bg-[#7491e0] transition-colors">Back</button>
-          <button onClick={handleConfirm} disabled={selectedIds.length === 0} className={`px-8 py-2 rounded-lg text-lg font-semibold transition-colors ${selectedIds.length ? 'bg-[#0043F1] text-white hover:bg-[#0034BD]' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>SELECT</button>
+        {/* Gap-L between profile and compatibility */}
+        <div className="w-[4.5] sm:w-6 xl:w-8 2xl:w-[12.5]"></div>
+
+        {/* 3. Compatibility badge and progress bar - responsive layout */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-4 ml-auto w-full lg:w-auto">
+          <div className="flex justify-start w-full lg:w-auto">
+            <span className="flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-[100px] font-bricolage font-normal text-[10px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-[130%] text-[#211F20] uppercase border border-[rgba(33,31,32,0.10)]"
+              style={{
+                background: (index % 3) === 0 
+                  ? "radial-gradient(50% 50% at 50% 50%, #B4FFF280 0%, #E1FFD680 100%)"
+                  : (index % 3) === 1
+                  ? "radial-gradient(50% 50% at 50% 50%, #E2FF6580 0%, #D2FFD780 100%)"
+                  : "radial-gradient(50% 50% at 50% 50%, #B0EEFF80 0%, #E7E9FF80 100%), radial-gradient(50% 50% at 50% 50%, #E2FF6580 0%, #D2FFD780 100%)"
+              }}
+            >
+              {match.compatibility}% COMPATIBILITY
+            </span>
+          </div>
+          
+          {/* 4. Progress bar */}
+          <div className="w-full lg:w-[700px]">
+            <div className="h-1 bg-[rgba(33,31,32,0.10)] rounded-full relative overflow-hidden" style={{ height: '4px' }}>
+              <div
+                className="absolute left-0 top-0 rounded-full transition-all duration-1000"
+                style={{
+                  width: `${match.compatibility}%`,
+                  height: '4px',
+                  background: '#211F20',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</div>
+
+        <div className="max-w-[1292px] mx-auto mt-8">
+          <div className="flex gap-6 sm:gap-5 md:gap-4 lg:gap-4 py-3 sm:py-2.5 md:py-2 lg:py-2 w-full">  
+            <button onClick={() => navigate(-1)} className="flex-1 bg-white text-[#211F20] px-4 sm:px-4 xl:px-5 2xl:px-6 py-3 sm:py-2.5 md:py-2 lg:py-2 rounded-lg font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-medium leading-normal border border-[#211F20] hover:bg-gray-50 transition-colors">Back</button>
+            <button onClick={handleConfirm} disabled={selectedIds.length === 0} className={`flex-1 px-4 sm:px-4 xl:px-5 2xl:px-6 py-3 sm:py-2.5 md:py-2 lg:py-2 rounded-lg font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-medium leading-normal transition-colors ${selectedIds.length ? 'bg-[#211F20] text-white hover:bg-[#333]' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>Select</button>
+          </div>
         </div>
       </div>
 
+
       {/* Modal shown when user tries to exceed the maximum selections */}
-      {showMaxModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-            <h2 className="text-xl font-semibold mb-4 text-center">Maximum selections reached</h2>
-            <p className="mb-6 text-center">You can only select up to {MAX_SELECTIONS} connections. Deselect a current selection to choose another.</p>
-            <button
-              onClick={() => setShowMaxModal(false)}
-              className="bg-[#0043F1] text-white px-4 py-2 rounded-lg w-full"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showMaxModal}
+        onClose={() => setShowMaxModal(false)}
+        title="Maximum selections reached"
+        subtitle={`You can only select up to ${MAX_SELECTIONS} connections. Deselect a current selection to choose another.`}
+        icon="⚠"
+        iconColor="yellow"
+        primaryButton={{
+          text: "Got it",
+          onClick: () => setShowMaxModal(false)
+        }}
+      />
     </>
   );
 };
