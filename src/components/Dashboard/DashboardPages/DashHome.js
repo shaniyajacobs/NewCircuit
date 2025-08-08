@@ -11,6 +11,7 @@ import { auth } from "../../../firebaseConfig";
 import { signUpForEventWithDates } from '../../../utils/eventSpotsUtils';
 import { onAuthStateChanged } from "firebase/auth";
 import { DateTime } from 'luxon';
+import PopUp from '../DashboardHelperComponents/PopUp';
 import { calculateAge } from '../../../utils/ageCalculator';
 import { filterByGenderPreference } from '../../../utils/genderPreferenceFilter';
 import homeSelectMySparks from '../../../images/home_select_my_sparks.jpg';
@@ -1330,73 +1331,33 @@ const getEventData = async (eventID) => {
       </div> {/* Close the outer container with padding */}
 
       {/* Error Modal Overlay */}
-      {errorModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black opacity-50"
-            onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
-          />
-          {/* Modal content */}
-          <div className="relative bg-white rounded-2xl shadow-lg max-w-md w-full p-8 z-10">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-indigo-950">{errorModal.title}</h2>
-              <button
-                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
-                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
-                aria-label="Close modal"
-              >
-                &times;
-              </button>
-            </div>
-            <p className="text-gray-700 whitespace-pre-line mb-6">{errorModal.message}</p>
-            <div className="flex justify-end">
-              <button
-                className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
-                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={errorModal.open}
+        onClose={() => setErrorModal(prev => ({ ...prev, open: false }))}
+        title={errorModal.title}
+        subtitle={errorModal.message}
+        icon="✗"
+        iconColor="red"
+        primaryButton={{
+          text: "OK",
+          onClick: () => setErrorModal(prev => ({ ...prev, open: false }))
+        }}
+      />
 
       {/* Congratulations Modal Overlay */}
-      {showCongratulationsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black opacity-50"
-            onClick={() => setShowCongratulationsModal(false)}
-          />
-          {/* Modal content */}
-          <div className="relative bg-white rounded-2xl shadow-lg max-w-[48rem] w-full p-8 z-10">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex flex-col items-start">
-                <img src={tickCircle} alt="Success" className="w-12 h-12 mb-4" />
-                <h2 className="text-[#211F20] font-bricolage text-[18px] sm:text-[20px] md:text-[28px] lg:text-[32px] xl:text-[32px] font-medium leading-[130%] mb-4">Congratulations!</h2>
-              </div>
-              <button
-                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
-                onClick={() => setShowCongratulationsModal(false)}
-                aria-label="Close modal"
-              >
-                &times;
-              </button>
-            </div>
-            <p className="text-[#211F20] font-poppins text-[16px] font-normal leading-normal opacity-75 mb-[18px] sm:mb-[24px] md:mb-[32px] lg:mb-[50px]">You picked your matches. We'll notify you if they match back and you have new sparks.</p>
-            <div className="flex justify-end">
-              <button
-                className="px-6 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors"
-                onClick={() => setShowCongratulationsModal(false)}
-              >
-                Got It
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showCongratulationsModal}
+        onClose={() => setShowCongratulationsModal(false)}
+        title="Congratulations!"
+        subtitle="You picked your matches. We'll notify you if they match back and you have new sparks."
+        icon="✓"
+        iconColor="green"
+        maxWidth="max-w-2xl"
+        primaryButton={{
+          text: "Got It",
+          onClick: () => setShowCongratulationsModal(false)
+        }}
+      />
 
     </div>
   );
