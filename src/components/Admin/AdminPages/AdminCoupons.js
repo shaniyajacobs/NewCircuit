@@ -3,6 +3,7 @@ import { collection, query, where, getDocs, getDoc, addDoc, deleteDoc, doc, upda
 import { db } from '../../../pages/firebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { FaPlus, FaEdit, FaTrash, FaChartLine, FaCheck, FaTimes } from 'react-icons/fa';
+import PopUp from '../../Dashboard/DashboardHelperComponents/PopUp';
 
 const AdminCoupons = () => {
   const [coupons, setCoupons] = useState([]);
@@ -846,65 +847,45 @@ const AdminCoupons = () => {
       )}
 
       {/* Reject Reason Modal */}
-      {showRejectModal && selectedRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={() => setShowRejectModal(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowRejectModal(false)}>&times;</button>
-            <h2 className="text-xl font-bold mb-4">Reject Request</h2>
-            <p className="mb-2 text-gray-700">Please provide a reason for rejection:</p>
-            <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-              rows="3"
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-              placeholder="Enter rejection reason..."
-            />
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={() => setShowRejectModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors ${!rejectReason.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={confirmRejectRequest}
-                disabled={!rejectReason.trim() || rejecting}
-              >
-                {rejecting ? 'Rejecting...' : 'Reject'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showRejectModal && selectedRequest}
+        onClose={() => setShowRejectModal(false)}
+        title="Reject Request"
+        subtitle="Please provide a reason for rejection:"
+        icon="✗"
+        iconColor="red"
+        maxWidth="max-w-md"
+        primaryButton={{
+          text: rejecting ? 'Rejecting...' : 'Reject',
+          onClick: confirmRejectRequest
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowRejectModal(false)
+        }}
+      >
+        <textarea
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+          rows="3"
+          value={rejectReason}
+          onChange={e => setRejectReason(e.target.value)}
+          placeholder="Enter rejection reason..."
+        />
+      </PopUp>
 
       {/* Image Modal */}
-      {showImageModal && selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75" onClick={() => setShowImageModal(false)}>
-          <div className="relative max-w-4xl max-h-[90vh] mx-4" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="absolute top-4 right-4 text-white hover:text-gray-300 text-3xl font-bold z-10 bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center"
-              onClick={() => setShowImageModal(false)}
-            >
-              &times;
-            </button>
-            <div className="bg-white rounded-lg overflow-hidden shadow-2xl">
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Date {selectedImage.dateNumber} - {selectedImage.userName}
-                </h3>
-              </div>
-              <div className="p-4">
-                <img
-                  src={selectedImage.url}
-                  alt={`Date ${selectedImage.dateNumber} photo by ${selectedImage.userName}`}
-                  className="max-w-full max-h-[70vh] object-contain rounded"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showImageModal && selectedImage}
+        onClose={() => setShowImageModal(false)}
+        title={`Date ${selectedImage?.dateNumber} - ${selectedImage?.userName}`}
+        maxWidth="max-w-4xl"
+      >
+        <img
+          src={selectedImage?.url}
+          alt={`Date ${selectedImage?.dateNumber} photo by ${selectedImage?.userName}`}
+          className="max-w-full max-h-[70vh] object-contain rounded"
+        />
+      </PopUp>
     </div>
   );
 };

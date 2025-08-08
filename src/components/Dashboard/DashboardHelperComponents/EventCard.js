@@ -7,6 +7,7 @@ import { db } from '../../../pages/firebaseConfig';
 import { ReactComponent as LocationIcon } from '../../../images/location.svg';
 import { ReactComponent as TimerIcon } from '../../../images/timer.svg';
 import { getEventSpots } from '../../../utils/eventSpotsUtils';
+import PopUp from './PopUp';
 
 function getDateParts(dateString, timeString, timeZone) {
   const normalizedTime = timeString ? timeString.replace(/am|pm/i, m => m.toUpperCase()).trim() : '';
@@ -319,7 +320,8 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
             disabled={joining}
             onClick={async () => {
               if (!event?.eventID) {
-                alert('Missing event ID');
+                setErrorMessage('Missing event ID');
+                setShowErrorModal(true);
                 return;
               }
               try {
@@ -336,7 +338,8 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 console.log('getEventData response:', res);
                 const { event: remoEvent } = res.data || {};
                 if (!remoEvent) {
-                  alert('Event data not available yet.');
+                  setErrorMessage('Event data not available yet.');
+                  setShowErrorModal(true);
                   return;
                 }
                 // Record the latest event this user joined
@@ -349,10 +352,12 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     { merge: true }
                   );
                 }
-                // Do NOT redirect to Remo site for signup events
+                // Show success modal
+                setShowSuccessModal(true);
               } catch (err) {
                 console.error('Error fetching join URL:', err);
-                alert('Unable to fetch join link. Please try again later.');
+                setErrorMessage('Unable to fetch join link. Please try again later.');
+                setShowErrorModal(true);
               } finally {
                 setJoining(false);
               }
@@ -379,50 +384,32 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
       </div>
 
       {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <div className="text-center">
-              <div className="text-green-500 text-4xl mb-4">✓</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Successfully Signed Up!
-              </h3>
-              <p className="text-gray-600 mb-4">
-                You've been successfully signed up for this event. Please check your email for the virtual event invitation.
-              </p>
-              <button
-                onClick={() => setShowSuccessModal(false)}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Got it!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Successfully Signed Up!"
+        subtitle="You've been successfully signed up for this event. Please check your email for the virtual event invitation."
+        icon="✓"
+        iconColor="green"
+        primaryButton={{
+          text: "Got it!",
+          onClick: () => setShowSuccessModal(false)
+        }}
+      />
 
       {/* Error Modal */}
-      {showErrorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <div className="text-center">
-              <div className="text-red-500 text-4xl mb-4">✗</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Sign Up Failed
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {errorMessage}
-              </p>
-              <button
-                onClick={() => setShowErrorModal(false)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Sign Up Failed"
+        subtitle={errorMessage}
+        icon="✗"
+        iconColor="red"
+        primaryButton={{
+          text: "Try Again",
+          onClick: () => setShowErrorModal(false)
+        }}
+      />
     </>
   );
 };
