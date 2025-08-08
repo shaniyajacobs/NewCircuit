@@ -4,6 +4,7 @@ import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, query, where, g
 import { FaSearch, FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
+import { signOutFromEvent, calculateActualCounts, reconcileCounts } from '../../../utils/eventSpotsUtils';
 
 const AdminEvents = () => {
   const [events, setEvents] = useState([]);
@@ -176,18 +177,23 @@ const AdminEvents = () => {
       const signedUpUsersRef = collection(db, 'events', selectedEvent.id, 'signedUpUsers');
       const signedUpUsersSnapshot = await getDocs(signedUpUsersRef);
       
-      // Update datesRemaining for all signed up users
+      // Update datesRemaining and remove event from signedUpEvents for all signed up users
       const updatePromises = signedUpUsersSnapshot.docs.map(async (userDoc) => {
         const userId = userDoc.id;
         const userDocRef = doc(db, 'users', userId);
         
         try {
+          // Update datesRemaining (+1 date back)
           await updateDoc(userDocRef, {
             datesRemaining: increment(1) // Increase available dates by 1
           });
           console.log(`✅ Updated datesRemaining for user ${userId}`);
+          
+          // Remove event from user's signedUpEvents collection
+          await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', selectedEvent.id));
+          console.log(`✅ Removed event from user ${userId}'s signedUpEvents`);
         } catch (error) {
-          console.log(`⚠️ Could not update datesRemaining for user ${userId}:`, error.message);
+          console.log(`⚠️ Could not update user ${userId}:`, error.message);
         }
       });
       
@@ -200,7 +206,7 @@ const AdminEvents = () => {
       setShowDeleteModal(false);
       setSelectedEvent(null);
       
-      console.log('✅ Event deleted and user datesRemaining updated successfully');
+      console.log('✅ Event deleted and all user data cleaned up successfully');
     } catch (error) {
       console.error('Error deleting event:', error);
     } finally {
@@ -332,30 +338,21 @@ const AdminEvents = () => {
           console.log('- Current menSignupCount:', data.menSignupCount);
           console.log('- Current womenSignupCount:', data.womenSignupCount);
           
-          if (userGender === 'male') {
-            await updateDoc(eventDocRef, { 
-              menSignupCount: increment(-1)
-            });
-            console.log('✅ Updated men signup count');
-          } else if (userGender === 'female') {
-            await updateDoc(eventDocRef, { 
-              womenSignupCount: increment(-1)
-            });
-            console.log('✅ Updated women signup count');
-          } else {
-            console.log('⚠️ Unknown gender:', userGender);
-            // Force update based on user source - if it's a Firebase user, we should have gender
-            if (selectedUserToDelete.source === 'firebase') {
-              console.log('⚠️ Firebase user with unknown gender - this should not happen');
-            } else {
-              console.log('⚠️ Remo user with unknown gender - attempting to update both counts');
-              // For Remo users with unknown gender, update both counts as a fallback
-              await updateDoc(eventDocRef, { 
-                menSignupCount: increment(-1),
-                womenSignupCount: increment(-1)
-              });
-              console.log('✅ Updated both signup counts as fallback');
+          // Use transaction-based signout for reliable count updates
+          if (userGender === 'male' || userGender === 'female') {
+            try {
+              await signOutFromEvent(eventId, userId, userGender);
+              console.log('✅ User removed from event using transaction');
+            } catch (error) {
+              console.log('⚠️ Transaction-based removal failed, falling back to manual count update:', error.message);
+              // Fallback: manually update counts
+              const actualCounts = await calculateActualCounts(eventId);
+              await reconcileCounts(eventId, actualCounts);
             }
+          } else {
+            console.log('⚠️ Unknown gender, reconciling counts manually');
+            const actualCounts = await calculateActualCounts(eventId);
+            await reconcileCounts(eventId, actualCounts);
           }
         } else {
           console.log('⚠️ Event document does not exist');
