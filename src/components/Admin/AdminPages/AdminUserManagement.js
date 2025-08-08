@@ -7,6 +7,7 @@ import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
 import AdminUserDetailModal from './AdminUserDetailModal';
+import { signOutFromEvent, calculateActualCounts, reconcileCounts } from '../../../utils/eventSpotsUtils';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -315,18 +316,21 @@ const AdminUserManagement = () => {
           console.log('- Current menSignupCount:', data.menSignupCount);
           console.log('- Current womenSignupCount:', data.womenSignupCount);
           
-          if (userGender === 'male') {
-            await updateDoc(eventDocRef, { 
-              menSignupCount: increment(-1)
-            });
-            console.log('✅ Updated men signup count');
-          } else if (userGender === 'female') {
-            await updateDoc(eventDocRef, { 
-              womenSignupCount: increment(-1)
-            });
-            console.log('✅ Updated women signup count');
+          // Use transaction-based signout for reliable count updates
+          if (userGender === 'male' || userGender === 'female') {
+            try {
+              await signOutFromEvent(eventId, userId, userGender);
+              console.log('✅ User removed from event using transaction');
+            } catch (error) {
+              console.log('⚠️ Transaction-based removal failed, falling back to manual count update:', error.message);
+              // Fallback: manually update counts
+              const actualCounts = await calculateActualCounts(eventId);
+              await reconcileCounts(eventId, actualCounts);
+            }
           } else {
-            console.log('⚠️ Unknown gender:', userGender);
+            console.log('⚠️ Unknown gender, reconciling counts manually');
+            const actualCounts = await calculateActualCounts(eventId);
+            await reconcileCounts(eventId, actualCounts);
           }
         } else {
           console.log('⚠️ Event document does not exist');

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DateTime } from 'luxon';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from '../../../pages/firebaseConfig';
@@ -6,6 +6,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../pages/firebaseConfig';
 import { ReactComponent as LocationIcon } from '../../../images/location.svg';
 import { ReactComponent as TimerIcon } from '../../../images/timer.svg';
+import { getEventSpots } from '../../../utils/eventSpotsUtils';
 
 function getDateParts(dateString, timeString, timeZone) {
   const normalizedTime = timeString ? timeString.replace(/am|pm/i, m => m.toUpperCase()).trim() : '';
@@ -87,9 +88,22 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [spotsData, setSpotsData] = useState({ menCount: 0, womenCount: 0, menSpots: 0, womenSpots: 0 });
+  
   // Prefer Remo timestamp if available
   const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
   const { dayOfWeek, day, month, timeLabel } = dateParts;
+  
+  // Fetch reliable spot data
+  useEffect(() => {
+    const fetchSpots = async () => {
+      if (event?.firestoreID) {
+        const spots = await getEventSpots(event.firestoreID);
+        setSpotsData(spots);
+      }
+    };
+    fetchSpots();
+  }, [event?.firestoreID]);
   
   // Calculate time range for display
   const getTimeRange = () => {
@@ -226,18 +240,10 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               {/* Open Spots Group */}
               <div className="flex flex-col gap-0">
                 <div className="text-sm text-gray-600">
-                  Open Spots for Men: {(() => {
-                    const total = Number(event.menSpots) || 0;
-                    const signedUp = Number(event.menSignupCount) || 0;
-                    return `${Math.max(total - signedUp, 0)}/${total}`;
-                  })()}
+                  Open Spots for Men: {Math.max(spotsData.menSpots - spotsData.menCount, 0)}/{spotsData.menSpots}
                 </div>
                 <div className="text-sm text-gray-600">
-                  Open Spots for Women: {(() => {
-                    const total = Number(event.womenSpots) || 0;
-                    const signedUp = Number(event.womenSignupCount) || 0;
-                    return `${Math.max(total - signedUp, 0)}/${total}`;
-                  })()}
+                  Open Spots for Women: {Math.max(spotsData.womenSpots - spotsData.womenCount, 0)}/{spotsData.womenSpots}
                 </div>
               </div>
             </div>
