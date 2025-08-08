@@ -8,6 +8,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
 import { auth } from "../../../firebaseConfig";
+import { signUpForEventWithDates } from '../../../utils/eventSpotsUtils';
 import { onAuthStateChanged } from "firebase/auth";
 import { DateTime } from 'luxon';
 import { calculateAge } from '../../../utils/ageCalculator';
@@ -531,19 +532,18 @@ const getEventData = async (eventID) => {
   }
 };
 
-  // Handle sign up logic
+    // Handle sign up logic
   const handleSignUp = async (event) => {
-    // 🐛 DEBUGGING LOGS
     console.log("[JOIN NOW] Event:", event);
     console.log("[JOIN NOW] Event ID:", event.eventID);
     console.log("[JOIN NOW] Current user:", auth.currentUser?.uid);
+    
     const currentRemaining = Number.isFinite(datesRemaining) ? datesRemaining : 0;
     if (currentRemaining <= 0) {
       console.log('[JOIN NOW] No dates remaining - cannot sign up');
       alert('You have no dates remaining. Please purchase more dates to join events.');
       return;
     }
-    setDatesRemaining(prev => (Number.isFinite(prev) ? prev - 1 : 0));
 
     const user = auth.currentUser;
     if (!user) {
@@ -553,112 +553,62 @@ const getEventData = async (eventID) => {
     }
 
     try {
-      // 0️⃣ Guard: skip if user already signed up
-      const existingSignupRef = doc(db, 'events', event.firestoreID, 'signedUpUsers', user.uid);
-      const existingSignupSnap = await getDoc(existingSignupRef);
-      if (existingSignupSnap.exists()) {
-        console.log('[JOIN NOW] User already signed up – skipping duplicate');
-        alert('You are already signed up for this event.');
-        return;
-      }
+      // Use combined transaction-based signup with dates update
+      const userData = {
+        userName: userProfile && userProfile.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : (user.displayName || null),
+        userEmail: user.email || null,
+        userPhoneNumber: (userProfile && userProfile.phoneNumber) || user.phoneNumber || null,
+        userGender: userGender || null,
+        userLocation: (userProfile && userProfile.location) || null,
+      };
 
-      const userDocRef = doc(db, 'users', user.uid);
-      // Update remaining dates for the user
-      await setDoc(userDocRef, { 
-        datesRemaining: currentRemaining - 1, 
-        latestEventId: event.eventID // <-- ensure this is set
-      }, { merge: true });
-
-      // 1. Add a document in the user's sub-collection
-      await setDoc(
-        doc(db, 'users', user.uid, 'signedUpEvents', event.firestoreID),
-        {
-          eventID: event.eventID,
-          signUpTime: serverTimestamp(),
-          eventTitle: event.title || null,
-          eventDate: event.date || null,
-          eventTime: event.time || null,
-          eventLocation: event.location || null,
-          eventAgeRange: event.ageRange || null,
-          eventType: event.eventType || null,
-        },
-        { merge: true }
-      );
-
-      // 2. Add a document in the event's sub-collection
-      await setDoc(
-        doc(db, 'events', event.firestoreID, 'signedUpUsers', user.uid),
-        {
-          userID: user.uid,
-          userName: userProfile && userProfile.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : (user.displayName || null),
-          userEmail: user.email || null,
-          userPhoneNumber: (userProfile && userProfile.phoneNumber) || user.phoneNumber || null,
-          userGender: userGender || null,
-          userLocation: (userProfile && userProfile.location) || null,
-          signUpTime: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      // Update event signup count in Firestore
-      const eventDocRef = doc(db, 'events', event.firestoreID);
-      const eventDoc = await getDoc(eventDocRef);
-      let updatedEvents = [...firebaseEvents];
-      if (eventDoc.exists()) {
-        const data = eventDoc.data();
-        if (userGender && userGender.toLowerCase() === 'male') {
-          await updateDoc(eventDocRef, { menSignupCount: increment(1) });
-          // Update local state
-          updatedEvents = updatedEvents.map(ev =>
-            ev.firestoreID === event.firestoreID
-              ? { ...ev, menSignupCount: (Number(ev.menSignupCount) || 0) + 1 }
-              : ev
-          );
-        } else if (userGender && userGender.toLowerCase() === 'female') {
-          await updateDoc(eventDocRef, { womenSignupCount: increment(1) });
-          // Update local state
-          updatedEvents = updatedEvents.map(ev =>
-            ev.firestoreID === event.firestoreID
-              ? { ...ev, womenSignupCount: (Number(ev.womenSignupCount) || 0) + 1 }
-              : ev
-          );
-        }
-      }
-
-      // Add user to Remo event
-      try {
-        const functionsInst = getFunctions();
-        const addUserToRemoEvent = httpsCallable(functionsInst, 'addUserToRemoEvent');
-        await addUserToRemoEvent({ 
-          eventId: event.eventID, 
-          userEmail: user.email 
-        });
-        console.log('✅ User added to Remo event successfully');
-      } catch (error) {
-        console.error('❌ Failed to add user to Remo event:', error);
-        // Don't fail the entire signup process, but log the error
-      }
-
-      // Optimistically update local signed-up IDs when a user signs up
-      setSignedUpEventIds(prev => {
-        const next = new Set(prev);
-        next.add(event.firestoreID);
-        return next;
-      });
-      // Re-fetch from Firestore to confirm
-      if (auth.currentUser) {
-        const confirmedIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
-        setSignedUpEventIds(confirmedIds);
-      }
+      const result = await signUpForEventWithDates(event.firestoreID, user.uid, userData, -1);
       
-      console.log('✅ Event signup completed successfully');
+      if (result.success) {
+        // Add a document in the user's sub-collection
+        await setDoc(
+          doc(db, 'users', user.uid, 'signedUpEvents', event.firestoreID),
+          {
+            eventID: event.eventID,
+            signUpTime: serverTimestamp(),
+            eventTitle: event.title || null,
+            eventDate: event.date || null,
+            eventTime: event.time || null,
+            eventLocation: event.location || null,
+            eventAgeRange: event.ageRange || null,
+            eventType: event.eventType || null,
+          },
+          { merge: true }
+        );
+
+        // Add user to Remo event
+        try {
+          const functionsInst = getFunctions();
+          const addUserToRemoEvent = httpsCallable(functionsInst, 'addUserToRemoEvent');
+          await addUserToRemoEvent({ 
+            eventId: event.eventID, 
+            userEmail: user.email 
+          });
+          console.log('✅ User added to Remo event successfully');
+        } catch (error) {
+          console.error('❌ Failed to add user to Remo event:', error);
+        }
+
+        // Update local state with transaction results
+        setDatesRemaining(result.newDates);
+        setSignedUpEventIds(prev => {
+          const next = new Set(prev);
+          next.add(event.firestoreID);
+          return next;
+        });
+
+        console.log('✅ Event signup completed successfully');
+      }
     } catch (error) {
       console.error('❌ Error during event signup:', error);
-      alert('Failed to sign up for event. Please try again.');
-      // Revert the dates remaining count since signup failed
-      setDatesRemaining(prev => (Number.isFinite(prev) ? prev + 1 : 0));
+      alert(error.message || 'Failed to sign up for event. Please try again.');
     }
-};
+  };
 
   const handleMatchesClick = async () => {
     const currentUser = auth.currentUser;
