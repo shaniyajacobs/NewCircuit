@@ -7,6 +7,7 @@ import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
 import AdminUserDetailModal from './AdminUserDetailModal';
+import { signOutFromEvent, calculateActualCounts, reconcileCounts } from '../../../utils/eventSpotsUtils';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -15,6 +16,7 @@ const AdminUserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showRemoveAdminModal, setShowRemoveAdminModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [hoverUserId, setHoverUserId] = useState(null);
   // Events modal state
@@ -78,6 +80,11 @@ const AdminUserManagement = () => {
     setShowAdminModal(true);
   };
 
+  const handleRemoveAdmin = (user) => {
+    setSelectedUser(user);
+    setShowRemoveAdminModal(true);
+  };
+
   const confirmMakeAdmin = async () => {
     try {
       setLoading(true);
@@ -93,6 +100,23 @@ const AdminUserManagement = () => {
       setSelectedUser(null);
     } catch (error) {
       console.error('Error making user admin:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmRemoveAdmin = async () => {
+    try {
+      setLoading(true);
+      // Remove from adminUsers collection
+      await deleteDoc(doc(db, 'adminUsers', selectedUser.id));
+
+      // Update local state
+      setAdminUsers(adminUsers.filter(id => id !== selectedUser.id));
+      setShowRemoveAdminModal(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error removing admin status:', error);
     } finally {
       setLoading(false);
     }
@@ -315,18 +339,21 @@ const AdminUserManagement = () => {
           console.log('- Current menSignupCount:', data.menSignupCount);
           console.log('- Current womenSignupCount:', data.womenSignupCount);
           
-          if (userGender === 'male') {
-            await updateDoc(eventDocRef, { 
-              menSignupCount: increment(-1)
-            });
-            console.log('✅ Updated men signup count');
-          } else if (userGender === 'female') {
-            await updateDoc(eventDocRef, { 
-              womenSignupCount: increment(-1)
-            });
-            console.log('✅ Updated women signup count');
+          // Use transaction-based signout for reliable count updates
+          if (userGender === 'male' || userGender === 'female') {
+            try {
+              await signOutFromEvent(eventId, userId, userGender);
+              console.log('✅ User removed from event using transaction');
+            } catch (error) {
+              console.log('⚠️ Transaction-based removal failed, falling back to manual count update:', error.message);
+              // Fallback: manually update counts
+              const actualCounts = await calculateActualCounts(eventId);
+              await reconcileCounts(eventId, actualCounts);
+            }
           } else {
-            console.log('⚠️ Unknown gender:', userGender);
+            console.log('⚠️ Unknown gender, reconciling counts manually');
+            const actualCounts = await calculateActualCounts(eventId);
+            await reconcileCounts(eventId, actualCounts);
           }
         } else {
           console.log('⚠️ Event document does not exist');
@@ -500,6 +527,15 @@ const AdminUserManagement = () => {
                         <FaUserShield />
                       </button>
                     )}
+                    {adminUsers.includes(user.id) && user.id !== auth.currentUser?.uid && (
+                      <button
+                        onClick={() => handleRemoveAdmin(user)}
+                        className="text-orange-600 hover:text-orange-900"
+                        title="Remove Admin"
+                      >
+                        <FaUserShield />
+                      </button>
+                    )}
                     {user.id !== auth.currentUser?.uid && (
                       <button
                         onClick={() => handleDeleteUser(user)}
@@ -565,6 +601,33 @@ const AdminUserManagement = () => {
                 onClick={confirmMakeAdmin}
               >
                 Make Admin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Admin Modal */}
+      {showRemoveAdminModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-semibold mb-4">Remove Admin Status</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to remove admin status from {selectedUser?.firstName} {selectedUser?.lastName}? 
+              They will lose administrative access.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => setShowRemoveAdminModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                onClick={confirmRemoveAdmin}
+              >
+                Remove Admin
               </button>
             </div>
           </div>
