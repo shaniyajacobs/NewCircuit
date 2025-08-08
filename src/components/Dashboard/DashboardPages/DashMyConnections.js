@@ -11,6 +11,84 @@ import homeSelectMySparks from '../../../images/home_select_my_sparks.jpg';
 import imgNoise from '../../../images/noise.png';
 import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.svg';
 import { formatUserName } from '../../../utils/nameFormatter';
+import { DateTime } from 'luxon';
+
+const MAX_SELECTIONS = 3;
+
+// Helper: map event timeZone field to IANA
+const eventZoneMap = {
+  'PST': 'America/Los_Angeles',
+  'EST': 'America/New_York',
+  'CST': 'America/Chicago',
+  'MST': 'America/Denver',
+  // Add more as needed
+};
+
+// Helper: check if latest event was within 48 hours
+async function isLatestEventWithin48Hours(userId) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const latestEventId = userDoc.data()?.latestEventId;
+    
+    if (!latestEventId) {
+      return false;
+    }
+    
+    // Find the event document
+    const eventsSnapshot = await getDocs(collection(db, 'events'));
+    let eventData = null;
+    eventsSnapshot.forEach(docSnap => {
+      if (docSnap.data().eventID === latestEventId) {
+        eventData = docSnap.data();
+      }
+    });
+    
+    if (!eventData) {
+      return false;
+    }
+    
+    // Calculate event end time
+    let eventDateTime;
+    if (eventData.startTime) {
+      // Use startTime if available (Remo events)
+      eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
+    } else if (eventData.date && eventData.time && eventData.timeZone) {
+      // Use date/time for regular events
+      const normalizedTime = eventData.time.replace(/am|pm/i, match => match.toUpperCase());
+      const eventZone = eventZoneMap[eventData.timeZone] || eventData.timeZone || 'UTC';
+      
+      eventDateTime = DateTime.fromFormat(
+        `${eventData.date} ${normalizedTime}`,
+        'yyyy-MM-dd h:mma',
+        { zone: eventZone }
+      );
+      
+      if (!eventDateTime.isValid) {
+        eventDateTime = DateTime.fromFormat(
+          `${eventData.date} ${normalizedTime}`,
+          'yyyy-MM-dd H:mm',
+          { zone: eventZone }
+        );
+      }
+    }
+    
+    if (!eventDateTime || !eventDateTime.isValid) {
+      return false;
+    }
+    
+    // Add 90 minutes for event duration
+    const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+    
+    // Check if event ended within the last 48 hours
+    const now = DateTime.now();
+    const hoursSinceEvent = now.diff(eventEndDateTime, 'hours').hours;
+    
+    return hoursSinceEvent <= 48;
+  } catch (error) {
+    console.error('[48HOURS] Error checking event time:', error);
+    return false;
+  }
+}
 
 const DashMyConnections = () => {
   const location = useLocation();
@@ -19,6 +97,8 @@ const DashMyConnections = () => {
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
+  const [showSelectSparksCard, setShowSelectSparksCard] = useState(false);
+  const [selectingMatches, setSelectingMatches] = useState(false);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -29,11 +109,13 @@ const DashMyConnections = () => {
 
   // Handle matches click function
   const handleMatchesClick = async () => {
+    setSelectingMatches(true);
     try {
       console.log('[DASHMYCONNECTIONS] handleMatchesClick started');
       const currentUser = auth.currentUser;
       if (!currentUser) {
         console.error('[DASHMYCONNECTIONS] No authenticated user found');
+        setSelectingMatches(false);
         return;
       }
 
@@ -182,6 +264,8 @@ const DashMyConnections = () => {
           message: "An error occurred while processing your matches. Please try again.",
         });
       }
+    } finally {
+      setSelectingMatches(false);
     }
   };
 
@@ -218,6 +302,43 @@ const DashMyConnections = () => {
       }
     }
   }, [location.state, connections]);
+
+  // Check if user should see the "Select my sparks" card
+  useEffect(() => {
+    const checkSelectSparksCard = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (!userDoc.exists()) return;
+
+        const data = userDoc.data();
+        
+        // Check if latest event was within 48 hours
+        const within48Hours = await isLatestEventWithin48Hours(user.uid);
+        
+        // Check if user has already made max selections for the latest event
+        let hasMaxSelections = false;
+        if (within48Hours && data.latestEventId) {
+          const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+          const connectionDocs = connectionsSnap.docs;
+          
+          // If user has reached max selections
+          if (connectionDocs.length >= MAX_SELECTIONS) {
+            hasMaxSelections = true;
+          }
+        }
+        
+        setShowSelectSparksCard(within48Hours && !hasMaxSelections);
+      } catch (error) {
+        console.error('Error checking select sparks card:', error);
+        setShowSelectSparksCard(false);
+      }
+    };
+
+    checkSelectSparksCard();
+  }, []);
 
   useEffect(() => {
     const fetchConnections = async () => {
@@ -291,6 +412,11 @@ const DashMyConnections = () => {
         }));
         
         setConnections(connectionsWithNewFlag);
+        
+        // Hide select sparks card if user has max selections
+        if (validProfiles.length >= MAX_SELECTIONS) {
+          setShowSelectSparksCard(false);
+        }
       } catch (err) {
         setConnections([]);
       } finally {
@@ -391,53 +517,60 @@ const DashMyConnections = () => {
       {/* Sparks heading */}
       <h2
         className="
-          font-normal
+          font-semibold
           text-[#211F20]
           leading-[110%]
           font-bricolage
-          text-[20px] sm:text-[24px] md:text-[28px]
-          mb-6
+          text-[24px] sm:text-[28px] md:text-[32px]
+          mb-2
         "
       >
         Sparks
       </h2>
 
       {/* Select my sparks card */}
-      <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center mb-6">
-        <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
-        <div className="absolute inset-0 bg-[#211F20] bg-opacity-10" 
-            style={{
-              background: `
-                linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%),
-                linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%),
-                linear-gradient(0deg, rgba(226,255,101,0.25) 0%, rgba(226,255,101,0.25) 100%)
-              `
-            }}/>
-        <div className="relative z-10 flex flex-col items-start p-6">
-          <span
-            className="
-              flex items-center
-              font-medium
-              text-white
-              leading-[130%]
-              font-bricolage
-              text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px]
-              mb-4
-            "
-          >
-            <SmallFlashIcon className="w-6 h-6 mr-2" />
-            You just went on a date! Select sparks to match with!
-          </span>
-          <button
-            onClick={handleMatchesClick}
-            onDoubleClick={handleDirectMatchesClick}
-            className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#d4f85a] transition"
-          >
-            Select my sparks
-          </button>
+      {showSelectSparksCard && (
+        <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center mb-6">
+          <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
+          <div className="absolute inset-0 bg-[#211F20] bg-opacity-10" 
+              style={{
+                background: `
+                  linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%),
+                  linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%),
+                  linear-gradient(0deg, rgba(226,255,101,0.25) 0%, rgba(226,255,101,0.25) 100%)
+                `
+              }}/>
+          <div className="relative z-10 flex flex-col items-start p-6">
+            <span
+              className="
+                flex items-center
+                font-medium
+                text-white
+                leading-[130%]
+                font-bricolage
+                text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px]
+                mb-4
+              "
+            >
+              <SmallFlashIcon className="w-6 h-6 mr-2" />
+              You just went on a date! Select sparks to match with!
+            </span>
+            <button
+              onClick={handleMatchesClick}
+              onDoubleClick={handleDirectMatchesClick}
+              disabled={selectingMatches}
+              className={`bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition ${
+                selectingMatches 
+                  ? 'opacity-60 cursor-not-allowed' 
+                  : 'hover:bg-[#d4f85a]'
+              }`}
+            >
+              {selectingMatches ? 'Loading…' : 'Select my sparks'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {selectedConnection == null ? (
         <ConnectionList />
