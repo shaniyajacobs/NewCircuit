@@ -989,7 +989,7 @@ const getEventData = async (eventID) => {
             </h2>
 
             {/* Select my sparks card - only show if latest event was within 48 hours */}
-            {true && (
+            {showSelectSparksCard && (
             <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
               <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
               <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
