@@ -196,13 +196,15 @@ const SeeAllMatches = () => {
     <>
       <div className="min-h-screen bg-white p-8">
         {/* Header */}
-        <div className="mb-4 xl:mb-5 2xl:mb-6">
-          <h2 className="text-[#211F20] font-bricolage text-[32px] md:text-[40px] lg:text-[48px] font-semibold leading-[110%]">Select your Matches</h2>
-        </div>
-        <div className="mb-6 sm:mb-[50px] xl:mb-[75px] 2xl:mb-[100px]">
-          <p className="text-[rgba(33,31,32,0.75)] font-bricolage text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] font-medium leading-[130%]">
-            Pick who you'd like to match with from your speed date on: {eventDate && <span>{eventDate}</span>}
-          </p>
+        <div className="max-w-[1292px] mx-auto">
+          <div className="mb-4 xl:mb-5 2xl:mb-6">
+            <h2 className="text-[#211F20] font-bricolage text-[32px] md:text-[40px] lg:text-[48px] font-semibold leading-[110%]">Select your Matches</h2>
+          </div>
+          <div className="mb-6 sm:mb-[50px] xl:mb-[75px] 2xl:mb-[100px]">
+            <p className="text-[rgba(33,31,32,0.75)] font-bricolage text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] font-medium leading-[130%]">
+              Pick who you'd like to match with from your speed date on: {eventDate && <span>{eventDate}</span>}
+            </p>
+          </div>
         </div>
        
         <div className="max-w-[1292px] mx-auto flex flex-col gap-4">
@@ -241,35 +243,34 @@ const SeeAllMatches = () => {
         {/* Gap-L between profile and compatibility */}
         <div className="w-[4.5] sm:w-6 xl:w-8 2xl:w-[12.5]"></div>
 
-        {/* 3. Compatibility badge */}
-        <div>
-          <span className="flex items-center gap-2 px-4 py-2 rounded-[100px] font-bricolage font-normal text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-[130%] text-[#211F20] uppercase border border-[rgba(33,31,32,0.10)]"
-            style={{
-              background: (index % 3) === 0 
-                ? "radial-gradient(50% 50% at 50% 50%, #B4FFF280 0%, #E1FFD680 100%)"
-                : (index % 3) === 1
-                ? "radial-gradient(50% 50% at 50% 50%, #E2FF6580 0%, #D2FFD780 100%)"
-                : "radial-gradient(50% 50% at 50% 50%, #B0EEFF80 0%, #E7E9FF80 100%), radial-gradient(50% 50% at 50% 50%, #E2FF6580 0%, #D2FFD780 100%)"
-            }}
-          >
-            {match.compatibility}% COMPATIBILITY
-          </span>
-        </div>
-
-        {/* Gap-S between compatibility and progress */}
-        <div className="w-4 sm:w-4 xl:w-5 2xl:w-6"></div>
-
-        {/* 4. Progress bar */}
-        <div className="flex-1 min-w-0 w-full">
-          <div className="h-1 bg-[rgba(33,31,32,0.10)] rounded-full relative overflow-hidden" style={{ height: '4px' }}>
-            <div
-              className="absolute left-0 top-0 rounded-full transition-all duration-1000"
+        {/* 3. Compatibility badge and progress bar - responsive layout */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-4 ml-auto w-full lg:w-auto">
+          <div className="flex justify-start w-full lg:w-auto">
+            <span className="flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-[100px] font-bricolage font-normal text-[10px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-[130%] text-[#211F20] uppercase border border-[rgba(33,31,32,0.10)]"
               style={{
-                width: `${match.compatibility}%`,
-                height: '4px',
-                background: '#211F20',
+                background: (index % 3) === 0 
+                  ? "radial-gradient(50% 50% at 50% 50%, #B4FFF280 0%, #E1FFD680 100%)"
+                  : (index % 3) === 1
+                  ? "radial-gradient(50% 50% at 50% 50%, #E2FF6580 0%, #D2FFD780 100%)"
+                  : "radial-gradient(50% 50% at 50% 50%, #B0EEFF80 0%, #E7E9FF80 100%), radial-gradient(50% 50% at 50% 50%, #E2FF6580 0%, #D2FFD780 100%)"
               }}
-            />
+            >
+              {match.compatibility}% COMPATIBILITY
+            </span>
+          </div>
+          
+          {/* 4. Progress bar */}
+          <div className="w-full lg:w-[700px]">
+            <div className="h-1 bg-[rgba(33,31,32,0.10)] rounded-full relative overflow-hidden" style={{ height: '4px' }}>
+              <div
+                className="absolute left-0 top-0 rounded-full transition-all duration-1000"
+                style={{
+                  width: `${match.compatibility}%`,
+                  height: '4px',
+                  background: '#211F20',
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>

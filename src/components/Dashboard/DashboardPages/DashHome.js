@@ -199,6 +199,7 @@ const DashHome = () => {
   const [hideNewSparksNotification, setHideNewSparksNotification] = useState(false);
   const [showSelectSparksCard, setShowSelectSparksCard] = useState(false);
   const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
+  const [selectingMatches, setSelectingMatches] = useState(false);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -677,6 +678,9 @@ const getEventData = async (eventID) => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
+    try {
+      setSelectingMatches(true);
+
     // 1. Get latestEventId from user doc
     const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
     const latestEventId = userDoc.data()?.latestEventId;
@@ -803,6 +807,16 @@ const getEventData = async (eventID) => {
 
     // 9. Redirect to MyMatches
     navigate('myMatches');
+    } catch (error) {
+      console.error('Error in handleMatchesClick:', error);
+      setErrorModal({
+        open: true,
+        title: "Error",
+        message: "An error occurred while processing your matches. Please try again.",
+      });
+    } finally {
+      setSelectingMatches(false);
+    }
   };
 
   const handleConnectionsClick = () => {
@@ -882,7 +896,7 @@ const getEventData = async (eventID) => {
             </h2>
 
             {/* Select my sparks card - only show if latest event was within 48 hours */}
-            {showSelectSparksCard && (
+            {true && (
             <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
               <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
               <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
@@ -911,9 +925,14 @@ const getEventData = async (eventID) => {
                 </span>
                 <button
                   onClick={handleMatchesClick}
-                  className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#d4f85a] transition"
+                  disabled={selectingMatches}
+                  className={`bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition ${
+                    selectingMatches 
+                      ? 'opacity-60 cursor-not-allowed' 
+                      : 'hover:bg-[#d4f85a]'
+                  }`}
                 >
-                  Select my sparks
+                  {selectingMatches ? 'Loading…' : 'Select my sparks'}
                 </button>
               </div>
             </div>
