@@ -278,15 +278,39 @@ exports.deleteUser = onCall({
       // Remove from event's signedUpUsers sub-collection
       await eventRef.collection('signedUpUsers').doc(uid).delete().catch(() => {});
 
-      // Decrement gender-specific signup count
-      let fieldName = null;
-      if (gender === 'male') fieldName = 'menSignupCount';
-      else if (gender === 'female') fieldName = 'womenSignupCount';
-
-      if (fieldName) {
-        await eventRef.update({
-          [fieldName]: admin.firestore.FieldValue.increment(-1),
-        }).catch(() => {});
+      // Use transaction-based approach for reliable count updates
+      if (gender === 'male' || gender === 'female') {
+        try {
+          await db.runTransaction(async (transaction) => {
+            const eventDoc = await transaction.get(eventRef);
+            if (eventDoc.exists) {
+              const data = eventDoc.data();
+              const currentMenCount = data.menSignupCount || 0;
+              const currentWomenCount = data.womenSignupCount || 0;
+              
+              const updateData = {};
+              if (gender === 'male') {
+                updateData.menSignupCount = Math.max(currentMenCount - 1, 0);
+              } else if (gender === 'female') {
+                updateData.womenSignupCount = Math.max(currentWomenCount - 1, 0);
+              }
+              
+              transaction.update(eventRef, updateData);
+            }
+          });
+        } catch (error) {
+          console.log('⚠️ Transaction-based count update failed, using fallback:', error.message);
+          // Fallback: manually update counts
+          const signedUpUsersSnap = await eventRef.collection('signedUpUsers').get();
+          const users = signedUpUsersSnap.docs.map(doc => doc.data());
+          const menCount = users.filter(user => user.userGender?.toLowerCase() === 'male').length;
+          const womenCount = users.filter(user => user.userGender?.toLowerCase() === 'female').length;
+          
+          await eventRef.update({
+            menSignupCount: menCount,
+            womenSignupCount: womenCount
+          });
+        }
       }
 
       // Delete the signedUpEvents document under the user

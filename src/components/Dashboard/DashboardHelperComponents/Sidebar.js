@@ -18,6 +18,7 @@ import * as IoIcons from "react-icons/io";
 import * as RiIcons from "react-icons/ri";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from '../../../firebaseConfig';
+import PopUp from './PopUp';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -60,6 +61,7 @@ const Sidebar = () => {
         );
         setHasNewSpark(newSparks.some(isNew => isNew));
       } catch (err) {
+        console.error('Error fetching connections for sidebar:', err);
         setHasNewSpark(false);
       }
     };
@@ -153,12 +155,12 @@ const Sidebar = () => {
     },
     {
       title: "My Profile",
-      path: "/dashboard/DashMyProfile",
+      path: "/dashboard/dashMyProfile",
       icon: (
         <ProfileCircleIcon
           className="w-5 h-5"
           style={{
-            color: location.pathname === "/dashboard/DashMyProfile" ? "#1C50D8" : "#211f20"
+            color: location.pathname === "/dashboard/dashMyProfile" ? "#1C50D8" : "#211f20"
           }}
         />
       ),
@@ -268,9 +270,10 @@ const Sidebar = () => {
 
       {/* Tablet Header Bar (under 1280px) */}
       <div className="flex md:hidden justify-between items-center px-6 py-4 bg-white border-b border-[rgba(33,31,32,0.10)] w-full">
-        {/* Left side - Circuit logo */}
+        {/* Left side - Circuit logo / Page title text */}
         <div className="flex items-center">
-          <Link to="/dashboard">
+          {/* Desktop: Show Circuit logo */}
+          <Link to="/dashboard" className="max-md:hidden">
             <img
               loading="lazy"
               src={circuitLogo}
@@ -278,6 +281,35 @@ const Sidebar = () => {
               className="object-contain h-8"
             />
           </Link>
+          {/* Mobile & Tablet: Show page title text */}
+          <div 
+            className="hidden max-md:block"
+            style={{
+              color: 'var(--Raisin_Black, #211F20)',
+              fontFamily: '"Bricolage Grotesque"',
+              fontSize: 'var(--H8, 16px)',
+              fontStyle: 'normal',
+              fontWeight: '500',
+              lineHeight: '130%',
+              textTransform: 'uppercase'
+            }}
+          >
+            {(() => {
+              const path = location.pathname;
+              if (path === "/dashboard") return "HOME";
+              if (path.includes("dashMyConnections")) return "MY SPARKS";
+              if (path.includes("dashDateCalendar")) return "SHOP";
+              if (path.includes("dashMyCoupons")) return "MY COUPONS";
+              if (path.includes("dashMyProfile")) return "MY PROFILE";
+              if (path.includes("dashSettings")) return "SETTINGS";
+              if (path.includes("dashChangePassword")) return "CHANGE PASSWORD";
+              if (path.includes("dashDeleteAccount")) return "DELETE ACCOUNT";
+              if (path.includes("dashDeactivateAccount")) return "DEACTIVATE ACCOUNT";
+              if (path.includes("dashPaymentHistory")) return "PAYMENT HISTORY";
+              if (path.includes("dashMessages")) return "MESSAGES";
+              return "DASHBOARD";
+            })()}
+          </div>
         </div>
 
         {/* Right side - Vectors (clickable) */}
@@ -384,28 +416,22 @@ const Sidebar = () => {
       )}
 
       {/* Sign Out Modal */}
-      {showSignOutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-semibold mb-4">Sign Out</h2>
-            <p className="text-gray-600 mb-6">Are you sure you want to sign out?</p>
-            <div className="flex justify-end gap-4">
-              <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={() => setShowSignOutModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-[#0043F1] text-white rounded-lg hover:bg-[#0034BD] transition-colors"
-                onClick={handleSignOutConfirm}
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        title="Sign Out"
+        subtitle="Are you sure you want to sign out?"
+        icon="🚪"
+        iconColor="blue"
+        primaryButton={{
+          text: "Sign Out",
+          onClick: handleSignOutConfirm
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowSignOutModal(false)
+        }}
+      />
     </>
   );
 };
