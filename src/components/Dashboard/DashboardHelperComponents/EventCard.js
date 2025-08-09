@@ -260,40 +260,139 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 alert('Missing event ID');
                 return;
               }
+              
+              // Prevent multiple clicks
+              if (joining) return;
+              
               try {
                 setJoining(true);
+                console.log('[JOIN NOW] Starting join process for event:', event.eventID);
+                
+                // Step 1: Handle onSignUp if provided (non-blocking with timeout)
                 if (onSignUp) {
                   console.log('[JOIN NOW] Calling onSignUp for event:', event);
-                  await onSignUp(event);
-                  console.log('[JOIN NOW] onSignUp finished');
+                  try {
+                    // Add a timeout for the onSignUp function to prevent hanging
+                    const signUpPromise = onSignUp(event);
+                    const timeoutPromise = new Promise((_, reject) => 
+                      setTimeout(() => reject(new Error('SignUp timeout')), 15000) // 15 second timeout
+                    );
+                    
+                    await Promise.race([signUpPromise, timeoutPromise]);
+                    console.log('[JOIN NOW] onSignUp finished successfully');
+                  } catch (signUpError) {
+                    console.error('[JOIN NOW] onSignUp failed or timed out:', signUpError);
+                    // Continue anyway - don't fail the entire process
+                  }
                 }
+                
+                // Step 2: Get event data from Remo
+                console.log('[JOIN NOW] Fetching event data from Remo...');
                 const functions = getFunctions();
-                console.log('About to call getEventData');
-                const getEventData = httpsCallable(functions, 'getEventData'); // returns full event
+                const getEventData = httpsCallable(functions, 'getEventData');
                 const res = await getEventData({ eventId: event.eventID });
-                console.log('getEventData response:', res);
+                console.log('[JOIN NOW] getEventData response:', res);
+                
                 const { event: remoEvent } = res.data || {};
-                if (!remoEvent) {
-                  alert('Event data not available yet.');
-                  return;
+                if (!remoEvent || !remoEvent.code) {
+                  throw new Error('Event data not available yet or missing event code.');
                 }
-                // Record the latest event this user joined
+                
+                // Step 3: Record the latest event this user joined (non-blocking)
                 if (auth.currentUser) {
-                  await setDoc(
-                    doc(db, 'users', auth.currentUser.uid),
-                    {
-                      latestEventId: event.eventID,
-                    },
-                    { merge: true }
-                  );
+                  try {
+                    // Don't await this - make it non-blocking
+                    setDoc(
+                      doc(db, 'users', auth.currentUser.uid),
+                      {
+                        latestEventId: event.eventID,
+                      },
+                      { merge: true }
+                    ).then(() => {
+                      console.log('[JOIN NOW] Recorded latest event ID');
+                    }).catch((recordError) => {
+                      console.error('[JOIN NOW] Failed to record latest event ID:', recordError);
+                    });
+                  } catch (recordError) {
+                    console.error('[JOIN NOW] Failed to record latest event ID:', recordError);
+                    // Continue anyway
+                  }
                 }
-                // Build join URL on the client
+                
+                // Step 4: Build and open join URL
                 const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
-                window.open(joinUrl, '_blank');
+                console.log('[JOIN NOW] Join URL:', joinUrl);
+                
+                // Mobile-friendly approach for opening URLs
+                const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                console.log('[JOIN NOW] Is mobile device:', isMobile);
+                
+                if (isMobile) {
+                  // For mobile devices, try multiple approaches
+                  let success = false;
+                  
+                  // Approach 1: Try using window.location.href (most reliable for mobile)
+                  try {
+                    console.log('[JOIN NOW] Mobile: Trying window.location.href');
+                    window.location.href = joinUrl;
+                    success = true;
+                  } catch (error1) {
+                    console.error('[JOIN NOW] Mobile: window.location.href failed:', error1);
+                  }
+                  
+                  // Approach 2: If Approach 1 failed, try creating and clicking a link
+                  if (!success) {
+                    try {
+                      console.log('[JOIN NOW] Mobile: Trying programmatic link click');
+                      const link = document.createElement('a');
+                      link.href = joinUrl;
+                      link.target = '_blank';
+                      link.rel = 'noopener noreferrer';
+                      link.style.display = 'none';
+                      document.body.appendChild(link);
+                      link.click();
+                      
+                      // Clean up the link after a short delay
+                      setTimeout(() => {
+                        if (document.body.contains(link)) {
+                          document.body.removeChild(link);
+                        }
+                      }, 1000);
+                      
+                      success = true;
+                    } catch (error2) {
+                      console.error('[JOIN NOW] Mobile: Programmatic link click failed:', error2);
+                    }
+                  }
+                  
+                  // Approach 3: If both failed, show URL to copy
+                  if (!success) {
+                    console.log('[JOIN NOW] Mobile: All navigation methods failed, showing URL to copy');
+                    alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
+                  }
+                } else {
+                  // For desktop, try to open in new tab/window
+                  try {
+                    console.log('[JOIN NOW] Desktop: Trying window.open');
+                    const newWindow = window.open(joinUrl, '_blank');
+                    
+                    // Check if the window was blocked or failed to open
+                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                      console.log('[JOIN NOW] Desktop: window.open failed, showing URL to copy');
+                      alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
+                    }
+                  } catch (windowError) {
+                    console.error('[JOIN NOW] Desktop: Error opening window:', windowError);
+                    alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
+                  }
+                }
+                
+                console.log('[JOIN NOW] Join process completed successfully');
               } catch (err) {
-                console.error('Error fetching join URL:', err);
-                alert('Unable to fetch join link. Please try again later.');
+                console.error('[JOIN NOW] Error in join process:', err);
+                alert(`Error: ${err.message || 'Unable to fetch join link. Please try again later.'}`);
               } finally {
+                console.log('[JOIN NOW] Setting joining to false');
                 setJoining(false);
               }
             }}
