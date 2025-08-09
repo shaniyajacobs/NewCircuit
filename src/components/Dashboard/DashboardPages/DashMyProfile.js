@@ -12,6 +12,7 @@ import { db, storage } from "../../../firebaseConfig";
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import ImageUploading from 'react-images-uploading';
 import { IoPersonCircle, IoLocationSharp, IoCameraOutline } from 'react-icons/io5';
+import { formatUserName } from "../../../utils/nameFormatter";
 
 // Utility function to format a JavaScript Date to MM/DD/YYYY
 const formatDate = (date) => {
@@ -454,7 +455,7 @@ const DashMyProfile = () => {
                   lineHeight: '130%'
                 }}>
                   {savedData.firstName && savedData.lastName
-                    ? `${savedData.firstName} ${savedData.lastName}`
+                    ? formatUserName(savedData)
                     : "User"}
                 </div>
                 <div className="flex items-center gap-1 mt-2 max-sm:mt-1">

@@ -17,6 +17,7 @@ import {
   uploadBytes,
   getDownloadURL
 } from 'firebase/storage';
+import { formatUserName } from '../../../utils/nameFormatter';
 
 export default function DashMyCoupons() {
   const me = auth.currentUser.uid;
@@ -358,8 +359,8 @@ export default function DashMyCoupons() {
 
     getDoc(doc(db, 'users', uid)).then(uDoc => {
       if (uDoc.exists()) {
-        const { firstName, lastName } = uDoc.data();
-        setUsersMap(m => ({ ...m, [uid]: `${firstName} ${lastName}`.trim() }));
+        const userData = uDoc.data();
+        setUsersMap(m => ({ ...m, [uid]: formatUserName(userData) }));
       } else {
         setUsersMap(m => ({ ...m, [uid]: uid }));
       }

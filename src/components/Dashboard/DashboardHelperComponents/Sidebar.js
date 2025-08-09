@@ -18,6 +18,7 @@ import * as IoIcons from "react-icons/io";
 import * as RiIcons from "react-icons/ri";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from '../../../firebaseConfig';
+import PopUp from './PopUp';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -60,6 +61,7 @@ const Sidebar = () => {
         );
         setHasNewSpark(newSparks.some(isNew => isNew));
       } catch (err) {
+        console.error('Error fetching connections for sidebar:', err);
         setHasNewSpark(false);
       }
     };
@@ -414,28 +416,22 @@ const Sidebar = () => {
       )}
 
       {/* Sign Out Modal */}
-      {showSignOutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-semibold mb-4">Sign Out</h2>
-            <p className="text-gray-600 mb-6">Are you sure you want to sign out?</p>
-            <div className="flex justify-end gap-4">
-              <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={() => setShowSignOutModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-[#0043F1] text-white rounded-lg hover:bg-[#0034BD] transition-colors"
-                onClick={handleSignOutConfirm}
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        title="Sign Out"
+        subtitle="Are you sure you want to sign out?"
+        icon="🚪"
+        iconColor="blue"
+        primaryButton={{
+          text: "Sign Out",
+          onClick: handleSignOutConfirm
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowSignOutModal(false)
+        }}
+      />
     </>
   );
 };

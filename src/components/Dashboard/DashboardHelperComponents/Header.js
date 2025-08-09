@@ -5,6 +5,7 @@ import { db } from '../../../pages/firebaseConfig';
 import { IoPersonCircle } from 'react-icons/io5';
 import { ReactComponent as VectorIcon } from '../../../images/Vector 6.svg';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { formatUserName } from "../../../utils/nameFormatter";
 
 
 const Header = (props) => {
@@ -68,27 +69,12 @@ const Header = (props) => {
   }, [user]);
 
 
-  const PathTitleMappings = {
-    "/dashboard": "Home", 
-    "/dashboard/dashMyConnections": "My Sparks", 
-    "/dashboard/dashDateCalendar": "Shop", 
-    "/dashboard/DashCheckout": "Checkout", 
-    "/dashboard/dashMyCoupons": "My Coupons", 
-    "/dashboard/dashMyProfile": "My Profile", 
-    "/dashboard/dashSettings": "Settings", 
-    "/dashboard/dashChangePassword": "Change Password", 
-    "/dashboard/dashDeleteAccount": "Delete Account", 
-    "/dashboard/dashDeactivateAccount": "Deactivate Account", 
-    "/dashboard/dashSignOut": "Sign Out"
-  }
-  
-  // Use direct location instead of prop
+  const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "Sparks", 
+    "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
+    "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashChangePassword": "Change Password", 
+    "/dashboard/dashDeleteAccount": "Delete Account", "/dashboard/dashDeactivateAccount": "Deactivate Account", "/dashboard/dashSignOut": "Sign Out"}
+  const { path } = props;
   const currentPath = location.pathname;
-  const isProfilePage = currentPath.includes("dashMyProfile");
-  
-  console.log("Header path:", currentPath);
-  console.log("Mapped title:", PathTitleMappings[currentPath]);
-  console.log("Is profile page?", isProfilePage);
 
   if (isLoading) {
     return (
@@ -165,7 +151,7 @@ const Header = (props) => {
                   fontWeight: '500',
                   lineHeight: 'normal'
                 }}>
-                  {userData.get("firstName")} {userData.get("lastName")}
+                  {formatUserName(userData.data())}
                 </div>
                 {/* Email - Body-S-Reg */}
                 <div style={{
@@ -208,7 +194,7 @@ const Header = (props) => {
                   fontWeight: '500',
                   lineHeight: 'normal'
                 }}>
-                  {userData.get("firstName")} {userData.get("lastName")}
+                  {formatUserName(userData.data())}
                 </div>
                 {/* Email - Body-S-Reg */}
                 <div style={{
