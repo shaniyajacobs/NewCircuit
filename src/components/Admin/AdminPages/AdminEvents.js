@@ -166,7 +166,8 @@ const AdminEvents = () => {
           status,
           accepted,
           source: 'remo', // Mark as Remo user
-          firebaseProfileId // Store Firebase profile ID if found
+          firebaseProfileId, // Store Firebase profile ID if found
+          hasCircuitSignup: false // Will be updated later if they have Circuit signup
         };
       }));
 
@@ -204,16 +205,32 @@ const AdminEvents = () => {
             status: 'Signed Up',
             accepted: 'Yes',
             source: 'firebase', // Mark as Firebase user
-            firebaseProfileId: doc.id // Store Firebase profile ID
+            firebaseProfileId: doc.id, // Store Firebase profile ID
+            hasCircuitSignup: true // Firebase users are always from Circuit
           });
         });
       } catch (error) {
         console.error('Error fetching Firebase signed up users:', error);
       }
 
-      // Filter out Firebase users whose emails match Remo users
-      // Create a set of Remo user emails for efficient lookup
+      // Check if Remo users also have Circuit signups
       const remoEmails = new Set(remoUsers.map(user => user.email.toLowerCase()).filter(email => email !== '-'));
+      
+      // Update Remo users to check if they also have Circuit signups
+      const updatedRemoUsers = await Promise.all(remoUsers.map(async (user) => {
+        if (user.email && user.email !== '-') {
+          try {
+            const signedUpUserDoc = doc(db, 'events', event.id, 'signedUpUsers', user.firebaseProfileId);
+            const signedUpUserSnap = await getDoc(signedUpUserDoc);
+            if (signedUpUserSnap.exists()) {
+              user.hasCircuitSignup = true;
+            }
+          } catch (error) {
+            // Could not check Circuit signup status
+          }
+        }
+        return user;
+      }));
       
       // Filter Firebase users to exclude those with emails that exist in Remo
       const filteredFirebaseUsers = firebaseUsers.filter(user => {
@@ -221,7 +238,7 @@ const AdminEvents = () => {
       });
 
       // Combine users - Remo users take priority
-      const combinedUsers = [...remoUsers, ...filteredFirebaseUsers];
+      const combinedUsers = [...updatedRemoUsers, ...filteredFirebaseUsers];
       
       setEventUsers(combinedUsers);
     } catch (error) {
@@ -826,13 +843,19 @@ const AdminEvents = () => {
                       <div className="flex items-center gap-2">
                         <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
                         <span className="text-sm">
-                          Remo Users: {eventUsers.filter(u => u.source === 'remo').length}
+                          Remo Only: {eventUsers.filter(u => u.source === 'remo' && !u.hasCircuitSignup).length}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 bg-purple-500 rounded-full"></span>
+                        <span className="text-sm">
+                          Circuit + Remo: {eventUsers.filter(u => u.source === 'remo' && u.hasCircuitSignup).length}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="w-3 h-3 bg-green-500 rounded-full"></span>
                         <span className="text-sm">
-                          Firebase Users: {eventUsers.filter(u => u.source === 'firebase').length}
+                          Circuit Only: {eventUsers.filter(u => u.source === 'firebase').length}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -844,18 +867,17 @@ const AdminEvents = () => {
                   </div>
                   
                   {(() => {
-                    // Pre-filter users by gender for better performance
+                    // Pre-filter users by gender and source for better performance
                     const maleUsers = eventUsers.filter(u => 
-                      u.userGender?.toLowerCase() === 'male' || u.userGender?.toLowerCase() === 'm'
+                      (u.userGender?.toLowerCase() === 'male' || u.userGender?.toLowerCase() === 'm') &&
+                      (u.source === 'firebase' || u.hasCircuitSignup) // Only Circuit users (Circuit-only or Circuit+Remo)
                     );
                     const femaleUsers = eventUsers.filter(u => 
-                      u.userGender?.toLowerCase() === 'female' || u.userGender?.toLowerCase() === 'f'
+                      (u.userGender?.toLowerCase() === 'female' || u.userGender?.toLowerCase() === 'f') &&
+                      (u.source === 'firebase' || u.hasCircuitSignup) // Only Circuit users (Circuit-only or Circuit+Remo)
                     );
                     const otherUsers = eventUsers.filter(u => 
-                      !u.userGender || (u.userGender?.toLowerCase() !== 'male' && 
-                                      u.userGender?.toLowerCase() !== 'm' && 
-                                      u.userGender?.toLowerCase() !== 'female' && 
-                                      u.userGender?.toLowerCase() !== 'f')
+                      u.source === 'remo' && !u.hasCircuitSignup // Remo Only users
                     );
 
                     return (
@@ -864,7 +886,7 @@ const AdminEvents = () => {
                         {maleUsers.length > 0 && (
                           <div className="bg-white rounded-lg border border-gray-200">
                             <h3 className="text-lg sm:text-xl font-semibold p-3 sm:p-4 bg-blue-50 rounded-t-lg border-b border-gray-200">
-                              Men ({maleUsers.length} signups)
+                              Men - Circuit Users ({maleUsers.length} signups)
                             </h3>
                             <div className="overflow-x-auto">
                               <table className="min-w-full text-sm">
@@ -904,10 +926,17 @@ const AdminEvents = () => {
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                           u.source === 'remo' 
-                                            ? 'bg-blue-100 text-blue-800' 
+                                            ? u.hasCircuitSignup 
+                                              ? 'bg-purple-100 text-purple-800' 
+                                              : 'bg-blue-100 text-blue-800'
                                             : 'bg-green-100 text-green-800'
                                         }`}>
-                                          {u.source === 'remo' ? 'Remo' : 'Firebase'}
+                                          {u.source === 'remo' 
+                                            ? u.hasCircuitSignup 
+                                              ? 'Circuit + Remo' 
+                                              : 'Remo Only'
+                                            : 'Circuit Only'
+                                          }
                                         </span>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
@@ -931,7 +960,7 @@ const AdminEvents = () => {
                         {femaleUsers.length > 0 && (
                           <div className="bg-white rounded-lg border border-gray-200">
                             <h3 className="text-lg sm:text-xl font-semibold p-3 sm:p-4 bg-pink-50 rounded-t-lg border-b border-gray-200">
-                              Women ({femaleUsers.length} signups)
+                              Women - Circuit Users ({femaleUsers.length} signups)
                             </h3>
                             <div className="overflow-x-auto">
                               <table className="min-w-full text-sm">
@@ -971,10 +1000,17 @@ const AdminEvents = () => {
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                           u.source === 'remo' 
-                                            ? 'bg-blue-100 text-blue-800' 
+                                            ? u.hasCircuitSignup 
+                                              ? 'bg-purple-100 text-purple-800' 
+                                              : 'bg-blue-100 text-blue-800'
                                             : 'bg-green-100 text-green-800'
                                         }`}>
-                                          {u.source === 'remo' ? 'Remo' : 'Firebase'}
+                                          {u.source === 'remo' 
+                                            ? u.hasCircuitSignup 
+                                              ? 'Circuit + Remo' 
+                                              : 'Remo Only'
+                                            : 'Circuit Only'
+                                          }
                                         </span>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
@@ -994,11 +1030,11 @@ const AdminEvents = () => {
                           </div>
                         )}
 
-                        {/* Unknown/Other Gender Users Section */}
+                        {/* Remo Only Users Section */}
                         {otherUsers.length > 0 && (
                           <div className="bg-white rounded-lg border border-gray-200">
                             <h3 className="text-lg sm:text-xl font-semibold p-3 sm:p-4 bg-gray-50 rounded-t-lg border-b border-gray-200">
-                              Other/Unknown Gender ({otherUsers.length} signups)
+                              Remo Only Users ({otherUsers.length} signups)
                             </h3>
                             <div className="overflow-x-auto">
                               <table className="min-w-full text-sm">
@@ -1008,7 +1044,7 @@ const AdminEvents = () => {
                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[80px]">Gender</th>
                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[140px]">Signed Up At</th>
                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[200px]">Email</th>
-                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[100px]">Status</th>
+                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[80px]">Status</th>
                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[80px]">Accepted</th>
                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[100px]">Source</th>
                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[80px]">Actions</th>
@@ -1038,10 +1074,17 @@ const AdminEvents = () => {
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                           u.source === 'remo' 
-                                            ? 'bg-blue-100 text-blue-800' 
+                                            ? u.hasCircuitSignup 
+                                              ? 'bg-purple-100 text-purple-800' 
+                                              : 'bg-blue-100 text-blue-800'
                                             : 'bg-green-100 text-green-800'
                                         }`}>
-                                          {u.source === 'remo' ? 'Remo' : 'Firebase'}
+                                          {u.source === 'remo' 
+                                            ? u.hasCircuitSignup 
+                                              ? 'Circuit + Remo' 
+                                              : 'Remo Only'
+                                            : 'Circuit Only'
+                                          }
                                         </span>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
