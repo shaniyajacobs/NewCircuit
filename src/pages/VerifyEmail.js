@@ -58,7 +58,7 @@ const VerifyEmail = () => {
                     image: userData.image,
                     isActive: true,
                     location: userData.location,
-                    datesRemaining: 50, // TODO: change when finished testing
+                    datesRemaining: 0, 
                     profileComplete: true,
                     preferencesComplete: false,
                     locationSet: false,
