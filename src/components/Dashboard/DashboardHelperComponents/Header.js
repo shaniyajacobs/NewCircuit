@@ -71,7 +71,7 @@ const Header = (props) => {
   const PathTitleMappings = {
     "/dashboard": "Home", 
     "/dashboard/dashMyConnections": "My Sparks", 
-    "/dashboard/dashDateCalendar": "Date Calendar", 
+    "/dashboard/dashDateCalendar": "Shop", 
     "/dashboard/DashCheckout": "Checkout", 
     "/dashboard/dashMyCoupons": "My Coupons", 
     "/dashboard/dashMyProfile": "My Profile", 
