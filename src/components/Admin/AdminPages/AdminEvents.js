@@ -97,12 +97,11 @@ const AdminEvents = () => {
       const getMembers = httpsCallable(functionsInst, 'getEventMembers');
       // The Callable result comes back as an object: { data: <actualArray> }
       const res = await getMembers({ eventId: event.eventID });
-      console.log('getEventMembers response:', res);
 
       const attendees = Array.isArray(res?.data) ? res.data : [];
 
-      // Normalize Remo attendees
-      const remoUsers = attendees.map((a) => {
+      // Normalize Remo attendees and fetch Firebase information
+      const remoUsers = await Promise.all(attendees.map(async (a) => {
         const profile = a.user?.profile || {};
         const nameCombined = profile.name || formatUserName(profile);
 
@@ -111,19 +110,65 @@ const AdminEvents = () => {
         const status = a.status || a.invite?.status || '-';
         const accepted = (a.invite?.isAccepted ?? (status === 'accepted')) ? 'Yes' : 'No';
 
+        // Try to find Firebase profile for this Remo user
+        let firebaseUserName = null;
+        let firebaseUserGender = null;
+        let firebaseProfileId = null;
+        
+        if (email && email !== '-') {
+          try {
+            const q = query(collection(db, 'users'), where('email', '==', email));
+            const userSnap = await getDocs(q);
+            if (!userSnap.empty) {
+              const firebaseUserData = userSnap.docs[0].data();
+              firebaseProfileId = userSnap.docs[0].id;
+              
+              // Comprehensive name construction - check all possible fields
+              if (firebaseUserData.firstName && firebaseUserData.firstName.trim()) {
+                firebaseUserName = `${firebaseUserData.firstName} ${firebaseUserData.lastName || ''}`.trim();
+              } else if (firebaseUserData.userName && firebaseUserData.userName.trim()) {
+                firebaseUserName = firebaseUserData.userName.trim();
+              } else if (firebaseUserData.name && firebaseUserData.name.trim()) {
+                firebaseUserName = firebaseUserData.name.trim();
+              } else if (firebaseUserData.displayName && firebaseUserData.displayName.trim()) {
+                firebaseUserName = firebaseUserData.displayName.trim();
+              }
+              
+              firebaseUserGender = firebaseUserData.userGender || firebaseUserData.gender || null;
+            }
+          } catch (error) {
+            // Could not find Firebase user for Remo user
+          }
+        }
+
+        // Ensure we have a valid name - check all possible sources
+        let finalName = 'Unknown';
+        if (firebaseUserName && firebaseUserName.trim()) {
+          finalName = firebaseUserName.trim();
+        } else if (nameCombined && nameCombined.trim()) {
+          finalName = nameCombined.trim();
+        } else if (email && email !== '-') {
+          finalName = email;
+        } else if (a.user?.name && a.user.name.trim()) {
+          finalName = a.user.name.trim();
+        } else if (a.user?.displayName && a.user.displayName.trim()) {
+          finalName = a.user.displayName.trim();
+        }
+
         return {
           // Prefer explicit IDs; fall back to invite _id or email for table key
           id: a.user?.id || a.user?._id || a.invite?._id || a._id || email,
-          name: nameCombined || email,
+          name: finalName, // Use the final constructed name
           email,
-          userGender: profile.gender || 'Unknown', // Add gender information for Remo users
+          userGender: firebaseUserGender || profile.gender || 'Unknown', // Prefer Firebase gender, fallback to Remo
           // Use createdAt from root or invite object as sign-up timestamp
           signedUpAt: a.createdAt || a.invite?.createdAt || a.invite?.updatedAt || '',
           status,
           accepted,
-          source: 'remo' // Mark as Remo user
+          source: 'remo', // Mark as Remo user
+          firebaseProfileId // Store Firebase profile ID if found
         };
-      });
+      }));
 
       // Fetch Firebase users from the event's signedUpUsers subcollection
       const firebaseUsers = [];
@@ -133,16 +178,33 @@ const AdminEvents = () => {
         
         signedUpUsersSnapshot.docs.forEach(doc => {
           const userData = doc.data();
-          console.log('🔍 Firebase user data:', userData); // Debug log
+          
+          // Comprehensive name construction for Firebase users
+          let userName = 'Unknown';
+          
+          // Check all possible name fields
+          if (userData.userName && userData.userName.trim()) {
+            userName = userData.userName.trim();
+          } else if (userData.firstName && userData.firstName.trim()) {
+            userName = `${userData.firstName} ${userData.lastName || ''}`.trim();
+          } else if (userData.name && userData.name.trim()) {
+            userName = userData.name.trim();
+          } else if (userData.displayName && userData.displayName.trim()) {
+            userName = userData.displayName.trim();
+          } else if (userData.userEmail && userData.userEmail.trim()) {
+            userName = userData.userEmail.trim();
+          }
+          
           firebaseUsers.push({
             id: doc.id, // This is the user ID
-            name: userData.userName || 'Unknown',
+            name: userName, // Use constructed userName
             email: userData.userEmail || 'N/A',
             userGender: userData.userGender || 'Unknown', // Add gender information
             signedUpAt: userData.signUpTime ? userData.signUpTime.toDate().toLocaleString() : 'N/A',
             status: 'Signed Up',
             accepted: 'Yes',
-            source: 'firebase' // Mark as Firebase user
+            source: 'firebase', // Mark as Firebase user
+            firebaseProfileId: doc.id // Store Firebase profile ID
           });
         });
       } catch (error) {
@@ -161,7 +223,6 @@ const AdminEvents = () => {
       // Combine users - Remo users take priority
       const combinedUsers = [...remoUsers, ...filteredFirebaseUsers];
       
-      console.log('Combined users:', combinedUsers);
       setEventUsers(combinedUsers);
     } catch (error) {
       console.error('Error fetching event members:', error);
@@ -188,11 +249,9 @@ const AdminEvents = () => {
           await updateDoc(userDocRef, {
             datesRemaining: increment(1) // Increase available dates by 1
           });
-          console.log(`✅ Updated datesRemaining for user ${userId}`);
           
           // Remove event from user's signedUpEvents collection
           await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', selectedEvent.id));
-          console.log(`✅ Removed event from user ${userId}'s signedUpEvents`);
         } catch (error) {
           console.log(`⚠️ Could not update user ${userId}:`, error.message);
         }
@@ -207,7 +266,6 @@ const AdminEvents = () => {
       setShowDeleteModal(false);
       setSelectedEvent(null);
       
-      console.log('✅ Event deleted and all user data cleaned up successfully');
     } catch (error) {
       console.error('Error deleting event:', error);
     } finally {
@@ -258,16 +316,6 @@ const AdminEvents = () => {
     try {
       setDeletingUser(true);
       
-      console.log('Selected user to delete:', selectedUserToDelete);
-      console.log('Selected event:', selectedEvent);
-      console.log('🔍 User data structure:', {
-        id: selectedUserToDelete.id,
-        name: selectedUserToDelete.name,
-        email: selectedUserToDelete.email,
-        userGender: selectedUserToDelete.userGender,
-        source: selectedUserToDelete.source
-      });
-      
       // For Firebase users, we have the actual user ID
       // For Remo users, we need to find them in Firebase if they exist
       let userId = selectedUserToDelete.id;
@@ -281,27 +329,22 @@ const AdminEvents = () => {
             const userSnap = await getDocs(q);
             if (!userSnap.empty) {
               userId = userSnap.docs[0].id; // Use the actual Firebase user ID
-              console.log(`Found Firebase user for Remo user: ${userId}`);
             }
           } catch (error) {
-            console.log('Could not find Firebase user for Remo user');
+            // Could not find Firebase user for Remo user
           }
         }
       }
       
-      console.log(`Attempting to delete user ${userId} from event ${eventId}`);
-      
       // Try to delete from both sides, but don't fail if one doesn't exist
       try {
         await deleteDoc(doc(db, 'events', eventId, 'signedUpUsers', userId));
-        console.log('✅ Deleted from event signedUpUsers');
       } catch (error) {
         console.log('⚠️ Could not delete from event signedUpUsers (might not exist):', error.message);
       }
       
       try {
         await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', eventId));
-        console.log('✅ Deleted from user signedUpEvents');
       } catch (error) {
         console.log('⚠️ Could not delete from user signedUpEvents (might not exist):', error.message);
       }
@@ -323,7 +366,6 @@ const AdminEvents = () => {
                 if (!userSnap.empty) {
                   const firebaseUserData = userSnap.docs[0].data();
                   userGender = firebaseUserData.gender?.toLowerCase();
-                  console.log('🔍 Found gender from Firebase user:', userGender);
                 }
               } catch (error) {
                 console.log('⚠️ Could not find Firebase user for gender lookup:', error.message);
@@ -331,19 +373,10 @@ const AdminEvents = () => {
             }
           }
           
-          console.log('🔍 Debug signup count update:');
-          console.log('- User gender:', userGender);
-          console.log('- User source:', selectedUserToDelete.source);
-          console.log('- Event ID being used:', eventId);
-          console.log('- Event data:', data);
-          console.log('- Current menSignupCount:', data.menSignupCount);
-          console.log('- Current womenSignupCount:', data.womenSignupCount);
-          
           // Use transaction-based signout for reliable count updates
           if (userGender === 'male' || userGender === 'female') {
             try {
               await signOutFromEvent(eventId, userId, userGender);
-              console.log('✅ User removed from event using transaction');
             } catch (error) {
               console.log('⚠️ Transaction-based removal failed, falling back to manual count update:', error.message);
               // Fallback: manually update counts
@@ -351,12 +384,11 @@ const AdminEvents = () => {
               await reconcileCounts(eventId, actualCounts);
             }
           } else {
-            console.log('⚠️ Unknown gender, reconciling counts manually');
             const actualCounts = await calculateActualCounts(eventId);
             await reconcileCounts(eventId, actualCounts);
           }
         } else {
-          console.log('⚠️ Event document does not exist');
+          // Event document does not exist
         }
       } catch (error) {
         console.log('⚠️ Could not update signup counts:', error.message);
@@ -370,16 +402,11 @@ const AdminEvents = () => {
           const userData = userDoc.data();
           const currentDatesRemaining = userData.datesRemaining || 0;
           
-          console.log('🔍 Debug datesRemaining update:');
-          console.log('- Current datesRemaining:', currentDatesRemaining);
-          console.log('- User ID:', userId);
-          
           await updateDoc(userDocRef, {
             datesRemaining: increment(1) // Increase available dates by 1
           });
-          console.log('✅ Updated user datesRemaining count');
         } else {
-          console.log('⚠️ User document does not exist');
+          // User document does not exist
         }
       } catch (error) {
         console.log('⚠️ Could not update user datesRemaining:', error.message);
@@ -391,7 +418,6 @@ const AdminEvents = () => {
       setShowDeleteUserModal(false);
       setSelectedUserToDelete(null);
       
-      console.log('✅ User deletion completed successfully');
     } catch (error) {
       console.error('Error deleting user from event:', error);
       alert('Failed to delete user from event. Please try again.');
@@ -771,24 +797,28 @@ const AdminEvents = () => {
                   <table className="min-w-full text-sm table-fixed">
                     <thead className="bg-gray-50 sticky z-10">
                       <tr>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Name</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Signed Up At</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Email</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Status</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Accepted</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Source</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/7">Actions</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/8">Name</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/8">Gender</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/8">Signed Up At</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/8">Email</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/8">Status</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/8">Accepted</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/8">Source</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/8">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {eventUsers.map(u => (
                         <tr key={u.id}>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">{u.name}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">{u.signedUpAt ? new Date(u.signedUpAt).toLocaleString() : '-'}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">{u.email}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate capitalize">{u.status}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">{u.accepted}</td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">
+                          <td className="px-4 py-2 whitespace-nowrap w-1/8 truncate">
+                            {u.name}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/8 truncate capitalize">{u.userGender}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/8 truncate">{u.signedUpAt ? new Date(u.signedUpAt).toLocaleString() : '-'}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/8 truncate">{u.email}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/8 truncate capitalize">{u.status}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/8 truncate">{u.accepted}</td>
+                          <td className="px-4 py-2 whitespace-nowrap w-1/8 truncate">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                               u.source === 'remo' 
                                 ? 'bg-blue-100 text-blue-800' 
@@ -797,7 +827,7 @@ const AdminEvents = () => {
                               {u.source === 'remo' ? 'Remo' : 'Firebase'}
                             </span>
                           </td>
-                          <td className="px-4 py-2 whitespace-nowrap w-1/7 truncate">
+                          <td className="px-4 py-2 whitespace-nowrap w-1/8 truncate">
                             <button
                               onClick={() => handleDeleteUser(u)}
                               className="text-red-600 hover:text-red-800 text-sm font-medium"
