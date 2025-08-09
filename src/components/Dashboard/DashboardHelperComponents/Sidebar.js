@@ -27,6 +27,7 @@ const Sidebar = () => {
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showTabletMenu, setShowTabletMenu] = useState(false);
   const [hasNewSpark, setHasNewSpark] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   // Duplicate new sparks logic from DashHome.js
   useEffect(() => {
@@ -66,6 +67,66 @@ const Sidebar = () => {
       }
     };
     fetchConnections();
+  }, [auth.currentUser]);
+
+  // Fetch cart count from Firestore
+  useEffect(() => {
+    const fetchCartCount = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const cart = userData.cart || [];
+          setCartCount(cart.length);
+        }
+      } catch (err) {
+        console.error('Error fetching cart count:', err);
+      }
+    };
+
+    fetchCartCount();
+    
+    // Set up real-time listener for cart changes
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        fetchCartCount();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth.currentUser]);
+
+  // Listen for cart update events from other components
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      const fetchCartCount = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const cart = userData.cart || [];
+            setCartCount(cart.length);
+          }
+        } catch (err) {
+          console.error('Error fetching cart count:', err);
+        }
+      };
+      
+      fetchCartCount();
+    };
+
+    // Listen for cart update events
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
   }, [auth.currentUser]);
 
   const navItems = [
@@ -222,6 +283,26 @@ const Sidebar = () => {
                         marginLeft: '8px',
                       }}
                     />
+                  )}
+                  {/* Cart indicator for Shop */}
+                  {item.title === "Shop" && cartCount > 0 && (
+                    <span
+                      style={{
+                        minWidth: '20px',
+                        height: '20px',
+                        borderRadius: '10px',
+                        background: '#0043F1',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        marginLeft: '8px',
+                      }}
+                    >
+                      {cartCount}
+                    </span>
                   )}
                 </div>
               </Link>
@@ -405,6 +486,26 @@ const Sidebar = () => {
                       >
                         {item.icon}
                         <span>{item.title}</span>
+                        {/* Cart indicator for Shop in mobile menu */}
+                        {item.title === "Shop" && cartCount > 0 && (
+                          <span
+                            style={{
+                              minWidth: '20px',
+                              height: '20px',
+                              borderRadius: '10px',
+                              background: '#0043F1',
+                              color: 'white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              marginLeft: 'auto',
+                            }}
+                          >
+                            {cartCount}
+                          </span>
+                        )}
                       </div>
                     </Link>
                   )}

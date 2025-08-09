@@ -4,36 +4,38 @@ import { FaTrash } from "react-icons/fa";
 
 const ConfirmationModal = ({ isOpen, onClose, cart, removeFromCart, navigate }) => {
   const groupedCart = cart.reduce((acc, plan) => {
-    const key = `${plan.title}-${plan.venue}-${plan.packageType}-${plan.numDates || 1}`;
+    const key = `${plan.title}-${plan.venue}-${plan.packageType}`;
     if (!acc[key]) {
       acc[key] = { ...plan, quantity: 1 };
     } else {
       acc[key].quantity += 1;
-      const existingPrice = parseFloat(acc[key].price.replace("$", ""));
-      const incomingPrice = parseFloat(plan.price.replace("$", ""));
-      acc[key].price = `$${(existingPrice + incomingPrice).toFixed(2)}`;
     }
     return acc;
   }, {});
 
   const cartItems = Object.values(groupedCart);
-  const totalPrice = cart.reduce((sum, plan) => sum + parseFloat(plan.price.replace("$", "")), 0);
+  const totalPrice = cartItems.reduce((sum, plan) => {
+    const price = parseFloat(plan.price.replace("$", ""));
+    return sum + (price * plan.quantity);
+  }, 0);
 
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black transition-opacity duration-200 ${
+        className={`fixed inset-0 bg-black transition-opacity duration-200 z-40 ${
           isOpen ? "opacity-50 visible" : "opacity-0 invisible"
         }`}
         onClick={onClose}
+        style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
       />
 
       <div
-        className={`fixed inset-y-0 right-0 w-96 bg-white shadow-lg transform transition-transform duration-300 ${
+        className={`fixed inset-y-0 right-0 w-96 bg-white shadow-lg transform transition-transform duration-300 z-50 ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
         aria-modal="true"
+        style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
       >
         <div className="p-4 border-b flex justify-between items-center">
           <h2 className="text-xl font-semibold">Cart</h2>
@@ -74,7 +76,7 @@ const ConfirmationModal = ({ isOpen, onClose, cart, removeFromCart, navigate }) 
                       <p className="text-lg font-semibold">${parseFloat(plan.price.replace("$", "")).toFixed(2)}</p>
                       <button
                         onClick={() =>
-                          removeFromCart( plan.title, plan.venue, plan.packageType, plan.numDates || 1)
+                          removeFromCart(plan.id, plan.type)
                         }
                         className="text-red-500 hover:text-red-700 transition duration-200"
                         aria-label="Remove item"
