@@ -278,116 +278,43 @@ exports.deleteUser = onCall({
       // Remove from event's signedUpUsers sub-collection
       await eventRef.collection('signedUpUsers').doc(uid).delete().catch(() => {});
 
-      // Decrement gender-specific signup count
-      let fieldName = null;
-      if (gender === 'male') fieldName = 'menSignupCount';
-      else if (gender === 'female') fieldName = 'womenSignupCount';
-
-      if (fieldName) {
-        await eventRef.update({
-          [fieldName]: admin.firestore.FieldValue.increment(-1),
-        }).catch(() => {});
+      // Use transaction-based approach for reliable count updates
+      if (gender === 'male' || gender === 'female') {
+        try {
+          await db.runTransaction(async (transaction) => {
+            const eventDoc = await transaction.get(eventRef);
+            if (eventDoc.exists) {
+              const data = eventDoc.data();
+              const currentMenCount = data.menSignupCount || 0;
+              const currentWomenCount = data.womenSignupCount || 0;
+              
+              const updateData = {};
+              if (gender === 'male') {
+                updateData.menSignupCount = Math.max(currentMenCount - 1, 0);
+              } else if (gender === 'female') {
+                updateData.womenSignupCount = Math.max(currentWomenCount - 1, 0);
+              }
+              
+              transaction.update(eventRef, updateData);
+            }
+          });
+        } catch (error) {
+          console.log('⚠️ Transaction-based count update failed, using fallback:', error.message);
+          // Fallback: manually update counts
+          const signedUpUsersSnap = await eventRef.collection('signedUpUsers').get();
+          const users = signedUpUsersSnap.docs.map(doc => doc.data());
+          const menCount = users.filter(user => user.userGender?.toLowerCase() === 'male').length;
+          const womenCount = users.filter(user => user.userGender?.toLowerCase() === 'female').length;
+          
+          await eventRef.update({
+            menSignupCount: menCount,
+            womenSignupCount: womenCount
+          });
+        }
       }
 
       // Delete the signedUpEvents document under the user
       await evDoc.ref.delete().catch(() => {});
-
-      // Check waitlist for this event after user is removed
-      try {
-        const waitlistRef = eventRef.collection('waitlist');
-        const waitlistSnap = await waitlistRef.get();
-        
-        // Find the first person on waitlist for this gender
-        const waitlistEntries = waitlistSnap.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(entry => entry.userGender?.toLowerCase() === gender)
-          .sort((a, b) => a.joinTime?.toDate() - b.joinTime?.toDate()); // Sort by join time
-        
-        if (waitlistEntries.length > 0) {
-          const firstInLine = waitlistEntries[0];
-          
-          // Remove from waitlist
-          await waitlistRef.doc(firstInLine.id).delete();
-          
-          // Get event data for Remo integration
-          const eventDoc = await eventRef.get();
-          if (eventDoc.exists()) {
-            const eventData = eventDoc.data();
-            
-            // Add user to signed up events
-            const userToEnrollRef = db.collection('users').doc(firstInLine.userID);
-            await userToEnrollRef.collection('signedUpEvents').doc(eventId).set({
-              eventID: eventData.eventID,
-              signUpTime: admin.firestore.FieldValue.serverTimestamp(),
-              eventTitle: eventData.title || eventData.eventName,
-              eventDate: eventData.date,
-              eventTime: eventData.time,
-              eventLocation: eventData.location,
-              eventAgeRange: eventData.ageRange,
-              eventType: eventData.eventType,
-              fromWaitlist: true, // Mark that this signup came from waitlist
-            });
-            
-            // Add user to event's signed up users
-            await eventRef.collection('signedUpUsers').doc(firstInLine.userID).set({
-              userID: firstInLine.userID,
-              userName: firstInLine.userName || 'Waitlist User',
-              userEmail: firstInLine.userEmail,
-              userPhoneNumber: firstInLine.userPhoneNumber,
-              userGender: firstInLine.userGender,
-              userLocation: firstInLine.userLocation,
-              signUpTime: admin.firestore.FieldValue.serverTimestamp(),
-              fromWaitlist: true,
-            });
-            
-            // Update event signup count (increment back since we decremented above)
-            if (firstInLine.userGender?.toLowerCase() === 'male') {
-              await eventRef.update({ menSignupCount: admin.firestore.FieldValue.increment(1) });
-            } else if (firstInLine.userGender?.toLowerCase() === 'female') {
-              await eventRef.update({ womenSignupCount: admin.firestore.FieldValue.increment(1) });
-            }
-
-            // Add user to Remo event
-            try {
-              const userProfileDoc = await userToEnrollRef.get();
-              const userEmail = userProfileDoc.exists ? userProfileDoc.data().email : null;
-              
-              if (userEmail && eventData.eventID) {
-                // Call Remo API to add user to event
-                const url = `https://live.remo.co/api/v1/events/${eventData.eventID}/members`;
-                const response = await fetch(url, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    Authorization: `Token: ${remoSecret.value()}`,
-                  },
-                  body: JSON.stringify({
-                    emails: [userEmail],
-                    role: 'attendee'
-                  }),
-                });
-
-                if (!response.ok) {
-                  console.error('Failed to add user to Remo event:', await response.text());
-                } else {
-                  console.log(`Successfully added user ${firstInLine.userID} to Remo event ${eventData.eventID} from waitlist`);
-                }
-              } else {
-                console.warn(`Missing email for user ${firstInLine.userID} or eventID for event ${eventId}`);
-              }
-            } catch (remoError) {
-              console.error('Error adding user to Remo event:', remoError);
-              // Don't fail the entire process if Remo fails
-            }
-          }
-          
-          console.log(`User ${firstInLine.userID} has been automatically enrolled in event ${eventId} from waitlist after account deletion`);
-        }
-      } catch (waitlistError) {
-        console.error('Error checking waitlist during account deletion:', waitlistError);
-        // Don't fail the entire deletion if waitlist check fails
-      }
     });
 
     // 2️⃣  Remove connections (both sides)
@@ -452,4 +379,3 @@ exports.sendContactEmail = onCall({
     throw new functions.https.HttpsError('internal', 'Failed to send email');
   }
 });
-

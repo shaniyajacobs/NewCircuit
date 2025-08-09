@@ -408,52 +408,10 @@ const DashHome = () => {
     }
   }, [userProfile]);
 
-  // Check waitlist whenever events change
-  useEffect(() => {
-    if (allEvents.length > 0 && userGender) {
-      const checkWaitlistForAllEvents = async () => {
-        let anyEnrollments = false;
-        for (const evt of allEvents) {
-          if (evt.firestoreID) {
-            const notifiedUser = await checkWaitlistForEvent(evt.firestoreID, userGender);
-            if (notifiedUser) {
-              console.log(`Notified user ${notifiedUser.userID} about available spot for event ${evt.firestoreID}`);
-              anyEnrollments = true;
-            }
-          }
-        }
-        // Only reload events if someone was enrolled to avoid infinite loops
-        if (anyEnrollments) {
-          await loadEvents();
-        }
-      };
-      
-      // Small delay to ensure events are fully loaded
-      setTimeout(checkWaitlistForAllEvents, 2000);
-    }
-  }, [allEvents, userGender]);
 
   // Manual refresh button now uses the same loader
   const fetchEventsFromFirebase = async () => {
     await loadEvents();
-  };
-
-  // Function to manually check waitlist
-  const checkWaitlistForCurrentUser = async () => {
-    if (!auth.currentUser || !userGender) return;
-    
-    for (const evt of allEvents) {
-      if (evt.firestoreID) {
-        const notifiedUser = await checkWaitlistForEvent(evt.firestoreID, userGender);
-        if (notifiedUser && notifiedUser.userID === auth.currentUser.uid) {
-          console.log(`You have been enrolled in event ${evt.firestoreID} from waitlist!`);
-          alert('Great news! A spot opened up and you have been automatically enrolled in the event!');
-          // Reload events to show the new enrollment
-          await loadEvents();
-          return;
-        }
-      }
-    }
   };
 
   const postNewEvent = async () => {
@@ -631,35 +589,7 @@ const getEventData = async (eventID) => {
         );
       }
     }
-
-    // Check waitlist after someone signs up (in case someone cancelled)
-    setTimeout(async () => {
-      const notifiedUser = await checkWaitlistForEvent(event.firestoreID, userGender);
-      if (notifiedUser) {
-        console.log(`Notified user ${notifiedUser.userID} about available spot`);
-        // Reload events immediately to show updated counts
-        await loadEvents();
-      }
-    }, 1000); // Small delay to ensure signup is processed
-
-    // Also check waitlist for all events when data is refreshed
-    setTimeout(async () => {
-      let anyEnrollments = false;
-      for (const evt of allEvents) {
-        if (evt.firestoreID) {
-          const notifiedUser = await checkWaitlistForEvent(evt.firestoreID, userGender);
-          if (notifiedUser) {
-            console.log(`Notified user ${notifiedUser.userID} about available spot for event ${evt.firestoreID}`);
-            anyEnrollments = true;
-          }
-        }
-      }
-      // Only reload if someone was enrolled
-      if (anyEnrollments) {
-        await loadEvents();
-      }
-    }, 2000); // Check all events after a longer delay
-
+    
     // Optimistically update local signed-up IDs when a user signs up
     setSignedUpEventIds(prev => {
       const next = new Set(prev);
@@ -831,82 +761,87 @@ const getEventData = async (eventID) => {
         // Remove from waitlist
         await deleteDoc(doc(db, 'events', eventId, 'waitlist', firstInLine.id));
         
-        // Automatically enroll the user in the event
+        // Find the event object to pass to handleSignUp
         const eventDoc = await getDoc(doc(db, 'events', eventId));
         if (eventDoc.exists()) {
           const eventData = eventDoc.data();
           
-          // Add user to signed up events
-          await setDoc(
-            doc(db, 'users', firstInLine.userID, 'signedUpEvents', eventId),
-            {
-              eventID: eventData.eventID,
-              signUpTime: serverTimestamp(),
-              eventTitle: eventData.title || eventData.eventName,
-              eventDate: eventData.date,
-              eventTime: eventData.time,
-              eventLocation: eventData.location,
-              eventAgeRange: eventData.ageRange,
-              eventType: eventData.eventType,
-              fromWaitlist: true, // Mark that this signup came from waitlist
-            },
-            { merge: true }
-          );
+          // Create event object with the structure handleSignUp expects
+          const event = {
+            firestoreID: eventId,
+            eventID: eventData.eventID,
+            title: eventData.title || eventData.eventName,
+            date: eventData.date,
+            time: eventData.time,
+            location: eventData.location,
+            ageRange: eventData.ageRange,
+            eventType: eventData.eventType,
+          };
           
-          // Add user to event's signed up users
-          await setDoc(
-            doc(db, 'events', eventId, 'signedUpUsers', firstInLine.userID),
-            {
-              userID: firstInLine.userID,
-              userName: firstInLine.userName || 'Waitlist User',
-              userEmail: firstInLine.userEmail,
-              userPhoneNumber: firstInLine.userPhoneNumber,
-              userGender: firstInLine.userGender,
-              userLocation: firstInLine.userLocation,
-              signUpTime: serverTimestamp(),
-              fromWaitlist: true,
-            },
-            { merge: true }
-          );
+          // Call handleSignUp with the event - this will handle all the enrollment logic
+          await handleSignUp(event);
           
-          // Update event signup count
-          if (firstInLine.userGender?.toLowerCase() === 'male') {
-            await updateDoc(doc(db, 'events', eventId), { menSignupCount: increment(1) });
-          } else if (firstInLine.userGender?.toLowerCase() === 'female') {
-            await updateDoc(doc(db, 'events', eventId), { womenSignupCount: increment(1) });
-          }
-
-          // Add user to Remo event
-          try {
-            const functionsInst = getFunctions();
-            const addUserToRemoEventCF = httpsCallable(functionsInst, 'addUserToRemoEvent');
-            
-            // Get user's email from their profile
-            const userProfileDoc = await getDoc(doc(db, 'users', firstInLine.userID));
-            const userEmail = userProfileDoc.exists() ? userProfileDoc.data().email : null;
-            
-            if (userEmail && eventData.eventID) {
-              await addUserToRemoEventCF({ 
-                eventId: eventData.eventID, 
-                userEmail: userEmail 
-              });
-              console.log(`Successfully added user ${firstInLine.userID} to Remo event ${eventData.eventID}`);
-            } else {
-              console.warn(`Missing email for user ${firstInLine.userID} or eventID for event ${eventId}`);
-            }
-          } catch (remoError) {
-            console.error('Error adding user to Remo event:', remoError);
-            // Don't fail the entire enrollment if Remo fails
-          }
+          console.log(`User ${firstInLine.userID} has been automatically enrolled in event ${eventId} from waitlist`);
+          return firstInLine;
         }
-        
-        console.log(`User ${firstInLine.userID} has been automatically enrolled in event ${eventId} from waitlist`);
-        return firstInLine;
       }
     } catch (error) {
       console.error('Error checking waitlist:', error);
     }
     return null;
+  };
+
+  // Add this new function after your existing functions
+  const monitorEventSpots = async () => {
+    try {
+      // Get all events to check for available spots
+      const eventsSnapshot = await getDocs(collection(db, 'events'));
+      
+      for (const eventDoc of eventsSnapshot.docs) {
+        const eventData = eventDoc.data();
+        const eventId = eventDoc.id;
+        
+        // Check men's spots
+        if (eventData.menSpots && eventData.menSignupCount !== undefined) {
+          const availableMenSpots = Number(eventData.menSpots) - Number(eventData.menSignupCount);
+          if (availableMenSpots > 0) {
+            // Check if there are men on the waitlist
+            const waitlistRef = collection(db, 'events', eventId, 'waitlist');
+            const waitlistSnap = await getDocs(waitlistRef);
+            const menOnWaitlist = waitlistSnap.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .filter(entry => entry.userGender?.toLowerCase() === 'male')
+              .sort((a, b) => a.joinTime?.toDate() - b.joinTime?.toDate());
+            
+            if (menOnWaitlist.length > 0) {
+              console.log(`Found ${menOnWaitlist.length} men on waitlist for event ${eventId}, checking for enrollment...`);
+              await checkWaitlistForEvent(eventId, 'male');
+            }
+          }
+        }
+        
+        // Check women's spots
+        if (eventData.womenSpots && eventData.womenSignupCount !== undefined) {
+          const availableWomenSpots = Number(eventData.womenSpots) - Number(eventData.womenSignupCount);
+          if (availableWomenSpots > 0) {
+            // Check if there are women on the waitlist
+            const waitlistRef = collection(db, 'events', eventId, 'waitlist');
+            const waitlistSnap = await getDocs(waitlistRef);
+            const womenOnWaitlist = waitlistSnap.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .filter(entry => entry.userGender?.toLowerCase() === 'female')
+              .sort((a, b) => a.joinTime?.toDate() - b.joinTime?.toDate());
+            
+            if (womenOnWaitlist.length > 0) {
+              console.log(`Found ${womenOnWaitlist.length} women on waitlist for event ${eventId}, checking for enrollment...`);
+              await checkWaitlistForEvent(eventId, 'female');
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error monitoring event spots:', error);
+    }
   };
 
   // Use the same event limit for sign-up events
@@ -930,6 +865,25 @@ const getEventData = async (eventID) => {
       return true;
     });
   }, [allEvents, signedUpEventIds, userGender]);
+
+  // Add this useEffect to monitor spots periodically
+  useEffect(() => {
+    // Initial check when component mounts
+    monitorEventSpots();
+    
+    // Set up periodic monitoring every 30 seconds
+    const intervalId = setInterval(monitorEventSpots, 30000);
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Also call monitorEventSpots after any event data changes
+  useEffect(() => {
+    if (firebaseEvents.length > 0) {
+      monitorEventSpots();
+    }
+  }, [firebaseEvents]);
 
   return (
     <div>
