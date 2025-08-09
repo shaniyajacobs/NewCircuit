@@ -63,7 +63,7 @@ const Dashboard = () => {
             <Route path="dashChangePassword" element={<DashChangePassword />} />
             <Route path="dashDeleteAccount" element={<DashDeleteAccount />} />
             <Route path="dashDeactivateAccount" element={<DashDeactivateAccount />} />
-            <Route path="DashMyProfile" element={<DashMyProfile />} />
+            <Route path="dashMyProfile" element={<DashMyProfile />} />
             <Route path="myMatches" element={<MyMatches />} />
             <Route path="myMatches/seeAllMatches" element={<SeeAllMatches />} />
             <Route path="seeAllMatches" element={<SeeAllMatches />} />
