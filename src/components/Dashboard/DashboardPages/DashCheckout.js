@@ -5,6 +5,7 @@ import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { httpsCallable } from "firebase/functions";
 import { collection, doc, getDoc, addDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db, auth, functions } from "../../../firebaseConfig";
+import { processDatePurchase } from "../../../utils/eventSpotsUtils";
 
 const parsePrice = (priceStr) => parseFloat(priceStr?.replace("$", "")) || 0;
 
@@ -173,6 +174,7 @@ const DashCheckout = () => {
         const user = auth.currentUser;
         if (user) {
           try {
+            // 1. Save payment record
             await addDoc(collection(db, "users", user.uid, "payments"), {
               amount: totalPrice,
               originalAmount: Number(baseTotal.toFixed(2)),
@@ -186,13 +188,57 @@ const DashCheckout = () => {
                 .map((item) => `${item.packageType} (${item.title})`)
                 .join(", "),
             });
+
+            // 2. Process date purchase transactionally
+            const purchaseResult = await processDatePurchase(
+              user.uid, 
+              cartItems, 
+              result.paymentIntent.id, 
+              totalPrice
+            );
+            
+            console.log("✅ Date purchase processed:", purchaseResult);
+            
+            // Validate purchase result
+            if (!purchaseResult.success) {
+              throw new Error("Failed to process date purchase");
+            }
+            
+            // Log purchase details for debugging
+            console.log("📊 Purchase Summary:", {
+              totalAmount: totalPrice,
+              datesAdded: purchaseResult.totalDatesPurchased,
+              previousDates: purchaseResult.previousDates,
+              newDates: purchaseResult.newDates,
+              cartItems: cartItems.map(item => ({
+                title: item.title,
+                quantity: item.quantity,
+                numDates: item.numDates || 1,
+                totalDates: (item.quantity || 1) * (item.numDates || 1)
+              }))
+            });
+            
+            // 3. Clear cart after successful purchase
             await setDoc(
               doc(db, "users", user.uid),
               { cart: [] },
               { merge: true }
             );
+            
+            // 4. Show success message with dates added
+            alert(`🎉 Purchase successful! ${purchaseResult.totalDatesPurchased} dates added to your account.`);
+            
+            // 5. Dispatch event to refresh dates remaining in other components
+            window.dispatchEvent(new CustomEvent('datesUpdated', {
+              detail: {
+                newDatesRemaining: purchaseResult.newDates,
+                datesAdded: purchaseResult.totalDatesPurchased
+              }
+            }));
+            
           } catch (e) {
-            console.error("Error saving payment to Firestore:", e);
+            console.error("Error processing purchase:", e);
+            alert("❌ Payment processed but there was an error updating your dates. Please contact support.");
           }
         }
       }

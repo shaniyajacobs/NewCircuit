@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { getAuth } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from '../../../pages/firebaseConfig';
 import { IoPersonCircle } from 'react-icons/io5';
 import { ReactComponent as VectorIcon } from '../../../images/Vector 6.svg';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { formatUserName } from "../../../utils/nameFormatter";
+import { FaShoppingCart } from 'react-icons/fa';
 
 
 const Header = (props) => {
@@ -18,6 +19,7 @@ const Header = (props) => {
     const cached = localStorage.getItem("userData");
     return cached ? JSON.parse(cached) : null;
   });
+  const [cartCount, setCartCount] = useState(0);
 
   // Listen for profile updates from localStorage
   useEffect(() => {
@@ -64,13 +66,39 @@ const Header = (props) => {
     setIsLoading(false);
   };
 
+  // Fetch cart count
+  const getCartCount = async () => {
+    if (!user) return;
+    try {
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const cart = userData.cart || [];
+        setCartCount(cart.length);
+      }
+    } catch (err) {
+      console.error('Error fetching cart count:', err);
+    }
+  };
+
   useEffect(() => {
     getUserData();
+    getCartCount();
+  }, [user]);
+
+  // Listen for cart updates
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      getCartCount();
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
   }, [user]);
 
 
   const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "Sparks", 
-    "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
+    "/dashboard/dashDateCalendar": "Shop", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
     "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashChangePassword": "Change Password", 
     "/dashboard/dashDeleteAccount": "Delete Account", "/dashboard/dashDeactivateAccount": "Deactivate Account", "/dashboard/dashSignOut": "Sign Out"}
   const { path } = props;
@@ -124,6 +152,9 @@ const Header = (props) => {
         <div className="flex justify-center items-center h-[66px] w-[62px]">
           <i className="ti ti-bell text-2xl text-slate-500" />
         </div>
+        
+
+        
         {userData ? (
           userData.get("image") ? (
             <div className="flex items-center gap-2">
