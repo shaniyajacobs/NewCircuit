@@ -8,10 +8,13 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
 import { auth } from "../../../firebaseConfig";
+import { signUpForEventWithDates } from '../../../utils/eventSpotsUtils';
 import { onAuthStateChanged } from "firebase/auth";
 import { DateTime } from 'luxon';
+import PopUp from '../DashboardHelperComponents/PopUp';
 import { calculateAge } from '../../../utils/ageCalculator';
 import { filterByGenderPreference } from '../../../utils/genderPreferenceFilter';
+import { formatUserName } from '../../../utils/nameFormatter';
 import homeSelectMySparks from '../../../images/home_select_my_sparks.jpg';
 import imgNoise from '../../../images/noise.png';
 import homeSeeMySparks from '../../../images/home_see_my_sparks.jpg';
@@ -19,6 +22,9 @@ import homePurchaseMoreDates from '../../../images/home_purchase_more_dates.jpg'
 import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.svg';
 import filterIcon from '../../../images/setting-4.svg';
 import xIcon from "../../../images/x.svg";
+import tickCircle from "../../../images/tick-circle.svg";
+
+const MAX_SELECTIONS = 3; // maximum matches a user can choose
 
 // Helper: map city to IANA time zone
 const cityToTimeZone = {
@@ -96,6 +102,72 @@ function useResponsiveEventLimit() {
   return isMobile ? 4 : 6;
 }
 
+// Helper: check if latest event was within 48 hours
+async function isLatestEventWithin48Hours(userId) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const latestEventId = userDoc.data()?.latestEventId;
+    
+    if (!latestEventId) {
+      return false;
+    }
+    
+    // Find the event document
+    const eventsSnapshot = await getDocs(collection(db, 'events'));
+    let eventData = null;
+    eventsSnapshot.forEach(docSnap => {
+      if (docSnap.data().eventID === latestEventId) {
+        eventData = docSnap.data();
+      }
+    });
+    
+    if (!eventData) {
+      return false;
+    }
+    
+    // Calculate event end time
+    let eventDateTime;
+    if (eventData.startTime) {
+      // Use startTime if available (Remo events)
+      eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
+    } else if (eventData.date && eventData.time && eventData.timeZone) {
+      // Use date/time for regular events
+      const normalizedTime = eventData.time.replace(/am|pm/i, match => match.toUpperCase());
+      const eventZone = eventZoneMap[eventData.timeZone] || eventData.timeZone || 'UTC';
+      
+      eventDateTime = DateTime.fromFormat(
+        `${eventData.date} ${normalizedTime}`,
+        'yyyy-MM-dd h:mma',
+        { zone: eventZone }
+      );
+      
+      if (!eventDateTime.isValid) {
+        eventDateTime = DateTime.fromFormat(
+          `${eventData.date} ${normalizedTime}`,
+          'yyyy-MM-dd H:mm',
+          { zone: eventZone }
+        );
+      }
+    }
+    
+    if (!eventDateTime || !eventDateTime.isValid) {
+      return false;
+    }
+    
+    // Add 90 minutes for event duration
+    const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+    
+    // Check if event ended within the last 48 hours
+    const now = DateTime.now();
+    const hoursSinceEvent = now.diff(eventEndDateTime, 'hours').hours;
+    
+    return hoursSinceEvent <= 48;
+  } catch (error) {
+    console.error('[48HOURS] Error checking event time:', error);
+    return false;
+  }
+}
+
 // Helper: convert emails to user IDs
 async function emailsToUserIds(emails) {
   if (!emails || emails.length === 0) return [];
@@ -131,6 +203,9 @@ const DashHome = () => {
   const [hasCouponRequestUpdate, setHasCouponRequestUpdate] = useState(false);
   const [checkingCouponRequests, setCheckingCouponRequests] = useState(false);
   const [hideCouponRequestNotification, setHideCouponRequestNotification] = useState(false);
+  const [showSelectSparksCard, setShowSelectSparksCard] = useState(false);
+  const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
+  const [selectingMatches, setSelectingMatches] = useState(false);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -239,6 +314,23 @@ const DashHome = () => {
             : Number(data.datesRemaining);
           setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
+          
+          // Check if latest event was within 48 hours to show "Select my sparks" card
+          const within48Hours = await isLatestEventWithin48Hours(user.uid);
+          
+          // Check if user has already made max selections for the latest event
+          let hasMaxSelections = false;
+          if (within48Hours && data.latestEventId) {
+            const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+            const connectionDocs = connectionsSnap.docs;
+            
+            // If user has reached max selections
+            if (connectionDocs.length >= MAX_SELECTIONS) {
+              hasMaxSelections = true;
+            }
+          }
+          
+          setShowSelectSparksCard(within48Hours && !hasMaxSelections);
         }
       }
     });
@@ -263,7 +355,7 @@ const DashHome = () => {
           if (connectionData.status !== 'mutual') return null;
           return {
             userId: uid,
-            name: data.firstName ? `${data.firstName} ${data.lastName || ''}`.trim() : data.displayName || 'Unknown',
+            name: formatUserName(data),
             age: calculateAge(data.birthDate),
             image: data.image || null,
             compatibility: Math.round(connectionData.matchScore || 0),
@@ -294,6 +386,11 @@ const DashHome = () => {
       }));
       setConnections(connectionsWithNewFlag);
       setHasNewSpark(newSparks.some(isNew => isNew));
+      
+      // Hide select sparks card if user has max selections
+      if (filteredProfiles.length >= MAX_SELECTIONS) {
+        setShowSelectSparksCard(false);
+      }
     } catch (err) {
       setConnections([]);
       setHasNewSpark(false);
@@ -360,6 +457,15 @@ const DashHome = () => {
     
     return () => unsubscribe();
   }, [auth.currentUser]);
+
+  // Check for congratulations modal on component mount
+  useEffect(() => {
+    const shouldShowCongratulations = localStorage.getItem('showCongratulationsModal');
+    if (shouldShowCongratulations === 'true') {
+      setShowCongratulationsModal(true);
+      localStorage.removeItem('showCongratulationsModal'); // Clear the flag
+    }
+  }, []);
 
   // Helper to check if event is past (for sign-up: event start; for upcoming: event start + 90min)
   function isEventPast(event, addMinutes = 0) {
@@ -531,19 +637,18 @@ const getEventData = async (eventID) => {
   }
 };
 
-  // Handle sign up logic
+    // Handle sign up logic
   const handleSignUp = async (event) => {
-    // 🐛 DEBUGGING LOGS
     console.log("[JOIN NOW] Event:", event);
     console.log("[JOIN NOW] Event ID:", event.eventID);
     console.log("[JOIN NOW] Current user:", auth.currentUser?.uid);
+    
     const currentRemaining = Number.isFinite(datesRemaining) ? datesRemaining : 0;
     if (currentRemaining <= 0) {
       console.log('[JOIN NOW] No dates remaining - cannot sign up');
       alert('You have no dates remaining. Please purchase more dates to join events.');
       return;
     }
-    setDatesRemaining(prev => (Number.isFinite(prev) ? prev - 1 : 0));
 
     const user = auth.currentUser;
     if (!user) {
@@ -553,116 +658,73 @@ const getEventData = async (eventID) => {
     }
 
     try {
-      // 0️⃣ Guard: skip if user already signed up
-      const existingSignupRef = doc(db, 'events', event.firestoreID, 'signedUpUsers', user.uid);
-      const existingSignupSnap = await getDoc(existingSignupRef);
-      if (existingSignupSnap.exists()) {
-        console.log('[JOIN NOW] User already signed up – skipping duplicate');
-        alert('You are already signed up for this event.');
-        return;
-      }
+      // Use combined transaction-based signup with dates update
+      const userData = {
+        userName: userProfile && userProfile.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : (user.displayName || null),
+        userEmail: user.email || null,
+        userPhoneNumber: (userProfile && userProfile.phoneNumber) || user.phoneNumber || null,
+        userGender: userGender || null,
+        userLocation: (userProfile && userProfile.location) || null,
+      };
 
-      const userDocRef = doc(db, 'users', user.uid);
-      // Update remaining dates for the user
-      await setDoc(userDocRef, { 
-        datesRemaining: currentRemaining - 1, 
-        latestEventId: event.eventID // <-- ensure this is set
-      }, { merge: true });
-
-      // 1. Add a document in the user's sub-collection
-      await setDoc(
-        doc(db, 'users', user.uid, 'signedUpEvents', event.firestoreID),
-        {
-          eventID: event.eventID,
-          signUpTime: serverTimestamp(),
-          eventTitle: event.title || null,
-          eventDate: event.date || null,
-          eventTime: event.time || null,
-          eventLocation: event.location || null,
-          eventAgeRange: event.ageRange || null,
-          eventType: event.eventType || null,
-        },
-        { merge: true }
-      );
-
-      // 2. Add a document in the event's sub-collection
-      await setDoc(
-        doc(db, 'events', event.firestoreID, 'signedUpUsers', user.uid),
-        {
-          userID: user.uid,
-          userName: userProfile && userProfile.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : (user.displayName || null),
-          userEmail: user.email || null,
-          userPhoneNumber: (userProfile && userProfile.phoneNumber) || user.phoneNumber || null,
-          userGender: userGender || null,
-          userLocation: (userProfile && userProfile.location) || null,
-          signUpTime: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      // Update event signup count in Firestore
-      const eventDocRef = doc(db, 'events', event.firestoreID);
-      const eventDoc = await getDoc(eventDocRef);
-      let updatedEvents = [...firebaseEvents];
-      if (eventDoc.exists()) {
-        const data = eventDoc.data();
-        if (userGender && userGender.toLowerCase() === 'male') {
-          await updateDoc(eventDocRef, { menSignupCount: increment(1) });
-          // Update local state
-          updatedEvents = updatedEvents.map(ev =>
-            ev.firestoreID === event.firestoreID
-              ? { ...ev, menSignupCount: (Number(ev.menSignupCount) || 0) + 1 }
-              : ev
-          );
-        } else if (userGender && userGender.toLowerCase() === 'female') {
-          await updateDoc(eventDocRef, { womenSignupCount: increment(1) });
-          // Update local state
-          updatedEvents = updatedEvents.map(ev =>
-            ev.firestoreID === event.firestoreID
-              ? { ...ev, womenSignupCount: (Number(ev.womenSignupCount) || 0) + 1 }
-              : ev
-          );
-        }
-      }
-
-      // Add user to Remo event
-      try {
-        const functionsInst = getFunctions();
-        const addUserToRemoEvent = httpsCallable(functionsInst, 'addUserToRemoEvent');
-        await addUserToRemoEvent({ 
-          eventId: event.eventID, 
-          userEmail: user.email 
-        });
-        console.log('✅ User added to Remo event successfully');
-      } catch (error) {
-        console.error('❌ Failed to add user to Remo event:', error);
-        // Don't fail the entire signup process, but log the error
-      }
-
-      // Optimistically update local signed-up IDs when a user signs up
-      setSignedUpEventIds(prev => {
-        const next = new Set(prev);
-        next.add(event.firestoreID);
-        return next;
-      });
-      // Re-fetch from Firestore to confirm
-      if (auth.currentUser) {
-        const confirmedIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
-        setSignedUpEventIds(confirmedIds);
-      }
+      const result = await signUpForEventWithDates(event.firestoreID, user.uid, userData, -1);
       
-      console.log('✅ Event signup completed successfully');
+      if (result.success) {
+        // Add a document in the user's sub-collection
+        await setDoc(
+          doc(db, 'users', user.uid, 'signedUpEvents', event.firestoreID),
+          {
+            eventID: event.eventID,
+            signUpTime: serverTimestamp(),
+            eventTitle: event.title || null,
+            eventDate: event.date || null,
+            eventTime: event.time || null,
+            eventLocation: event.location || null,
+            eventAgeRange: event.ageRange || null,
+            eventType: event.eventType || null,
+          },
+          { merge: true }
+        );
+
+        // Add user to Remo event
+        try {
+          const functionsInst = getFunctions();
+          const addUserToRemoEvent = httpsCallable(functionsInst, 'addUserToRemoEvent');
+          await addUserToRemoEvent({ 
+            eventId: event.eventID, 
+            userEmail: user.email 
+          });
+          console.log('✅ User added to Remo event successfully');
+        } catch (error) {
+          console.error('❌ Failed to add user to Remo event:', error);
+        }
+
+        // Update local state with transaction results
+        setDatesRemaining(result.newDates);
+        setSignedUpEventIds(prev => {
+          const next = new Set(prev);
+          next.add(event.firestoreID);
+          return next;
+        });
+
+        console.log('✅ Event signup completed successfully');
+      }
     } catch (error) {
       console.error('❌ Error during event signup:', error);
-      alert('Failed to sign up for event. Please try again.');
-      // Revert the dates remaining count since signup failed
-      setDatesRemaining(prev => (Number.isFinite(prev) ? prev + 1 : 0));
+      alert(error.message || 'Failed to sign up for event. Please try again.');
     }
-};
+  };
 
   const handleMatchesClick = async () => {
     const currentUser = auth.currentUser;
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('[DASHHOME] No authenticated user found');
+      return;
+    }
+
+    try {
+      console.log('[DASHHOME] handleMatchesClick started');
+      setSelectingMatches(true);
 
     // 1. Get latestEventId from user doc
     const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
@@ -677,119 +739,159 @@ const getEventData = async (eventID) => {
     }
     console.log('[MATCHES] latestEventId:', latestEventId);
 
-    // 2. Find the event doc where eventID === latestEventId
-    const eventsSnapshot = await getDocs(collection(db, 'events'));
-    let eventDocId = null;
-    eventsSnapshot.forEach(docSnap => {
-      if (docSnap.data().eventID === latestEventId) {
-        eventDocId = docSnap.id;
-      }
-    });
-    if (!eventDocId) {
-      setErrorModal({
-        open: true,
-        title: "Event Not Found",
-        message: "The event you are trying to access could not be found. It may have been removed or is no longer available.",
+      // 2. Find the event doc where eventID === latestEventId
+      const eventsSnapshot = await getDocs(collection(db, 'events'));
+      let eventDocId = null;
+      eventsSnapshot.forEach(docSnap => {
+        if (docSnap.data().eventID === latestEventId) {
+          eventDocId = docSnap.id;
+        }
       });
-      return;
-    }
-    console.log('[MATCHES] Found event doc ID:', eventDocId);
+      if (!eventDocId) {
+        console.log('[DASHHOME] Event not found, showing error modal');
+        setErrorModal({
+          open: true,
+          title: "Event Not Found",
+          message: "The event you are trying to access could not be found. It may have been removed or is no longer available.",
+        });
+        return;
+      }
+      console.log('[DASHHOME] Found event doc ID:', eventDocId);
 
-    // 3. Get signedUpUsers subcollection from that event doc
-    const signedUpUsersCol = collection(db, 'events', eventDocId, 'signedUpUsers');
-    const signedUpUsersSnap = await getDocs(signedUpUsersCol);
-    const userIds = signedUpUsersSnap.docs.map(d => d.id);
-    console.log('[MATCHES] User IDs from signedUpUsers:', userIds);
+      // 3. Get signedUpUsers subcollection from that event doc
+      const signedUpUsersCol = collection(db, 'events', eventDocId, 'signedUpUsers');
+      const signedUpUsersSnap = await getDocs(signedUpUsersCol);
+      const userIds = signedUpUsersSnap.docs.map(d => d.id);
+      console.log('[DASHHOME] User IDs from signedUpUsers:', userIds);
 
-    // 4. Fetch quiz responses and user profiles for each user ID
-    const quizResponses = [];
-    const userProfiles = [];
-    
-    for (const uid of userIds) {
-      const quizDocRef = doc(db, 'users', uid, 'quizResponses', 'latest');
-      const userProfileRef = doc(db, 'users', uid);
+      // 4. Get existing connections to preserve compatibility scores
+      const existingConnectionsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'connections'));
+      const existingConnections = {};
+      existingConnectionsSnap.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.status === 'mutual' && data.matchScore) {
+          existingConnections[doc.id] = data.matchScore;
+        }
+      });
+      console.log('[DASHHOME] Existing connections with scores:', existingConnections);
+
+      // 5. Fetch quiz responses and user profiles for each user ID
+      const quizResponses = [];
+      const userProfiles = [];
       
-      console.log(`[MATCHES] Fetching quiz and profile for user ${uid}`);
-      
-      const [quizDoc, userProfileDoc] = await Promise.all([
-        getDoc(quizDocRef),
-        getDoc(userProfileRef)
-      ]);
-      
-      console.log(`[MATCHES] Quiz exists for user ${uid}:`, quizDoc.exists());
-      console.log(`[MATCHES] Profile exists for user ${uid}:`, userProfileDoc.exists());
-      
-      if (quizDoc.exists()) {
-        const quizData = { userId: uid, answers: quizDoc.data().answers };
-        quizResponses.push(quizData);
+      for (const uid of userIds) {
+        const quizDocRef = doc(db, 'users', uid, 'quizResponses', 'latest');
+        const userProfileRef = doc(db, 'users', uid);
         
-        // Also store user profile data for gender preference filtering
-        if (userProfileDoc.exists()) {
-          userProfiles.push({
-            userId: uid,
-            ...userProfileDoc.data()
-          });
+        console.log(`[DASHHOME] Fetching quiz and profile for user ${uid}`);
+        
+        const [quizDoc, userProfileDoc] = await Promise.all([
+          getDoc(quizDocRef),
+          getDoc(userProfileRef)
+        ]);
+        
+        console.log(`[DASHHOME] Quiz exists for user ${uid}:`, quizDoc.exists());
+        console.log(`[DASHHOME] Profile exists for user ${uid}:`, userProfileDoc.exists());
+        
+        if (quizDoc.exists()) {
+          const quizData = { userId: uid, answers: quizDoc.data().answers };
+          quizResponses.push(quizData);
+          
+          // Also store user profile data for gender preference filtering
+          if (userProfileDoc.exists()) {
+            userProfiles.push({
+              userId: uid,
+              ...userProfileDoc.data()
+            });
+          }
         }
       }
-    }
 
-    // 5. Find current user's answers and profile
-    const currentUserAnswers = quizResponses.find(q => q.userId === currentUser.uid)?.answers;
-    const currentUserProfile = userProfiles.find(p => p.userId === currentUser.uid);
-    
-    if (!currentUserAnswers) {
-      alert('You must complete your quiz to get matches.');
-      return;
-    }
-
-    if (!currentUserProfile) {
-      alert('User profile not found. Please complete your profile setup.');
-      return;
-    }
-
-    // 6. Filter other users by gender preference
-    const otherUsers = quizResponses.filter(q => q.userId !== currentUser.uid);
-    const otherUserProfiles = userProfiles.filter(p => p.userId !== currentUser.uid);
-    
-    console.log('[MATCHES] Before gender filtering:', {
-      totalUsers: otherUsers.length,
-      currentUserProfile: {
-        gender: currentUserProfile.gender,
-        sexualPreference: currentUserProfile.sexualPreference
+      // 6. Find current user's answers and profile
+      const currentUserAnswers = quizResponses.find(q => q.userId === currentUser.uid)?.answers;
+      const currentUserProfile = userProfiles.find(p => p.userId === currentUser.uid);
+      
+      if (!currentUserAnswers) {
+        console.log('[DASHHOME] No quiz answers found for current user');
+        alert('You must complete your quiz to get matches.');
+        return;
       }
-    });
 
-    // Create combined user objects with both quiz answers and profile data
-    const otherUsersWithProfiles = otherUsers.map(quizUser => {
-      const profile = otherUserProfiles.find(p => p.userId === quizUser.userId);
-      return {
-        ...quizUser,
-        ...profile
-      };
-    });
+      if (!currentUserProfile) {
+        console.log('[DASHHOME] No user profile found for current user');
+        alert('User profile not found. Please complete your profile setup.');
+        return;
+      }
 
-    // Apply gender preference filtering
-    const filteredUsers = filterByGenderPreference(currentUserProfile, otherUsersWithProfiles);
-    
-    console.log('[MATCHES] After gender filtering:', {
-      filteredUsers: filteredUsers.length,
-      filteredUserIds: filteredUsers.map(u => u.userId)
-    });
+      // 7. Filter other users by gender preference
+      const otherUsers = quizResponses.filter(q => q.userId !== currentUser.uid);
+      const otherUserProfiles = userProfiles.filter(p => p.userId !== currentUser.uid);
+      
+      console.log('[DASHHOME] Before gender filtering:', {
+        totalUsers: otherUsers.length,
+        currentUserProfile: {
+          gender: currentUserProfile.gender,
+          sexualPreference: currentUserProfile.sexualPreference
+        }
+      });
 
-    // 7. Run matchmaking algorithm only on filtered users
-    const { getTopMatches } = await import('../../Matchmaking/Synergies.js');
-    const matches = getTopMatches(currentUserAnswers, filteredUsers); // [{ userId, score }]
+      // Create combined user objects with both quiz answers and profile data
+      const otherUsersWithProfiles = otherUsers.map(quizUser => {
+        const profile = otherUserProfiles.find(p => p.userId === quizUser.userId);
+        return {
+          ...quizUser,
+          ...profile
+        };
+      });
 
-    console.log('[MATCHES] Final matches:', matches);
+      // Apply gender preference filtering
+      const filteredUsers = filterByGenderPreference(currentUserProfile, otherUsersWithProfiles);
+      
+      console.log('[DASHHOME] After gender filtering:', {
+        filteredUsers: filteredUsers.length,
+        filteredUserIds: filteredUsers.map(u => u.userId)
+      });
 
-    // 8. Save matches to Firestore
-    await setDoc(doc(db, 'matches', currentUser.uid), {
-      timestamp: serverTimestamp(),
-      results: matches
-    });
+      // 8. Run matchmaking algorithm only on filtered users
+      const { getTopMatches } = await import('../../Matchmaking/Synergies.js');
+      const newMatches = getTopMatches(currentUserAnswers, filteredUsers); // [{ userId, score }]
+
+      console.log('[DASHHOME] New matches:', newMatches);
+
+      // 9. Merge new matches with existing connections, preserving existing scores
+      const mergedMatches = [...newMatches];
+      
+      // Add existing connections that weren't in the new matches
+      Object.keys(existingConnections).forEach(userId => {
+        const existsInNewMatches = newMatches.some(match => match.userId === userId);
+        if (!existsInNewMatches) {
+          mergedMatches.push({
+            userId: userId,
+            score: existingConnections[userId]
+          });
+        }
+      });
+
+      console.log('[DASHHOME] Merged matches (preserving existing scores):', mergedMatches);
+
+      // 10. Save merged matches to Firestore
+      await setDoc(doc(db, 'matches', currentUser.uid), {
+        timestamp: serverTimestamp(),
+        results: mergedMatches
+      });
 
     // 9. Redirect to MyMatches
     navigate('myMatches');
+    } catch (error) {
+      console.error('Error in handleMatchesClick:', error);
+      setErrorModal({
+        open: true,
+        title: "Error",
+        message: "An error occurred while processing your matches. Please try again.",
+      });
+    } finally {
+      setSelectingMatches(false);
+    }
   };
 
   const handleConnectionsClick = () => {
@@ -811,7 +913,7 @@ const getEventData = async (eventID) => {
     return allEvents.filter(event =>
       signedUpEventIds.has(event.firestoreID)
     );
-  }, [allEvents, signedUpEventIds]);
+  }, [allEvents, signedUpEventIds,]);
 
   // Show *all* events (regardless of date) that the user has not yet signed up for
   const upcomingSignupEvents = useMemo(() => {
@@ -872,7 +974,8 @@ const getEventData = async (eventID) => {
               Welcome back, {userProfile?.firstName}
             </h2>
 
-            {/* Select my sparks card */}
+            {/* Select my sparks card - only show if latest event was within 48 hours */}
+            {showSelectSparksCard && (
             <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
               <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
               <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
@@ -901,12 +1004,19 @@ const getEventData = async (eventID) => {
                 </span>
                 <button
                   onClick={handleMatchesClick}
-                  className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#d4f85a] transition"
+                  disabled={selectingMatches}
+                  className={`bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition ${
+                    selectingMatches 
+                      ? 'opacity-60 cursor-not-allowed' 
+                      : 'hover:bg-[#d4f85a]'
+                  }`}
                 >
-                  Select my sparks
+                  {selectingMatches ? 'Loading…' : 'Select my sparks'}
                 </button>
               </div>
             </div>
+            )}
+
 
             {/* See my sparks card */}
             {checkingNewSparks ? null : (hasNewSpark && !hideNewSparksNotification) && (
@@ -1256,37 +1366,33 @@ const getEventData = async (eventID) => {
       </div> {/* Close the outer container with padding */}
 
       {/* Error Modal Overlay */}
-      {errorModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black opacity-50"
-            onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
-          />
-          {/* Modal content */}
-          <div className="relative bg-white rounded-2xl shadow-lg max-w-md w-full p-8 z-10">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-indigo-950">{errorModal.title}</h2>
-              <button
-                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
-                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
-                aria-label="Close modal"
-              >
-                &times;
-              </button>
-            </div>
-            <p className="text-gray-700 whitespace-pre-line mb-6">{errorModal.message}</p>
-            <div className="flex justify-end">
-              <button
-                className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
-                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={errorModal.open}
+        onClose={() => setErrorModal(prev => ({ ...prev, open: false }))}
+        title={errorModal.title}
+        subtitle={errorModal.message}
+        icon="✗"
+        iconColor="red"
+        primaryButton={{
+          text: "OK",
+          onClick: () => setErrorModal(prev => ({ ...prev, open: false }))
+        }}
+      />
+
+      {/* Congratulations Modal Overlay */}
+      <PopUp
+        isOpen={showCongratulationsModal}
+        onClose={() => setShowCongratulationsModal(false)}
+        title="Congratulations!"
+        subtitle="You picked your matches. We'll notify you if they match back and you have new sparks."
+        icon="✓"
+        iconColor="green"
+        maxWidth="max-w-2xl"
+        primaryButton={{
+          text: "Got It",
+          onClick: () => setShowCongratulationsModal(false)
+        }}
+      />
 
     </div>
   );
