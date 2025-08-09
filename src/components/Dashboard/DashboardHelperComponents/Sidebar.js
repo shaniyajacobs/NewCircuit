@@ -153,12 +153,12 @@ const Sidebar = () => {
     },
     {
       title: "My Profile",
-      path: "/dashboard/DashMyProfile",
+      path: "/dashboard/dashMyProfile",
       icon: (
         <ProfileCircleIcon
           className="w-5 h-5"
           style={{
-            color: location.pathname === "/dashboard/DashMyProfile" ? "#1C50D8" : "#211f20"
+            color: location.pathname === "/dashboard/dashMyProfile" ? "#1C50D8" : "#211f20"
           }}
         />
       ),
@@ -268,9 +268,10 @@ const Sidebar = () => {
 
       {/* Tablet Header Bar (under 1280px) */}
       <div className="flex md:hidden justify-between items-center px-6 py-4 bg-white border-b border-[rgba(33,31,32,0.10)] w-full">
-        {/* Left side - Circuit logo */}
+        {/* Left side - Circuit logo / Page title text */}
         <div className="flex items-center">
-          <Link to="/dashboard">
+          {/* Desktop: Show Circuit logo */}
+          <Link to="/dashboard" className="max-md:hidden">
             <img
               loading="lazy"
               src={circuitLogo}
@@ -278,6 +279,35 @@ const Sidebar = () => {
               className="object-contain h-8"
             />
           </Link>
+          {/* Mobile & Tablet: Show page title text */}
+          <div 
+            className="hidden max-md:block"
+            style={{
+              color: 'var(--Raisin_Black, #211F20)',
+              fontFamily: '"Bricolage Grotesque"',
+              fontSize: 'var(--H8, 16px)',
+              fontStyle: 'normal',
+              fontWeight: '500',
+              lineHeight: '130%',
+              textTransform: 'uppercase'
+            }}
+          >
+            {(() => {
+              const path = location.pathname;
+              if (path === "/dashboard") return "HOME";
+              if (path.includes("dashMyConnections")) return "MY SPARKS";
+              if (path.includes("dashDateCalendar")) return "SHOP";
+              if (path.includes("dashMyCoupons")) return "MY COUPONS";
+              if (path.includes("dashMyProfile")) return "MY PROFILE";
+              if (path.includes("dashSettings")) return "SETTINGS";
+              if (path.includes("dashChangePassword")) return "CHANGE PASSWORD";
+              if (path.includes("dashDeleteAccount")) return "DELETE ACCOUNT";
+              if (path.includes("dashDeactivateAccount")) return "DEACTIVATE ACCOUNT";
+              if (path.includes("dashPaymentHistory")) return "PAYMENT HISTORY";
+              if (path.includes("dashMessages")) return "MESSAGES";
+              return "DASHBOARD";
+            })()}
+          </div>
         </div>
 
         {/* Right side - Vectors (clickable) */}
