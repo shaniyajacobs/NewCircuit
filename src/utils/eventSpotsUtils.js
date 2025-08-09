@@ -309,6 +309,76 @@ export const updateDatesRemaining = async (userId, changeAmount, reason = '') =>
   });
 };
 
+// Transaction-based date purchase with payment verification
+export const processDatePurchase = async (userId, cartItems, paymentIntentId, totalAmount) => {
+  debug.log('processDatePurchase', `Starting transaction-based date purchase`);
+  debug.log('processDatePurchase', `UserId: ${userId}, CartItems: ${cartItems.length}, PaymentIntent: ${paymentIntentId}`);
+  
+  return await runTransaction(db, async (transaction) => {
+    debug.log('processDatePurchase', 'Transaction started');
+    
+    // 1. READ: Get user document
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await transaction.get(userRef);
+    
+    if (!userDoc.exists()) {
+      debug.error('processDatePurchase', `User not found for userId: ${userId}`);
+      throw new Error('User not found');
+    }
+    
+    // 2. PROCESS: Calculate total dates purchased
+    const totalDatesPurchased = cartItems.reduce((total, item) => {
+      const itemDates = item.quantity * (item.numDates || 1);
+      debug.log('processDatePurchase', `Item: ${item.title}, Quantity: ${item.quantity}, Dates: ${item.numDates || 1}, Total: ${itemDates}`);
+      return total + itemDates;
+    }, 0);
+    
+    debug.log('processDatePurchase', `Total dates to be added: ${totalDatesPurchased}`);
+    
+    // 3. READ: Get current dates remaining
+    const userData = userDoc.data();
+    const currentDatesRemaining = userData.datesRemaining || 0;
+    const newDatesRemaining = currentDatesRemaining + totalDatesPurchased;
+    
+    debug.log('processDatePurchase', 'User dates data:', {
+      currentDatesRemaining,
+      totalDatesPurchased,
+      newDatesRemaining
+    });
+    
+    // 4. WRITE: Update user document with new dates remaining
+    transaction.update(userRef, {
+      datesRemaining: newDatesRemaining,
+      lastPurchaseDate: new Date(),
+      totalPurchases: (userData.totalPurchases || 0) + 1
+    });
+    
+    // 5. WRITE: Create purchase record in user's purchases subcollection
+    const purchaseRef = doc(collection(db, 'users', userId, 'purchases'));
+    const purchaseData = {
+      purchaseId: purchaseRef.id,
+      paymentIntentId: paymentIntentId,
+      totalAmount: totalAmount,
+      totalDatesPurchased: totalDatesPurchased,
+      cartItems: cartItems,
+      purchaseDate: new Date(),
+      status: 'completed'
+    };
+    
+    transaction.set(purchaseRef, purchaseData);
+    
+    debug.success('processDatePurchase', `Successfully processed date purchase: ${currentDatesRemaining} → ${newDatesRemaining}`);
+    return { 
+      success: true, 
+      previousDates: currentDatesRemaining,
+      newDates: newDatesRemaining,
+      totalDatesPurchased,
+      purchaseId: purchaseRef.id,
+      reason: 'Date purchase completed'
+    };
+  });
+};
+
 // Combined transaction for signup with dates update
 export const signUpForEventWithDates = async (eventId, userId, userData, datesChange = -1) => {
   debug.log('signUpForEventWithDates', 'Starting combined transaction');
