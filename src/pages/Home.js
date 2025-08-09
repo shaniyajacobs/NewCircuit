@@ -23,7 +23,7 @@ const Home = () => {
             <Navbar />
             <Hero />  
             <ThirdDatesOnUs />
-            {/* <MapPage /> */}
+            <MapPage />
             <Current />
             {/* <Values/> */}
             <Pricing/>
