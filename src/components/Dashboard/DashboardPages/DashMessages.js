@@ -10,6 +10,7 @@ import {
 import React, { useEffect, useState, useRef } from "react";
 import { auth, db } from "../../../pages/firebaseConfig";
 import { FaPaperPlane } from "react-icons/fa";
+import { markSparkAsRead } from "../../../utils/notificationManager";
 
 export function DashMessages({ connection }) {
   // Auth state
@@ -145,6 +146,10 @@ export function DashMessages({ connection }) {
     };
     const ref = doc(db, "conversations", selectedConversation.conversationId);
     await updateDoc(ref, { messages: arrayUnion(newMsg) });
+    
+    // Mark the spark as read when user sends their first message
+    await markSparkAsRead(connection.id);
+    
     setNewMessageText("");
   };
   const handleOnKeyDown = e => {

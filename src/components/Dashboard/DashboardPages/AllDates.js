@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EventCard from "../DashboardHelperComponents/EventCard";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
+import { sortEventsByDate } from "../../../utils/eventSorter";
 
 // Add a hook to detect window width
 function useResponsiveGridCols() {
@@ -37,7 +38,10 @@ const AllDates = () => {
         const eventData = docSnapshot.data();
         eventsList.push({ ...eventData, firestoreID: docSnapshot.id });
       }
-      setEvents(eventsList);
+      
+      // Sort events chronologically from newest to oldest
+      const sortedEvents = sortEventsByDate(eventsList);
+      setEvents(sortedEvents);
     } catch (error) {
       setEvents([]);
     } finally {
