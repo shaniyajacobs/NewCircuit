@@ -4,7 +4,7 @@ import ConfirmationModal from "../DashboardHelperComponents/ConfirmationModal";
 import { FaShoppingCart, FaCheck } from "react-icons/fa";
 import { auth, db } from "../../../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import homePurchaseMoreDates from "../../../images/home_purchase_more_dates.jpg";
 import imgNoise from "../../../images/noise.png";
 import { ReactComponent as FiveDots } from "../../../images/5 Dots.svg";
@@ -205,65 +205,163 @@ const DashDateCalendar = () => {
   const [user, setUser] = useState(null);
   const [cartLoaded, setCartLoaded] = useState(false);
   const [datesRemaining, setDatesRemaining] = useState(100);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   // Function to check if dates remaining is greater than 0
   const shouldShowCard = () => {
     return datesRemaining > 0;
   };
 
-  const handleBuyNow = (plan) => {
-    setCart((prevCart) => [...prevCart, plan]); 
-    setIsCartOpen(true); 
-  };
+  // Function to refresh cart from Firestore
+  const refreshCart = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
 
-  const removeFromCart = (title, venue, packageType) => {
-    setCart((prevCart) => {
-      const indexToRemove = prevCart.findIndex(
-        (plan) =>
-          plan.title === title &&
-          plan.venue === venue &&
-          plan.packageType === packageType
-      );
-
-      if (indexToRemove !== -1) {
-        const newCart = [...prevCart];
-        newCart.splice(indexToRemove, 1);
-        return newCart;
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const savedCart = userData.cart || [];
+        setCart(savedCart);
       }
-
-      return prevCart;
-    });
+    } catch (error) {
+      console.error('Error refreshing cart:', error);
+    }
   };
 
-  const datePlans = [
-    { title: "Brunch", time: "12:30pm - 2:00pm", venue: "San Francisco / Bay Area", price: "$28" },
-    { title: "Happy Hour", time: "3:00pm - 4:30pm", venue: "New York City", price: "$28" },
-    { title: "Dinner", time: "6:00pm - 7:30pm", venue: "Los Angeles", price: "$38" },
-  ];
+  const handleBuyNow = (plan) => {
+    const item = {
+      id: `${plan.title}-${plan.venue}-${plan.packageType}`,
+      title: plan.title,
+      venue: plan.venue,
+      packageType: plan.packageType,
+      price: plan.price,
+      type: 'date-package',
+      numDates: plan.dates || 1 // Include the number of dates for bundles
+    };
+    
+    addToCart(item);
+  };
 
-  const bundlePlans = [
-    {
-      title: "The Adventure",
-      features: ["All eligible venues", "Advanced Matching Algorithm", "Boosted Visibility and Matching", "3 Dinners"],
-      dates: 10,
-      venue: "Los Angeles",
-      price: "$220",
-    },
-    {
-      title: "The Connection",
-      features: ["All eligible venues", "Advanced Matching Algorithm", "2 Dinners"],
-      dates: 6,
-      venue: "New York City",
-      price: "$144",
-    },
-    {
-      title: "The Introduction",
-      features: ["All eligible venues", "Basic Matching Algorithm", "1 Dinner"],
-      dates: 3,
-      venue: "San Francisco / Bay Area",
-      price: "$78",
-    },
-  ];
+  const addToCart = async (item) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const currentCart = userDoc.data().cart || [];
+        const existingItemIndex = currentCart.findIndex(cartItem => 
+          cartItem.id === item.id && cartItem.type === item.type
+        );
+
+        let updatedCart;
+        if (existingItemIndex !== -1) {
+          // Update quantity if item already exists
+          updatedCart = [...currentCart];
+          updatedCart[existingItemIndex].quantity = (updatedCart[existingItemIndex].quantity || 1) + 1;
+        } else {
+          // Add new item
+          updatedCart = [...currentCart, { ...item, quantity: 1 }];
+        }
+
+        await updateDoc(userRef, { cart: updatedCart });
+        setCart(updatedCart);
+        
+        // Dispatch cart update event for other components (sidebar, header)
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+        
+        // Automatically open the cart modal with a small delay for better UX
+        setTimeout(() => {
+          setIsCartOpen(true);
+        }, 300);
+        
+        // Refresh cart to ensure state is in sync
+        await refreshCart();
+        
+        // Show success message
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
+  };
+
+  const removeFromCart = async (itemId, itemType) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const currentCart = userDoc.data().cart || [];
+        const updatedCart = currentCart.filter(item => 
+          !(item.id === itemId && item.type === itemType)
+        );
+
+        await updateDoc(userRef, { cart: updatedCart });
+        setCart(updatedCart);
+        
+        // Dispatch cart update event for other components (sidebar, header)
+        window.dispatchEvent(new CustomEvent('cartUpdated'));
+        
+        // Refresh cart to ensure state is in sync
+        await refreshCart();
+      }
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+    }
+  };
+
+  // Generate plans with user's location
+  const generateLocationBasedPlans = (userLocation) => {
+    return {
+      datePlans: [
+        { title: "Brunch", time: "12:30pm - 2:00pm", venue: userLocation, price: "$28" },
+        { title: "Happy Hour", time: "3:00pm - 4:30pm", venue: userLocation, price: "$28" },
+        { title: "Dinner", time: "6:00pm - 7:30pm", venue: userLocation, price: "$38" },
+      ],
+      bundlePlans: [
+        {
+          title: "The Adventure",
+          features: ["All eligible venues", "Advanced Matching Algorithm", "Boosted Visibility and Matching", "3 Dinners"],
+          dates: 10,
+          venue: userLocation,
+          price: "$220",
+        },
+        {
+          title: "The Connection",
+          features: ["All eligible venues", "Advanced Matching Algorithm", "2 Dinners"],
+          dates: 6,
+          venue: userLocation,
+          price: "$144",
+        },
+        {
+          title: "The Introduction",
+          features: ["All eligible venues", "Basic Matching Algorithm", "1 Dinner"],
+          dates: 3,
+          venue: userLocation,
+          price: "$78",
+        },
+      ]
+    };
+  };
+
+  // State for location-based plans
+  const [locationBasedPlans, setLocationBasedPlans] = useState({
+    datePlans: [],
+    bundlePlans: []
+  });
+  
+  // State for user location
+  const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -285,6 +383,20 @@ const DashDateCalendar = () => {
               ? data.datesRemaining
               : Number(data.datesRemaining);
             setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
+            
+            // Generate location-based plans based on user's location
+            if (data.location) {
+              setUserLocation(data.location);
+              const plans = generateLocationBasedPlans(data.location);
+              setLocationBasedPlans(plans);
+              console.log(`📍 Location-based plans generated for: ${data.location}`, plans);
+            } else {
+              // Default plans if no location set
+              setUserLocation('San Francisco / Bay Area');
+              const defaultPlans = generateLocationBasedPlans('San Francisco / Bay Area');
+              setLocationBasedPlans(defaultPlans);
+              console.log('📍 No location set, using default San Francisco / Bay Area plans');
+            }
           }
         } catch (err) {
           console.error("Failed to load cart:", err);
@@ -314,11 +426,86 @@ const DashDateCalendar = () => {
     }
   }, [cart, user, cartLoaded]);
   
+  // Listen for open cart event from header
+  useEffect(() => {
+    const handleOpenCart = () => {
+      setIsCartOpen(true);
+    };
+
+    window.addEventListener('openCart', handleOpenCart);
+    return () => window.removeEventListener('openCart', handleOpenCart);
+  }, []);
+
+  // Listen for dates updated event from checkout
+  useEffect(() => {
+    const handleDatesUpdated = async (event) => {
+      const { newDatesRemaining, datesAdded } = event.detail;
+      console.log(`🎉 Dates updated: +${datesAdded} dates, new total: ${newDatesRemaining}`);
+      
+      // Update local state
+      setDatesRemaining(newDatesRemaining);
+      
+      // Refresh cart to ensure it's cleared
+      await refreshCart();
+    };
+
+    window.addEventListener('datesUpdated', handleDatesUpdated);
+    return () => window.removeEventListener('datesUpdated', handleDatesUpdated);
+  }, []);
+
+
+
+  // Handle body overflow when cart opens/closes
+  useEffect(() => {
+    if (isCartOpen) {
+      // Store current overflow value
+      const currentOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      
+      // Return function to restore overflow when cart closes
+      return () => {
+        document.body.style.overflow = currentOverflow || '';
+      };
+    }
+  }, [isCartOpen]);
+
+  // Cleanup function to restore body overflow when component unmounts
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   return (
     <div className="px-[16px] sm:px-[24px] md:px-[32px] lg:px-[50px]">
     <div className="pt-[16px] sm:pt-[24px] md:pt-[32px] lg:pt-[50px] pb-[16px] sm:pb-[24px] md:pb-[32px] lg:pb-[50px] bg-white rounded-3xl border border-gray-50 max-w-[1340px] mx-auto">
       <div className="flex flex-col max-w-full text-3xl w-full">
+
+        {/* Header with Cart Button */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-[18px] sm:text-[20px] md:text-[24px] lg:text-[28px] font-bricolage font-medium leading-[130%] text-[#211F20]">
+            Shop
+          </h1>
+          
+          {/* Cart Button */}
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
+              cart.length > 0 
+                ? 'bg-[#0043F1] text-white hover:bg-[#0034BD] shadow-md hover:shadow-lg transform hover:scale-105' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+            disabled={cart.length === 0}
+          >
+            <FaShoppingCart className={`w-4 h-4 ${cart.length > 0 ? 'text-white' : 'text-gray-400'}`} />
+            <span className="hidden sm:inline">Cart</span>
+            {cart.length > 0 && (
+              <span className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-bold">
+                {cart.length}
+              </span>
+            )}
+          </button>
+        </div>
 
         {/* Purchase more dates card */}
         {shouldShowCard() && (
@@ -351,17 +538,32 @@ const DashDateCalendar = () => {
         </div>
         )}
 
-        <h2 className="flex-1 text-[18px] sm:text-[20px] md:text-[28px] lg:text-[32px] font-bricolage font-medium leading-[130%] text-[#211F20] mb-6">
-          Bundles
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-[18px] sm:text-[20px] md:text-[28px] lg:text-[32px] font-bricolage font-medium leading-[130%] text-[#211F20]">
+            Bundles
+          </h2>
+          {userLocation && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span className="font-medium">
+                {userLocation}
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* Bundle Dates */}
         <div className="grid grid-cols-3 gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] max-lg:grid-cols-1">
-          {bundlePlans.map((plan, index) => (
-            <div key={index} className="w-full">
-              <BundlePlan {...plan} onBuyNow={handleBuyNow} />
+          {locationBasedPlans.bundlePlans.length > 0 ? (
+            locationBasedPlans.bundlePlans.map((plan, index) => (
+              <div key={index} className="w-full">
+                <BundlePlan {...plan} onBuyNow={handleBuyNow} />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-3 flex items-center justify-center py-8">
+              <div className="text-gray-500">Loading location-based plans...</div>
             </div>
-          ))}
+          )}
         </div>
 
         <div className="flex justify-between items-center mt-20 mb-6 max-md:mt-10"> 
@@ -372,11 +574,17 @@ const DashDateCalendar = () => {
 
         {/* Individual Dates */}
         <div className="grid grid-cols-3 gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] max-lg:grid-cols-1">
-          {datePlans.map((plan, index) => (
-            <div key={index} className="w-full">
-              <DatePlan {...plan} onBuyNow={handleBuyNow} />
+          {locationBasedPlans.datePlans.length > 0 ? (
+            locationBasedPlans.datePlans.map((plan, index) => (
+              <div key={index} className="w-full">
+                <DatePlan {...plan} onBuyNow={handleBuyNow} />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-3 flex items-center justify-center py-8">
+              <div className="text-gray-500">Loading location-based plans...</div>
             </div>
-          ))}
+          )}
         </div>
 
         {/* Cart */}
@@ -387,6 +595,32 @@ const DashDateCalendar = () => {
           removeFromCart={removeFromCart}
           navigate={navigate}
         />
+
+        {/* Floating Cart Button for Mobile */}
+        {cart.length > 0 && (
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="fixed bottom-6 right-6 z-40 sm:hidden bg-[#0043F1] text-white p-4 rounded-full shadow-lg hover:bg-[#0034BD] transition-colors"
+            aria-label="View cart"
+          >
+            <div className="relative">
+              <FaShoppingCart className="w-6 h-6" />
+              <span className="absolute -top-2 -right-2 min-w-[20px] h-[20px] bg-white text-[#0043F1] text-xs font-bold rounded-full flex items-center justify-center">
+                {cart.length}
+              </span>
+            </div>
+          </button>
+        )}
+
+        {/* Success Message */}
+        {showSuccessMessage && (
+          <div className="fixed top-6 right-6 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✓</span>
+              <span>Added to cart successfully!</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
     </div>
