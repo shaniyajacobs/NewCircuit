@@ -5,6 +5,7 @@ import { FaSearch, FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
 import { formatUserName } from '../../../utils/nameFormatter';
+import { sortEventsByDate } from '../../../utils/eventSorter';
 
 const AdminEvents = () => {
   const [events, setEvents] = useState([]);
@@ -70,7 +71,10 @@ const AdminEvents = () => {
           }
         })
       );
-      setEvents(eventsList);
+      
+      // Sort events chronologically from newest to oldest
+      const sortedEvents = sortEventsByDate(eventsList);
+      setEvents(sortedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {

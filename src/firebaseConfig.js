@@ -7,6 +7,7 @@ import { getAuth } from "firebase/auth";
 import { getFunctions } from "firebase/functions";
 
 import { getStorage } from 'firebase/storage';
+import { testMatchmakingLogic, testRealWorldScenario, cleanupTestUsers } from './utils/matchmakingTest';
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -32,4 +33,13 @@ const functions = getFunctions(app, "us-central1");
 const storage = getStorage(app);
 
 export { app, auth, db, functions, storage };
+
+// Expose test functions globally for debugging
+if (typeof window !== 'undefined') {
+  window.testMatchmaking = {
+    testMatchmakingLogic,
+    testRealWorldScenario,
+    cleanupTestUsers
+  };
+}
 

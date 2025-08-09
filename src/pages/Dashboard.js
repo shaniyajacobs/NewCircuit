@@ -15,6 +15,7 @@ import DashDeactivateAccount from "../components/Dashboard/DashboardPages/DashDe
 import MyMatches from "../components/Dashboard/DashboardPages/MyMatches";
 import SeeAllMatches from "../components/Dashboard/DashboardPages/SeeAllMatches";
 import DashPaymentHistory from "../components/Dashboard/DashboardPages/DashPaymentHistory";
+import MatchmakingTest from "../components/Dashboard/DashboardPages/MatchmakingTest";
 
 import { useState } from "react";
 import SignOut from "../components/Dashboard/DashboardPages/SignOut";
@@ -51,6 +52,7 @@ const Dashboard = () => {
             <Route path="seeAllMatches" element={<SeeAllMatches />} />
             <Route path="dashSignOut" element={<SignOut />} />
             <Route path="dashPaymentHistory" element={<DashPaymentHistory />} />
+            <Route path="matchmakingTest" element={<MatchmakingTest />} />
           </Routes>
       </div>
     </div>

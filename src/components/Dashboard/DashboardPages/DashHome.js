@@ -13,6 +13,7 @@ import { DateTime } from 'luxon';
 import { calculateAge } from '../../../utils/ageCalculator';
 import { filterByGenderPreference } from '../../../utils/genderPreferenceFilter';
 import { formatUserName } from '../../../utils/nameFormatter';
+import { sortEventsByDate, sortAndFilterUpcomingEvents } from '../../../utils/eventSorter';
 import homeSelectMySparks from '../../../images/home_select_my_sparks.jpg';
 import imgNoise from '../../../images/noise.png';
 import homeSeeMySparks from '../../../images/home_see_my_sparks.jpg';
@@ -20,6 +21,8 @@ import homePurchaseMoreDates from '../../../images/home_purchase_more_dates.jpg'
 import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.svg';
 import filterIcon from '../../../images/setting-4.svg';
 import xIcon from "../../../images/x.svg";
+import { markSparkAsRead, isSparkNew, markSparkAsViewed, refreshSidebarNotification } from "../../../utils/notificationManager";
+import { DashMessages } from "./DashMessages";
 
 // Helper: map city to IANA time zone
 const cityToTimeZone = {
@@ -129,6 +132,7 @@ const DashHome = () => {
   const [hasNewSpark, setHasNewSpark] = useState(false);
   const [checkingNewSparks, setCheckingNewSparks] = useState(false);
   const [hideNewSparksNotification, setHideNewSparksNotification] = useState(false);
+  const [selectedConnection, setSelectedConnection] = useState(null);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -272,27 +276,21 @@ const DashHome = () => {
       const filteredProfiles = profiles.filter(Boolean);
       setConnections(filteredProfiles);
 
-      // Check for new sparks (mutual connections with no message sent by user)
-      const userId = user.uid;
-      const newSparks = await Promise.all(
+      // Check for new sparks using the notification manager
+      const connectionsWithNewFlag = await Promise.all(
         filteredProfiles.map(async (conn) => {
-          const convoId = userId < conn.userId ? `${userId}${conn.userId}` : `${conn.userId}${userId}`;
-          const convoDoc = await getDoc(doc(db, "conversations", convoId));
-          if (!convoDoc.exists()) return true; // No conversation yet = new spark
-          const messages = convoDoc.data().messages || [];
-          const hasMessaged = messages.some(msg => msg.senderId === userId);
-          return !hasMessaged;
+          const isNew = await isSparkNew(conn.userId);
+          return {
+            ...conn,
+            isNewSpark: isNew
+          };
         })
       );
 
-      // Add isNewSpark property to each connection object
-      const connectionsWithNewFlag = filteredProfiles.map((conn, idx) => ({
-        ...conn,
-        isNewSpark: newSparks[idx]
-      }));
       setConnections(connectionsWithNewFlag);
-      setHasNewSpark(newSparks.some(isNew => isNew));
+      setHasNewSpark(connectionsWithNewFlag.some(conn => conn.isNewSpark));
     } catch (err) {
+      console.error('Error fetching connections:', err);
       setConnections([]);
       setHasNewSpark(false);
     } finally {
@@ -365,10 +363,13 @@ const DashHome = () => {
       );
 
       const filteredEvents = eventsList.filter(Boolean);
-      setAllEvents(filteredEvents);
+      
+      // Sort events chronologically from newest to oldest
+      const sortedEvents = sortEventsByDate(filteredEvents);
+      setAllEvents(sortedEvents);
 
-      // Upcoming-filter based on user location
-      const upcoming = getUpcomingEvents(filteredEvents, userProfile?.location);
+      // Upcoming-filter based on user location (already sorted)
+      const upcoming = getUpcomingEvents(sortedEvents, userProfile?.location);
       setFirebaseEvents(upcoming);
       setEvents(upcoming);
 
@@ -755,7 +756,35 @@ const getEventData = async (eventID) => {
   };
 
   const handleConnectionsClick = () => {
-    navigate('dashMyConnections');
+    navigate('/dashboard/dashMyConnections');
+  };
+
+  const handleMessageClick = async (connection) => {
+    // Mark the spark as read when user clicks message
+    if (connection.isNewSpark) {
+      await markSparkAsRead(connection.userId);
+      await markSparkAsViewed(connection.userId); // Mark as viewed
+      // Update the local state to remove the red dot
+      setConnections(prevConnections => 
+        prevConnections.map(conn => 
+          conn.userId === connection.userId 
+            ? { ...conn, isNewSpark: false }
+            : conn
+        )
+      );
+      // Update hasNewSpark state
+      setHasNewSpark(prevConnections => 
+        prevConnections.some(conn => conn.userId !== connection.userId && conn.isNewSpark)
+      );
+      
+      // Force refresh of sidebar notification state
+      await refreshSidebarNotification();
+    }
+    setSelectedConnection(connection);
+  };
+
+  const handleCloseMessages = () => {
+    setSelectedConnection(null);
   };
 
   const handlePurchaseMoreDatesClick = () => {
@@ -764,16 +793,18 @@ const getEventData = async (eventID) => {
 
   // Use the same event limit for sign-up events
   const signUpEventLimit = useResponsiveEventLimit();
-  // Filter for upcoming and sign-up events
+  // Filter for upcoming and sign-up events (already sorted by date)
   const upcomingEvents = useMemo(() => {
-    return allEvents.filter(event =>
+    const filtered = allEvents.filter(event =>
       signedUpEventIds.has(event.firestoreID)
     );
+    // Ensure they remain sorted (should already be sorted from loadEvents)
+    return sortEventsByDate(filtered);
   }, [allEvents, signedUpEventIds]);
 
-  // Show *all* events (regardless of date) that the user has not yet signed up for
+  // Show *all* events (regardless of date) that the user has not yet signed up for (sorted by date)
   const upcomingSignupEvents = useMemo(() => {
-    return allEvents.filter(event => {
+    const filtered = allEvents.filter(event => {
       // First, exclude events the user has already signed up for
       if (signedUpEventIds.has(event.firestoreID)) {
         return false;
@@ -807,6 +838,9 @@ const getEventData = async (eventID) => {
       // If we get here, the event is available for sign-up
       return true;
     });
+    
+    // Ensure they remain sorted (should already be sorted from loadEvents)
+    return sortEventsByDate(filtered);
   }, [allEvents, signedUpEventIds, userGender]);
 
   return (
@@ -1159,7 +1193,7 @@ const getEventData = async (eventID) => {
               {loadingConnections ? (
                 <div className="p-4 text-gray-600">Loading...</div>
               ) : (
-                <ConnectionsTable connections={connections} />
+                <ConnectionsTable connections={connections} onMessageClick={handleMessageClick} />
               )}
               {/*              <button
                 className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
@@ -1208,6 +1242,25 @@ const getEventData = async (eventID) => {
                 OK
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* DashMessages Modal */}
+      {selectedConnection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black opacity-50" onClick={handleCloseMessages} />
+          <div className="relative bg-white rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 z-10">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Message {selectedConnection.name}</h2>
+              <button 
+                className="text-gray-500 hover:text-gray-800 text-2xl" 
+                onClick={handleCloseMessages}
+              >
+                &times;
+              </button>
+            </div>
+            <DashMessages connection={selectedConnection} />
           </div>
         </div>
       )}
