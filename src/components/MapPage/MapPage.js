@@ -62,7 +62,6 @@ const MapPage = () => {
   // Render the phrase once for measurement, then repeat as needed
   return (
     <div className={styles.mapBackground}>
-      <MapHeroSection />
       <SlidingBar 
         phrase={
           <span className={styles.mapBarText}>
