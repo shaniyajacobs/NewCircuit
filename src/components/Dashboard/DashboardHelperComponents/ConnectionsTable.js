@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { IoPersonCircle } from "react-icons/io5";
 import { ReactComponent as SendIcon } from "../../../images/send-2.svg";
+import { formatUserName } from "../../../utils/nameFormatter";
 
 const ConnectionsTable = ({ connections, onMessageClick }) => {
   const navigate = useNavigate();
@@ -62,13 +63,15 @@ const ConnectionsTable = ({ connections, onMessageClick }) => {
     <div className="flex flex-col gap-4">
       {connections.slice(0, 5).map((conn, index) => {
         const compatibility = typeof conn.compatibility === "number" ? conn.compatibility : 0;
+        const formattedName = formatUserName(conn);
         return (
           <div
             key={conn.userId}
-            className="relative flex flex-col md:flex-row items-start md:items-center gap-y-3 md:gap-y-0 md:gap-x-6 w-full bg-white rounded-2xl border border-gray-200 p-[24px] xl:p-[20px] md:p-[16px] sm:p-[12px] shadow-sm"
+            className="flex flex-col lg:flex-row lg:items-center p-6 w-full bg-white rounded-2xl shadow-sm border border-[rgba(33,31,32,0.25)] gap-4 lg:gap-0"
           >
-            {/* 1. Profile picture + name/age */}
-            <div className="flex items-center gap-x-2 min-w-[200px]">
+            {/* Profile picture and name - always on same line */}
+            <div className="flex items-center gap-2 lg:mr-6">
+              {/* Red dot for new sparks */}
               <span
                 style={{
                   width: '8px',
@@ -76,13 +79,15 @@ const ConnectionsTable = ({ connections, onMessageClick }) => {
                   borderRadius: '100px',
                   background: conn.isNewSpark ? '#FF4848' : '#FFF',
                   display: 'inline-block',
-                  border: '1px solid #E5E7EB', // subtle border for white dot
+                  border: '1px solid #E5E7EB',
                 }}
               />
+              
+              {/* Profile picture */}
               {conn.image ? (
                 <img
                   src={conn.image}
-                  alt={conn.name}
+                  alt={formattedName}
                   className="w-12 h-12 rounded-full object-cover border border-gray-300"
                 />
               ) : (
@@ -90,46 +95,46 @@ const ConnectionsTable = ({ connections, onMessageClick }) => {
                   <IoPersonCircle className="w-12 h-12 text-gray-400" />
                 </div>
               )}
-              {/* Gap-xs on right side of image */}
-              <span style={{ width: '8px', display: 'inline-block' }} />
-              <span className="text-[14px] md:text-[16px] xl:text-[20px] leading-[110%] font-poppins font-medium text-[#211F20]">
-                {conn.name}, {conn.age}
-              </span>
-            </div>
-
-            {/* 2. Compatibility badge */}
-            <div>
-              <span
-                className={`flex items-center gap-2 px-4 py-2 rounded-[100px] font-bricolage font-medium text-[16px] leading-[130%] text-[#211F20] uppercase ${badgeBackgrounds[index % badgeBackgrounds.length].className}`}
-                style={badgeBackgrounds[index % badgeBackgrounds.length].style}
-              >
-                {compatibility}% COMPATIBILITY
-              </span>
-            </div>
-
-            {/* 3. Progress bar */}
-            <div className="flex-1 min-w-0 w-full">
-              <div className="h-1 bg-[rgba(33,31,32,0.10)] rounded-full relative overflow-hidden" style={{ height: '4px' }}>
-                <div
-                  className="absolute left-0 top-0 rounded-full"
-                  style={{
-                    width: `${compatibility}%`,
-                    height: '4px',
-                    background: '#211F20',
-                    transition: 'width 0.3s',
-                  }}
-                />
+              
+              {/* Name and age */}
+              <div className="text-[#211F20] font-poppins text-body-m-med font-medium leading-[110%]">
+                {formattedName}, {conn.age}
               </div>
             </div>
 
-            {/* 4. Message Button */}
-            <div>
+            {/* Compatibility badge - on its own line on mobile */}
+            <div className="flex justify-center lg:justify-start lg:mr-6">
+              <div
+                className="flex justify-center items-center px-2 py-2 gap-2 rounded-[100px] border border-[rgba(33,31,32,0.10)]"
+                style={{
+                  background:
+                    'radial-gradient(50% 50% at 50% 50%, rgba(226, 255, 101, 0.50) 0%, rgba(210, 255, 215, 0.50) 100%)'
+                }}
+              >
+                <span className="text-[#211F20] font-bricolage text-h8 font-medium leading-[130%] uppercase">
+                  {compatibility}% COMPATIBILITY
+                </span>
+              </div>
+            </div>
+
+            {/* Progress bar - on its own line on mobile */}
+            <div className="w-full lg:flex-1 lg:mr-6">
+              <div className="w-full h-1 rounded-[24px] bg-gray-200 relative">
+                <div
+                  className="h-1 rounded-[24px] bg-[#211F20] absolute top-0 left-0"
+                  style={{ width: `${compatibility}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Message button - on its own line on mobile */}
+            <div className="flex justify-center lg:justify-start">
               <button
                 onClick={() => handleMessageClick(conn)}
-                className="ml-auto flex items-center gap-2 bg-black rounded-lg px-6 py-3 sm:px-5 sm:py-2.5 xs:px-5 xs:py-2 transition-colors hover:bg-[#333]"
+                className="w-full lg:w-auto flex px-6 py-3 justify-center items-center gap-3 rounded-lg bg-[#211F20]"
               >
                 <SendIcon className="w-5 h-5" />
-                <span className="font-poppins text-[12px] md:text-[14px] xl:text-[16px] font-medium leading-normal text-white">
+                <span className="text-white font-poppins text-body-s-med font-medium leading-normal">
                   Message
                 </span>
               </button>

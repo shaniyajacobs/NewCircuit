@@ -1,29 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../../pages/firebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js';
 import { Timestamp } from 'firebase/firestore';
-
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { FaUsers, FaCalendarAlt, FaBuilding, FaChartLine, FaTicketAlt, FaUserFriends } from 'react-icons/fa';
 
 const TIME_PERIODS = {
   WEEK: '7 Days',
@@ -35,118 +14,161 @@ const TIME_PERIODS = {
 
 const AdminAnalytics = () => {
   const [loading, setLoading] = useState(true);
-  const [userGrowthData, setUserGrowthData] = useState({
-    labels: [],
-    datasets: []
-  });
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [monthlyGrowth, setMonthlyGrowth] = useState(0);
   const [selectedPeriod, setSelectedPeriod] = useState(TIME_PERIODS.MONTH);
-  const [users, setUsers] = useState([]);
+  
+  // User Analytics
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [activeUsers, setActiveUsers] = useState(0);
+  const [userGrowthRate, setUserGrowthRate] = useState(0);
+  
+  // Event Analytics
+  const [totalEvents, setTotalEvents] = useState(0);
+  const [totalEventSignups, setTotalEventSignups] = useState(0);
+  
+  // Business Analytics
+  const [totalBusinesses, setTotalBusinesses] = useState(0);
+  const [businessGrowthRate, setBusinessGrowthRate] = useState(0);
+  
+  // System Analytics
+  const [systemMetrics, setSystemMetrics] = useState({
+    totalCoupons: 0,
+    totalConnections: 0,
+    totalConversations: 0
+  });
 
   useEffect(() => {
-    fetchUserData();
-  }, []);
+    fetchAllData();
+  }, [selectedPeriod]);
 
-  useEffect(() => {
-    if (users.length > 0) {
-      processUserData(users);
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        fetchUserData(),
+        fetchEventData(),
+        fetchBusinessData(),
+        fetchSystemData()
+      ]);
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [selectedPeriod, users]);
+  };
 
   const fetchUserData = async () => {
     try {
       const usersSnapshot = await getDocs(collection(db, 'users'));
       const fetchedUsers = usersSnapshot.docs.map(doc => {
         const data = doc.data();
-        // Convert Firestore timestamp to Date
         let createdAt;
         if (data.createdAt instanceof Timestamp) {
           createdAt = data.createdAt.toDate();
         } else if (typeof data.createdAt === 'string') {
-          // Parse the string format "April 22, 2025 at 7:45:50 PM UTC-7"
           createdAt = new Date(data.createdAt.split(' at ')[0]);
         } else {
           createdAt = new Date();
         }
-
-        return {
-          id: doc.id,
-          createdAt,
-          ...data
-        };
+        return { id: doc.id, createdAt, ...data };
       });
 
-      console.log('Fetched Users with dates:', fetchedUsers.map(u => ({
-        id: u.id,
-        createdAt: u.createdAt.toISOString()
-      })));
+      // Filter users by time period
+      const filteredUsers = filterDataByTimePeriod(fetchedUsers);
       
-      setUsers(fetchedUsers);
-      processUserData(fetchedUsers);
+      // Process user growth
+      const growthData = processGrowthData(filteredUsers, 'users');
+      setTotalUsers(fetchedUsers.length);
+      setUserGrowthRate(calculateGrowthRate(growthData));
+      
+      // Calculate active users (users with recent activity)
+      const activeUsersCount = calculateActiveUsers(fetchedUsers);
+      setActiveUsers(activeUsersCount);
     } catch (error) {
       console.error('Error fetching user data:', error);
-      setLoading(false);
     }
   };
 
-  const processUserData = (userData) => {
-    // Sort users by creation date
-    userData.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const fetchEventData = async () => {
+    try {
+      const eventsSnapshot = await getDocs(collection(db, 'events'));
+      const fetchedEvents = eventsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
-    // Filter users based on selected time period
-    const filteredUsers = filterUsersByTimePeriod(userData);
+      setTotalEvents(fetchedEvents.length);
+      
+      // Calculate total signups
+      const totalSignups = await calculateTotalEventSignups();
+      setTotalEventSignups(totalSignups);
+    } catch (error) {
+      console.error('Error fetching event data:', error);
+    }
+  };
 
-    // Group users by appropriate time interval
-    const groupedUsers = groupUsersByTimeInterval(filteredUsers);
-
-    // Calculate cumulative growth
-    let cumulative = 0;
-    const sortedDates = Object.keys(groupedUsers).sort((a, b) => {
-      const dateA = new Date(a);
-      const dateB = new Date(b);
-      return dateA - dateB;
-    });
-
-    const cumulativeGrowth = sortedDates.map(date => {
-      cumulative += groupedUsers[date];
-      return { timeLabel: date, total: cumulative };
-    });
-
-    // Calculate growth rate
-    const lastTwoPoints = cumulativeGrowth.slice(-2);
-    const growthRate = lastTwoPoints.length > 1
-      ? ((lastTwoPoints[1].total - lastTwoPoints[0].total) / lastTwoPoints[0].total * 100).toFixed(1)
-      : 0;
-
-    const chartData = {
-      labels: cumulativeGrowth.map(data => data.timeLabel),
-      datasets: [
-        {
-          label: 'Total Users',
-          data: cumulativeGrowth.map(data => data.total),
-          fill: true,
-          borderColor: 'rgb(75, 192, 192)',
-          backgroundColor: 'rgba(75, 192, 192, 0.2)',
-          tension: 0.4
+  const fetchBusinessData = async () => {
+    try {
+      const businessesSnapshot = await getDocs(collection(db, 'businesses'));
+      const fetchedBusinesses = businessesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        let createdAt;
+        if (data.createdAt instanceof Timestamp) {
+          createdAt = data.createdAt.toDate();
+        } else if (typeof data.createdAt === 'string') {
+          createdAt = new Date(data.createdAt.split(' at ')[0]);
+        } else {
+          createdAt = new Date();
         }
-      ]
-    };
+        return { id: doc.id, createdAt, ...data };
+      });
 
-    setUserGrowthData(chartData);
-    setTotalUsers(userData.length);
-    setMonthlyGrowth(growthRate);
-    setLoading(false);
+      // Filter businesses by time period
+      const filteredBusinesses = filterDataByTimePeriod(fetchedBusinesses);
+      
+      // Process business growth
+      const businessGrowthData = processGrowthData(filteredBusinesses, 'businesses');
+      setTotalBusinesses(fetchedBusinesses.length);
+      setBusinessGrowthRate(calculateGrowthRate(businessGrowthData));
+    } catch (error) {
+      console.error('Error fetching business data:', error);
+    }
   };
 
-  const filterUsersByTimePeriod = (userData) => {
-    if (selectedPeriod === TIME_PERIODS.ALL) {
-      return userData;
+  const fetchSystemData = async () => {
+    try {
+      // Fetch coupons
+      const couponsSnapshot = await getDocs(collection(db, 'coupons'));
+      const totalCoupons = couponsSnapshot.size;
+      
+      // Fetch connections (approximate)
+      const connectionsSnapshot = await getDocs(collection(db, 'users'));
+      let totalConnections = 0;
+      for (const userDoc of connectionsSnapshot.docs) {
+        const connectionsRef = collection(db, 'users', userDoc.id, 'connections');
+        const userConnections = await getDocs(connectionsRef);
+        totalConnections += userConnections.size;
+      }
+      
+      // Fetch conversations
+      const conversationsSnapshot = await getDocs(collection(db, 'conversations'));
+      const totalConversations = conversationsSnapshot.size;
+      
+      setSystemMetrics({
+        totalCoupons,
+        totalConnections,
+        totalConversations
+      });
+    } catch (error) {
+      console.error('Error fetching system data:', error);
     }
+  };
 
+  const filterDataByTimePeriod = (data) => {
+    if (selectedPeriod === TIME_PERIODS.ALL) return data;
+    
     const now = new Date();
     let cutoffDate = new Date();
-
+    
     switch (selectedPeriod) {
       case TIME_PERIODS.WEEK:
         cutoffDate.setDate(now.getDate() - 7);
@@ -161,16 +183,15 @@ const AdminAnalytics = () => {
         cutoffDate.setFullYear(now.getFullYear() - 1);
         break;
     }
-
-    return userData.filter(user => user.createdAt >= cutoffDate);
+    
+    return data.filter(item => item.createdAt >= cutoffDate);
   };
 
-  const groupUsersByTimeInterval = (userData) => {
-    const groupedUsers = {};
-    
-    userData.forEach(user => {
+  const processGrowthData = (data, type) => {
+    const groupedData = {};
+    data.forEach(item => {
+      const date = item.createdAt;
       let timeLabel;
-      const date = user.createdAt;
       
       switch (selectedPeriod) {
         case TIME_PERIODS.WEEK:
@@ -190,50 +211,70 @@ const AdminAnalytics = () => {
           timeLabel = date.toLocaleDateString();
       }
       
-      groupedUsers[timeLabel] = (groupedUsers[timeLabel] || 0) + 1;
+      groupedData[timeLabel] = (groupedData[timeLabel] || 0) + 1;
     });
 
-    return groupedUsers;
+    const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
+    let cumulative = 0;
+    const cumulativeData = sortedDates.map(date => {
+      cumulative += groupedData[date];
+      return { timeLabel: date, total: cumulative };
+    });
+
+    return {
+      labels: cumulativeData.map(d => d.timeLabel),
+      datasets: [{
+        label: `${type.charAt(0).toUpperCase() + type.slice(1)} Growth`,
+        data: cumulativeData.map(d => d.total),
+        fill: true,
+        borderColor: type === 'users' ? 'rgb(75, 192, 192)' : 'rgb(255, 99, 132)',
+        backgroundColor: type === 'users' ? 'rgba(75, 192, 192, 0.2)' : 'rgba(255, 99, 132, 0.2)',
+        tension: 0.4
+      }]
+    };
   };
 
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: `User Growth (${selectedPeriod})`
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Number of Users'
-        }
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Time Period'
-        }
+  const calculateGrowthRate = (growthData) => {
+    const data = growthData.datasets[0].data;
+    if (data.length < 2) return 0;
+    const lastTwoPoints = data.slice(-2);
+    if (lastTwoPoints[0] === 0) return 0;
+    return ((lastTwoPoints[1] - lastTwoPoints[0]) / lastTwoPoints[0] * 100).toFixed(1);
+  };
+
+  const calculateActiveUsers = (users) => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return users.filter(user => user.createdAt >= thirtyDaysAgo).length;
+  };
+
+  const calculateTotalEventSignups = async () => {
+    let totalSignups = 0;
+    const eventsSnapshot = await getDocs(collection(db, 'events'));
+    
+    for (const eventDoc of eventsSnapshot.docs) {
+      try {
+        const signedUpUsersRef = collection(db, 'events', eventDoc.id, 'signedUpUsers');
+        const signedUpUsers = await getDocs(signedUpUsersRef);
+        totalSignups += signedUpUsers.size;
+      } catch (error) {
+        console.error(`Error fetching signups for event ${eventDoc.id}:`, error);
       }
     }
+    
+    return totalSignups;
   };
 
   return (
-    <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)]">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Analytics Dashboard</h1>
-        <div className="flex gap-2">
+    <div className="p-4 sm:p-6 lg:p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)]">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-xl sm:text-2xl font-semibold">Analytics Dashboard</h1>
+        <div className="flex gap-2 flex-wrap">
           {Object.values(TIME_PERIODS).map((period) => (
             <button
               key={period}
               onClick={() => setSelectedPeriod(period)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              className={`px-3 py-2 rounded-lg transition-colors text-sm ${
                 selectedPeriod === period
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -251,20 +292,72 @@ const AdminAnalytics = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Key Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
-              <h3 className="text-lg font-medium opacity-90">Total Users</h3>
-              <p className="text-3xl font-bold mt-2">{totalUsers}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium opacity-90">Total Users</h3>
+                  <p className="text-3xl font-bold mt-2">{totalUsers.toLocaleString()}</p>
+                  <p className="text-sm opacity-90 mt-1">+{userGrowthRate}% growth</p>
+                </div>
+                <FaUsers className="w-8 h-8 opacity-80" />
+              </div>
             </div>
+            
             <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
-              <h3 className="text-lg font-medium opacity-90">Growth Rate</h3>
-              <p className="text-3xl font-bold mt-2">{monthlyGrowth}%</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium opacity-90">Active Users</h3>
+                  <p className="text-3xl font-bold mt-2">{activeUsers.toLocaleString()}</p>
+                  <p className="text-sm opacity-90 mt-1">Last 30 days</p>
+                </div>
+                <FaUserFriends className="w-8 h-8 opacity-80" />
+              </div>
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="h-[400px]">
-              <Line data={userGrowthData} options={chartOptions} />
+            
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium opacity-90">Total Events</h3>
+                  <p className="text-3xl font-bold mt-2">{totalEvents.toLocaleString()}</p>
+                  <p className="text-sm opacity-90 mt-1">{totalEventSignups} signups</p>
+                </div>
+                <FaCalendarAlt className="w-8 h-8 opacity-80" />
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium opacity-90">Total Businesses</h3>
+                  <p className="text-3xl font-bold mt-2">{totalBusinesses.toLocaleString()}</p>
+                  <p className="text-sm opacity-90 mt-1">+{businessGrowthRate}% growth</p>
+                </div>
+                <FaBuilding className="w-8 h-8 opacity-80" />
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-r from-pink-500 to-pink-600 rounded-xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium opacity-90">Total Coupons</h3>
+                  <p className="text-3xl font-bold mt-2">{systemMetrics.totalCoupons.toLocaleString()}</p>
+                  <p className="text-sm opacity-90 mt-1">Active coupons</p>
+                </div>
+                <FaTicketAlt className="w-8 h-8 opacity-80" />
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium opacity-90">Total Connections</h3>
+                  <p className="text-3xl font-bold mt-2">{systemMetrics.totalConnections.toLocaleString()}</p>
+                  <p className="text-sm opacity-90 mt-1">User connections</p>
+                </div>
+                <FaChartLine className="w-8 h-8 opacity-80" />
+              </div>
             </div>
           </div>
         </>
