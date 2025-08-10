@@ -3,6 +3,7 @@ import { getAuth } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from '../../../pages/firebaseConfig';
 import { IoPersonCircle } from 'react-icons/io5';
+import { IoArrowBack } from 'react-icons/io5';
 import { ReactComponent as VectorIcon } from '../../../images/Vector 6.svg';
 import { formatUserName } from "../../../utils/nameFormatter";
 
@@ -41,7 +42,7 @@ const Header = (props) => {
   const PathTitleMappings = {"/dashboard": "Home", "/dashboard/dashMyConnections": "Sparks", 
     "/dashboard/dashDateCalendar": "Date Calendar", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
     "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashSignOut": "Sign Out"}
-  const { path } = props;
+  const { path, activeConnection, onBackToConnections } = props;
 
   if (isLoading) {
     return (
@@ -61,16 +62,34 @@ const Header = (props) => {
 
   return (
     <div className="hidden md:flex justify-between items-center p-6 bg-white max-sm:flex-col max-sm:gap-5 max-sm:p-6 border border-[rgba(33,31,32,0.10)]">
-      <div className="        
-        font-medium
-        text-[#211F20]
-        font-bricolage
-        text-base
-        font-normal
-        leading-[130%]
-        uppercase
-        tracking-wide">
-        {PathTitleMappings[path]}
+      <div className="flex items-center gap-4">
+        {/* Show back arrow and connection name when in a conversation */}
+        {activeConnection && onBackToConnections ? (
+          <>
+            <button 
+              onClick={onBackToConnections}
+              className="flex w-5 h-5 justify-center items-center text-[#211F20] hover:text-[#1a1a1a] transition-colors"
+            >
+              <IoArrowBack size={20} />
+            </button>
+            <div className="text-[#211F20] font-bricolage text-base font-medium leading-[130%] uppercase tracking-wide">
+              {activeConnection.name}
+            </div>
+          </>
+        ) : (
+          /* Show regular page title when not in a conversation */
+          <div className="        
+            font-medium
+            text-[#211F20]
+            font-bricolage
+            text-base
+            font-normal
+            leading-[130%]
+            uppercase
+            tracking-wide">
+            {PathTitleMappings[path]}
+          </div>
+        )}
       </div>
       <div className="flex gap-5 items-center">
         <div className="flex justify-center items-center h-[66px] w-[62px]">

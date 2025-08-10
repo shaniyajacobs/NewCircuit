@@ -4,6 +4,7 @@ import EventCard from "../DashboardHelperComponents/EventCard";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
 import { sortEventsByDate } from "../../../utils/eventSorter";
+import { DateTime } from 'luxon';
 
 // Add a hook to detect window width
 function useResponsiveGridCols() {
@@ -14,6 +15,45 @@ function useResponsiveGridCols() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   return isMobile ? 1 : 3;
+}
+
+// Helper: map event timeZone field to IANA
+const eventZoneMap = {
+  'PST': 'America/Los_Angeles',
+  'EST': 'America/New_York',
+  'CST': 'America/Chicago',
+  'MST': 'America/Denver',
+  // Add more as needed
+};
+
+// Helper function to check if event is past
+function isEventPast(event) {
+  if (!event.date || !event.time || !event.timeZone) return true;
+  
+  let eventZone = eventZoneMap[event.timeZone] || event.timeZone || 'UTC';
+  const normalizedTime = event.time ? event.time.replace(/am|pm/i, match => match.toUpperCase()) : '';
+  
+  let eventDateTime = DateTime.fromFormat(
+    `${event.date} ${normalizedTime}`,
+    'yyyy-MM-dd h:mma',
+    { zone: eventZone }
+  );
+  
+  if (!eventDateTime.isValid) {
+    eventDateTime = DateTime.fromFormat(
+      `${event.date} ${normalizedTime}`,
+      'yyyy-MM-dd H:mm',
+      { zone: eventZone }
+    );
+  }
+  
+  if (!eventDateTime.isValid) return true;
+
+  // Add 90 minutes for event duration and 24 hours buffer
+  const eventThreshold = eventDateTime.plus({ minutes: 90 }).plus({ days: 1 });
+  const now = DateTime.now().setZone(eventZone);
+  
+  return eventThreshold <= now;
 }
 
 const AllDates = () => {
@@ -39,8 +79,9 @@ const AllDates = () => {
         eventsList.push({ ...eventData, firestoreID: docSnapshot.id });
       }
       
-      // Sort events chronologically from newest to oldest
-      const sortedEvents = sortEventsByDate(eventsList);
+      // Filter out past events first, then sort remaining events chronologically
+      const upcomingEvents = eventsList.filter(event => !isEventPast(event));
+      const sortedEvents = sortEventsByDate(upcomingEvents);
       setEvents(sortedEvents);
     } catch (error) {
       setEvents([]);

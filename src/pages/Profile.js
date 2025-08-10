@@ -1,11 +1,11 @@
 import styled from 'styled-components';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FooterShapes } from './Login';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { signOut, createUserWithEmailAndPassword } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { auth, db } from "./firebaseConfig";
-import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 // Profile Component that combines logout and form
 const Profile = () => {
@@ -36,7 +36,7 @@ const Profile = () => {
       image: image // Update image in formData when it comes from location.state
     }));
     setLoading(false);
-  }, [email, password, image]);
+  }, [email, password, image, navigate]);
 
   // Fetch user data on component mount
   useEffect(() => {

@@ -2,7 +2,6 @@ import {React, useMemo} from 'react';
 import HeaderBar from '../components/HeaderBar';
 import primaryMixedLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import { useNavigate } from 'react-router-dom';
-import { FooterShapes } from './Login';
 import cirCrossPBlack from '../images/cir_cross_Black.svg';
 import cirHeartPBlack from '../images/cir_heart_Black.svg';
 import cirMinusPBlack from '../images/cir_minus_Black.svg';
@@ -68,7 +67,7 @@ const FooterShapesBlack = () => {
         }
 
         return { grid, styles };
-    }, []);
+    }, [shapeOptions]);
 
     return (
         <PatternContainer>

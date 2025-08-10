@@ -13,7 +13,7 @@ const Footer = () => {
           <ul className="space-y-2 text-sm">
             <li><a href="/create-account" onClick={() => window.scrollTo(0, 0)}>Get started</a></li>
             <li><a href="/" onClick={() => window.scrollTo(0, 0)}>Homepage</a></li>
-            <li><a href="#">How it works</a></li>
+            <li><Link to="/how-it-works" onClick={() => window.scrollTo(0, 0)}>How it works</Link></li>
             <li><a href="/pricing" onClick={() => window.scrollTo(0, 0)}>Pricing</a></li>
             <li><a href="/faq" onClick={() => window.scrollTo(0, 0)}>FAQ</a></li>
             <li><a href="/contact" onClick={() => window.scrollTo(0, 0)}>Contact</a></li>
@@ -54,10 +54,18 @@ const Footer = () => {
           © 2025 Circuit Dating. All rights reserved.
         </p>
         <div className="flex gap-4 text-xl">
-          <a href="#"><FaInstagram /></a>
-          <a href="#"><FaTiktok /></a>
-          <a href="#"><FaLinkedin /></a>
-          <a href="#"><FaXTwitter /></a>
+          <button className="hover:text-gray-600 transition-colors" aria-label="Follow us on Instagram">
+            <FaInstagram />
+          </button>
+          <button className="hover:text-gray-600 transition-colors" aria-label="Follow us on TikTok">
+            <FaTiktok />
+          </button>
+          <button className="hover:text-gray-600 transition-colors" aria-label="Follow us on LinkedIn">
+            <FaLinkedin />
+          </button>
+          <button className="hover:text-gray-600 transition-colors" aria-label="Follow us on X (Twitter)">
+            <FaXTwitter />
+          </button>
         </div>
       </div>
     </footer>

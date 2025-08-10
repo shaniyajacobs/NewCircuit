@@ -36,7 +36,7 @@ const Info = () => {
                                     {'plug'}
                                     <img 
                                         src="/smaller_scribble.svg"
-                                        //alt="Scribble decoration"
+                                        alt="Scribble decoration"
                                         className="absolute bottom-[11px] pointer-events-none"
                                         style={{
                                             transform: 'scale(1.5)',

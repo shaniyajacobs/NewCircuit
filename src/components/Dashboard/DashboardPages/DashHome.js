@@ -835,7 +835,12 @@ const getEventData = async (eventID) => {
         }
       }
 
-      // If we get here, the event is available for sign-up
+      // Finally, check if the event is past its date
+      if (isEventPast(event, 0)) {
+        return false;
+      }
+
+      // If we get here, the event is available for sign-up and upcoming
       return true;
     });
     
