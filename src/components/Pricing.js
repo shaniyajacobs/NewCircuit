@@ -80,7 +80,7 @@ const Pricing = () => {
                 features: isBundle
                   ? [
                       "3 Speed Dates",
-                      "Basic Matching Algorithm",
+                      "Advanced Matching Algorithm",
                       "Includes up to 1 dinner speed dates",
                     ]
                   : ["Dinner Speed Date", "6:00pm - 7:30pm", "Advanced Matching Algorithm"],

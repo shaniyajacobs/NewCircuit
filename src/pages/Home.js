@@ -9,7 +9,6 @@ import MapPage from '../components/MapPage/MapPage'
 import Current from '../components/Current';
 import Waiting from '../components/Waiting';
 import {Values} from '../components/Values'
-import UpcomingEventsHome from '../components/UpcomingEventsHome';
 
 const Home = () => {
     return (
@@ -17,7 +16,6 @@ const Home = () => {
             <Navbar />
             <Hero />  
             <ThirdDatesOnUs />
-            <UpcomingEventsHome />
             <MapPage />
             <Current />
             {/* <Values/> */}
