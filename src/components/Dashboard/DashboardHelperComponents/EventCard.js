@@ -163,18 +163,37 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   // Function to add user to waitlist in Firebase
   const addToWaitlist = async (eventId, userId) => {
     try {
-      // Add user to waitlist subcollection
+      // Get current user data to store comprehensive information
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
+      }
+
+      // Get user profile data from Firestore to match signup process
+      let userProfile = null;
+      try {
+        const userProfileDoc = await getDoc(doc(db, 'users', userId));
+        if (userProfileDoc.exists()) {
+          userProfile = userProfileDoc.data();
+        }
+      } catch (error) {
+        console.log('Could not fetch user profile, using fallback data');
+      }
+
+      // Add user to waitlist subcollection with the exact same fields as signup
       await setDoc(
         doc(db, 'events', eventId, 'waitlist', userId),
         {
           userID: userId,
-          userGender: userGender || null, 
-          waitlistTime: serverTimestamp(),
-          eventID: event.eventID,
-          eventTitle: event.title || null,
+          userName: userProfile && userProfile.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : (currentUser.displayName || ''),
+          userEmail: currentUser.email || '',
+          userPhoneNumber: (userProfile && userProfile.phoneNumber) || currentUser.phoneNumber || '',
+          userGender: userGender || (userProfile && userProfile.gender) || null,
+          userLocation: (userProfile && userProfile.location) || '',
+          signUpTime: serverTimestamp(),
         }
       );
-      console.log('✅ User added to waitlist successfully');
+      console.log('✅ User added to waitlist successfully with comprehensive data');
     } catch (error) {
       console.error('❌ Failed to add user to waitlist:', error);
       throw error;
