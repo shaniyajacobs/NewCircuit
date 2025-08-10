@@ -7,6 +7,7 @@ import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, i
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
+import { collectionGroup, documentId } from "firebase/firestore";
 import { auth } from "../../../firebaseConfig";
 import { signUpForEventWithDates } from '../../../utils/eventSpotsUtils';
 import { onAuthStateChanged } from "firebase/auth";
@@ -719,106 +720,114 @@ const getEventData = async (eventID) => {
     }
   };
 
-  // // Function to check waitlist when spots become available
-  // const checkWaitlistForEvent = async (eventId, userGender) => {
-  //   try {
-  //     const waitlistRef = collection(db, 'events', eventId, 'waitlist');
-  //     const waitlistSnap = await getDocs(waitlistRef);
-      
-  //     // Find the first person on waitlist for this gender
-  //     const waitlistEntries = waitlistSnap.docs
-  //       .map(doc => ({ id: doc.id, ...doc.data() }))
-  //       .filter(entry => entry.userGender?.toLowerCase() === userGender?.toLowerCase())
-  //       .sort((a, b) => a.waitlistTime?.toDate() - b.waitlistTime?.toDate()); // Use waitlistTime instead of joinTime
-      
-  //     if (waitlistEntries.length > 0) {
-  //       const firstInLine = waitlistEntries[0];
-        
-  //       // Remove from waitlist
-  //       await deleteDoc(doc(db, 'events', eventId, 'waitlist', firstInLine.id));
-        
-  //       // Find the event object to pass to handleSignUp
-  //       const eventDoc = await getDoc(doc(db, 'events', eventId));
-  //       if (eventDoc.exists()) {
-  //         const eventData = eventDoc.data();
-          
-  //         // Create event object with the structure handleSignUp expects
-  //         const event = {
-  //           firestoreID: eventId,
-  //           eventID: eventData.eventID,
-  //           title: eventData.title || eventData.eventName,
-  //           date: eventData.date,
-  //           time: eventData.time,
-  //           location: eventData.location,
-  //           ageRange: eventData.ageRange,
-  //           eventType: eventData.eventType,
-  //         };
-          
-  //         // Call handleSignUp with the event - this will handle all the enrollment logic
-  //         await handleSignUp(event);
-          
-  //         console.log(`User ${firstInLine.userID} has been automatically enrolled in event ${eventId} from waitlist`);
-  //         return firstInLine;
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error('Error checking waitlist:', error);
-  //   }
-  //   return null;
-  // };
+  // Runs once to fix UI + Remo after waitlist promotion
+  const reconcileUserEventState = async ({ force = false } = {}) => {
+    const user = auth.currentUser;
+    if (!user) return;
+  
+    try {
+      // A) current signedUpEvents
+      const mySignedUpSnap = await getDocs(collection(db, 'users', user.uid, 'signedUpEvents'));
+      const mySignedUpSet = new Set(mySignedUpSnap.docs.map(d => d.id));
+  
+      // B) promotions across events via field filter (not documentId)
+      const cgQ = query(collectionGroup(db, 'signedUpUsers'), where('userID', '==', user.uid));
+      const cgSnap = await getDocs(cgQ);
+  
+      for (const suDoc of cgSnap.docs) {
+        const eventRef = suDoc.ref.parent.parent; // events/{eventId}
+        if (!eventRef) continue;
+        const eventFirestoreId = eventRef.id;
+  
+        if (!mySignedUpSet.has(eventFirestoreId)) {
+          const eventSnap = await getDoc(eventRef);
+          if (!eventSnap.exists()) continue;
+          const e = eventSnap.data() || {};
+  
+          await setDoc(
+            doc(db, 'users', user.uid, 'signedUpEvents', eventFirestoreId),
+            {
+              eventID: e.eventID || eventFirestoreId,
+              signUpTime: serverTimestamp(),
+              eventTitle: e.title || e.eventName || null,
+              eventDate: e.date || null,
+              eventTime: e.time || null,
+              eventLocation: e.location || null,
+              eventAgeRange: e.ageRange || null,
+              eventType: e.eventType || null,
+            },
+            { merge: true }
+          );
+  
+          mySignedUpSet.add(eventFirestoreId);
+  
+          await setDoc(
+            doc(db, 'users', user.uid),
+            { latestEventId: e.eventID || eventFirestoreId },
+            { merge: true }
+          );
+        }
+      }
+  
+      // C) Ensure Remo enrollment (unchanged)
+      const fn = getFunctions();
+      const getEventMembers = httpsCallable(fn, 'getEventMembers');
+      const addUserToRemoEvent = httpsCallable(fn, 'addUserToRemoEvent');
+      const myEmail = (user.email || '').toLowerCase();
+  
+      for (const eventFirestoreId of mySignedUpSet) {
+        const evSnap = await getDoc(doc(db, 'events', eventFirestoreId));
+        if (!evSnap.exists()) continue;
+        const e = evSnap.data() || {};
+        const remoEventId = e.eventID;
+        if (!remoEventId || !myEmail) continue;
+  
+        try {
+          const res = await getEventMembers({ eventId: remoEventId });
+          const payload = res?.data;
+          const attendees = Array.isArray(payload) ? payload : (payload?.attendees || []);
+          const emails = attendees.map(a => a?.user?.email).filter(Boolean).map(x => x.toLowerCase());
+  
+          if (!emails.includes(myEmail)) {
+            await addUserToRemoEvent({ eventId: remoEventId, userEmail: myEmail });
+          }
+        } catch (err) {
+          console.warn('Remo reconcile failed for', remoEventId, err);
+        }
+      }
+  
+      setSignedUpEventIds(new Set(mySignedUpSet));
+    } catch (e) {
+      console.warn('reconcileUserEventState error:', e);
+    }
+  };
+  
 
-  // // Add this new function after your existing functions
-  // const monitorEventSpots = async () => {
-  //   try {
-  //     // Get all events to check for available spots
-  //     const eventsSnapshot = await getDocs(collection(db, 'events'));
-      
-  //     for (const eventDoc of eventsSnapshot.docs) {
-  //       const eventData = eventDoc.data();
-  //       const eventId = eventDoc.id;
-        
-  //       // Check men's spots
-  //       if (eventData.menSpots && eventData.menSignupCount !== undefined) {
-  //         const availableMenSpots = Number(eventData.menSpots) - Number(eventData.menSignupCount);
-  //         if (availableMenSpots > 0) {
-  //           // Check if there are men on the waitlist
-  //           const waitlistRef = collection(db, 'events', eventId, 'waitlist');
-  //           const waitlistSnap = await getDocs(waitlistRef);
-  //           const menOnWaitlist = waitlistSnap.docs
-  //             .map(doc => ({ id: doc.id, ...doc.data() }))
-  //             .filter(entry => entry.userGender?.toLowerCase() === 'male')
-  //             .sort((a, b) => a.waitlistTime?.toDate() - b.waitlistTime?.toDate());
-            
-  //           if (menOnWaitlist.length > 0) {
-  //             console.log(`Found ${menOnWaitlist.length} men on waitlist for event ${eventId}, checking for enrollment...`);
-  //             await checkWaitlistForEvent(eventId, 'male');
-  //           }
-  //         }
-  //       }
-        
-  //       // Check women's spots
-  //       if (eventData.womenSpots && eventData.womenSignupCount !== undefined) {
-  //         const availableWomenSpots = Number(eventData.womenSpots) - Number(eventData.womenSignupCount);
-  //         if (availableWomenSpots > 0) {
-  //           // Check if there are women on the waitlist
-  //           const waitlistRef = collection(db, 'events', eventId, 'waitlist');
-  //           const waitlistSnap = await getDocs(waitlistRef);
-  //           const womenOnWaitlist = waitlistSnap.docs
-  //             .map(doc => ({ id: doc.id, ...doc.data() }))
-  //             .filter(entry => entry.userGender?.toLowerCase() === 'female')
-  //             .sort((a, b) => a.waitlistTime?.toDate() - b.waitlistTime?.toDate());
-            
-  //           if (womenOnWaitlist.length > 0) {
-  //             console.log(`Found ${womenOnWaitlist.length} women on waitlist for event ${eventId}, checking for enrollment...`);
-  //             await checkWaitlistForEvent(eventId, 'female');
-  //           }
-  //         }
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error('Error monitoring event spots:', error);
-  //   }
-  // };
+useEffect(() => {
+  if (userProfile && auth.currentUser) {
+    // after profile is ready, fix any missing links + Remo
+    reconcileUserEventState();
+  }
+}, [userProfile]);
+
+
+useEffect(() => {
+  if (!auth.currentUser || !userProfile) return;
+
+  const q = query(
+    collectionGroup(db, 'signedUpUsers'),
+    where('userID', '==', auth.currentUser.uid) // 👈 field match
+  );
+
+  const unsub = onSnapshot(q, (snap) => {
+    if (!snap.empty) {
+      reconcileUserEventState({ force: true }); // run immediately
+    }
+  });
+
+  return () => unsub();
+}, [userProfile, auth.currentUser]);
+
 
   const handleMatchesClick = async () => {
     const currentUser = auth.currentUser;

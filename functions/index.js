@@ -286,6 +286,8 @@ exports.deleteUser = onCall({
       await connDoc.ref.delete().catch(() => {});
     });
 
+    //adding comm
+
     // 3️⃣  Remove admin role record if present
     const adminRoleDeletion = db.collection('adminUsers').doc(uid).delete().catch(() => {});
 
@@ -342,99 +344,170 @@ exports.sendContactEmail = onCall({
 });
 
 
-
-// 🆕 Automatically promote from waitlist when a signup is removed
 // 🆕 Automatically promote from waitlist when a signup is removed (transactional)
 exports.promoteFromWaitlist = onDocumentDeleted(
-  { region: "us-central1" },
   "events/{eventId}/signedUpUsers/{uid}",
   async (event) => {
+    console.log('[promoteFromWaitlist] Event object:', JSON.stringify(event, null, 2));
     const db = admin.firestore();
     const { eventId, uid } = event.params;
 
-    // v2: deleted doc's data is available on event.data
+    // In v2, deleted doc's data is available on event.data
     const removedUser = event.data?.data() || {};
-    let gender = (removedUser.userGender || '').toLowerCase();
+    console.log('[promoteFromWaitlist] Deleted document data:', removedUser);
+    let gender = removedUser.userGender || '';
 
     // Fallback: if gender wasn't on the signup doc, try user profile
     if (!gender) {
-      const userSnap = await db.collection('users').doc(uid).get();
-      gender = (userSnap.data()?.gender || '').toLowerCase();
+      try {
+        const userSnap = await db.collection('users').doc(uid).get();
+        gender = userSnap.data()?.gender || '';
+      } catch (error) {
+        console.log(`[promoteFromWaitlist] Could not fetch user ${uid} data:`, error);
+        return;
+      }
     }
+    
     if (!gender) {
       console.log(`[promoteFromWaitlist] No gender found for removed user ${uid}; skipping.`);
       return;
     }
+    
+    console.log(`[promoteFromWaitlist] Processing promotion for event ${eventId}, user ${uid}, gender: ${gender}`);
 
     const eventRef = db.collection("events").doc(eventId);
 
-    await db.runTransaction(async (tx) => {
-      const eventDoc = await tx.get(eventRef);
-      if (!eventDoc.exists) return;
+    let promotedUidOut = null;
 
-      const data = eventDoc.data() || {};
-      const spotsField = gender === "male" ? "menSpots" : "womenSpots";
-      const countField = gender === "male" ? "menSignupCount" : "womenSignupCount";
+    try {
+      await db.runTransaction(async (tx) => {
+        // 1) READ: Get event document
+        const eventDoc = await tx.get(eventRef);
+        if (!eventDoc.exists) {
+          console.log(`[promoteFromWaitlist] Event ${eventId} not found, skipping`);
+          return;
+        }
 
-      const spots = Number(data[spotsField] || 0);
-      const currentCount = Number(data[countField] || 0);
+        const data = eventDoc.data() || {};
+        const spotsField = gender === "Male" ? "menSpots" : "womenSpots";
+        const countField = gender === "Male" ? "menSignupCount" : "womenSignupCount";
 
-      // 1) Decrement immediately because a signup doc was removed
-      const afterRemoval = Math.max(currentCount - 1, 0);
-      tx.update(eventRef, { [countField]: afterRemoval });
+        const spots = Number(data[spotsField] || 0);
+        const currentCount = Number(data[countField] || 0);
 
-      // 2) If no spot opened, stop here
-      const open = spots - afterRemoval;
-      if (open <= 0) return;
+        // 2) Calculate what the count will be after removal
+        const afterRemoval = Math.max(currentCount - 1, 0);
 
-      // 3) Find earliest waitlisted user of the same gender
-      const waitlistRef = eventRef.collection("waitlist");
+        // 3) If no spot opened, stop here
+        const open = spots - afterRemoval;
+        if (open <= 0) {
+          console.log(`[promoteFromWaitlist] No spots available for promotion (${spots} total, ${afterRemoval} current)`);
+          return;
+        }
+        
+        console.log(`[promoteFromWaitlist] ${open} spots available for promotion`);
 
-      // First try normalized equality query
-      let q = waitlistRef
-        .where("userGender", "==", gender)
-        .orderBy("waitlistTime", "asc")
-        .limit(1);
-      let snap = await tx.get(q);
+        // 4) READ: Find earliest waitlisted user of the same gender
+        const waitlistRef = eventRef.collection("waitlist");
+        console.log(`[promoteFromWaitlist] Looking for waitlisted users with gender: ${gender}`);
 
-      // Fallback: scan earliest N and pick first case-insensitive match
-      if (snap.empty) {
-        const scan = await tx.get(waitlistRef.orderBy("waitlistTime", "asc").limit(25));
-        const firstMatch = scan.docs.find(d => (d.data().userGender || '').toLowerCase() === gender);
-        if (!firstMatch) return;
+        // First try normalized equality query
+        let q = waitlistRef
+          .where("userGender", "==", gender)
+          .orderBy("signUpTime", "asc")
+          .limit(1);
+        let snap = await tx.get(q);
+        
+        if (snap.empty) {
+          console.log(`[promoteFromWaitlist] No waitlisted users found with exact gender match: ${gender}`);
+        } else {
+          console.log(`[promoteFromWaitlist] Found ${snap.docs.length} waitlisted users with gender: ${gender}`);
+        }
 
-        // Promote firstMatch
-        const promotedUid = firstMatch.id;
-        const firstInLine = firstMatch.data() || {};
+        // Fallback: scan earliest N and pick first case-insensitive match
+        if (snap.empty) {
+          console.log(`[promoteFromWaitlist] No exact gender match found, trying fallback scan`);
+          const scan = await tx.get(waitlistRef.orderBy("signUpTime", "asc").limit(25));
+          const firstMatch = scan.docs.find(d => (d.data().userGender || '') === gender);
+          if (!firstMatch) {
+            console.log(`[promoteFromWaitlist] No waitlisted users found for gender: ${gender}`);
+            return;
+          }
+
+          // All reads are done, now do all writes
+          const promotedUid = firstMatch.id;
+          promotedUidOut = promotedUid;
+          const firstInLine = firstMatch.data() || {};
+          console.log(`[promoteFromWaitlist] Promoting user ${promotedUid} from waitlist (fallback scan)`);
+
+          const suRef = eventRef.collection("signedUpUsers").doc(promotedUid);
+          tx.set(suRef, {
+            ...firstInLine,
+            userID: promotedUid, // 👈 ensure exact key & present in this branch too
+            signUpTime: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          tx.update(eventRef, { [countField]: afterRemoval + 1 });
+          tx.delete(firstMatch.ref);
+          console.log(`[promoteFromWaitlist] Successfully promoted user ${promotedUid} from waitlist`);
+          return;
+        }
+
+        // All reads are done, now do all writes
+        const firstInLineDoc = snap.docs[0];
+        const promotedUid = firstInLineDoc.id; // ✅ same name everywhere
+        promotedUidOut = promotedUid;
+        const firstInLine = firstInLineDoc.data() || {};
+        console.log(`[promoteFromWaitlist] Promoting user ${promotedUid} from waitlist (normal query)`);
 
         const suRef = eventRef.collection("signedUpUsers").doc(promotedUid);
         tx.set(suRef, {
           ...firstInLine,
+          userID: promotedUid, // ensure userID field is set
           signUpTime: admin.firestore.FieldValue.serverTimestamp(),
         });
+
+        // 5) Update event count and remove from waitlist
         tx.update(eventRef, { [countField]: afterRemoval + 1 });
-        tx.delete(firstMatch.ref);
+        tx.delete(firstInLineDoc.ref);
+        console.log(`[promoteFromWaitlist] Successfully promoted user ${promotedUid} from waitlist`);
+      });
+    } catch (error) {
+      console.error(`[promoteFromWaitlist] Error in promoteFromWaitlist for event ${eventId}:`, error);
+    }
+    
+    // Post-transaction: mirror to users/{uid}/signedUpEvents/{eventId}
+    try {
+      if (!promotedUidOut) {
+        console.log('[promoteFromWaitlist] No promoted user to mirror; done.');
         return;
       }
 
-      // Promote the doc found by normalized query
-      const firstInLineDoc = snap.docs[0];
-      const promotedUid = firstInLineDoc.id;
-      const firstInLine = firstInLineDoc.data() || {};
+      const evSnap = await db.collection('events').doc(eventId).get();
+      if (!evSnap.exists) return;
 
-      const suRef = eventRef.collection("signedUpUsers").doc(promotedUid);
-      tx.set(suRef, {
-        ...firstInLine,
+      const e = evSnap.data() || {};
+      const payload = {
+        eventID: e.eventID || eventId, // Remo ID or fallback to Firestore doc id
         signUpTime: admin.firestore.FieldValue.serverTimestamp(),
-      });
+        eventTitle: e.title || e.eventName || null,
+        eventDate: e.date || null,
+        eventTime: e.time || null,
+        eventLocation: e.location || null,
+        eventAgeRange: e.ageRange || null,
+        eventType: e.eventType || e.type || null,
+      };
 
-      // 4) Filled the spot → increment back
-      tx.update(eventRef, { [countField]: afterRemoval + 1 });
+      await db.collection('users').doc(promotedUidOut)
+        .collection('signedUpEvents').doc(eventId) // use Firestore event doc id
+        .set(payload, { merge: true });
 
-      // 5) Remove from waitlist
-      tx.delete(firstInLineDoc.ref);
-    }).catch(err => {
-      console.error(`[promoteFromWaitlist] Transaction failed for event ${eventId}:`, err);
-    });
+      // optional: keep latestEventId up to date
+      await db.collection('users').doc(promotedUidOut)
+        .set({ latestEventId: payload.eventID }, { merge: true });
+
+      console.log(`[promoteFromWaitlist] Mirrored to users/${promotedUidOut}/signedUpEvents/${eventId}`);
+    } catch (err) {
+      console.error('[promoteFromWaitlist] post-tx mirror error:', err);
+    }
   }
 );
