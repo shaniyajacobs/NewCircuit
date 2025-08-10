@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import logo from '../../images/Cir_Primary_RGB_Mixed Black.png'; // Adjust the path based on your image location
 import styles from './NavBar.module.css';
 import { FaInstagram, FaTiktok, FaLinkedin, FaXTwitter } from 'react-icons/fa6';
@@ -8,13 +8,6 @@ import { FiX } from 'react-icons/fi';
 const NavBar = () => {
     const [showAnnouncement, setShowAnnouncement] = useState(true);
     const [menuOpen, setMenuOpen] = useState(false);
-    const navigate = useNavigate();
-    const scrollToSection = (id) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
 
     useEffect(() => {
         const handleScroll = () => {

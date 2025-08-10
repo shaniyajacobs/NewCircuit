@@ -1,15 +1,9 @@
-import {
-  doc,
-  getDoc,
-  onSnapshot,
-  setDoc,
-  updateDoc,
-  arrayUnion,
-  Timestamp
-} from "firebase/firestore";
-import React, { useEffect, useState, useRef } from "react";
-import { auth, db } from "../../../pages/firebaseConfig";
+import React, { useState, useEffect, useRef } from "react";
+import { auth, db } from "../../../firebaseConfig";
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where, orderBy, onSnapshot, serverTimestamp, setDoc, arrayUnion, Timestamp } from "firebase/firestore";
+import { IoPersonCircle } from "react-icons/io5";
 import { FaPaperPlane } from "react-icons/fa";
+import { markSparkAsRead } from "../../../utils/notificationManager";
 
 export function DashMessages({ connection }) {
   // Auth state
@@ -155,6 +149,10 @@ export function DashMessages({ connection }) {
     };
     const ref = doc(db, "conversations", selectedConversation.conversationId);
     await updateDoc(ref, { messages: arrayUnion(newMsg) });
+    
+    // Mark the spark as read when user sends their first message
+    await markSparkAsRead(connection.id);
+    
     setNewMessageText("");
   };
   const handleOnKeyDown = e => {
@@ -171,29 +169,134 @@ export function DashMessages({ connection }) {
   if (!me)      return <div className="p-4 text-center text-red-500">Please log in to chat.</div>;
 
   return (
-    <>
-      {/* Header */}
-      <div className="flex justify-end items-center px-4 py-2 border-b">
-       
-        <div className="space-x-2">
-          <button
-            onClick={() => setDatesModalOpen(true)}
-            className="bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300"
-          >
-            View Dates
-          </button>
-          <button
-            onClick={handleOpenInviteModal}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800"
-          >
-            Invite to Date
-          </button>
+    <div className="flex flex-col h-screen">
+      {/* Profile Card */}
+      <div className="flex flex-col items-start self-stretch bg-white mb-8">
+        <div className="flex items-center justify-between w-full mb-6">
+          <div className="flex items-center gap-4">
+            {/* Profile Picture */}
+            <div 
+              className="flex w-12 h-12 justify-center items-center rounded-full border border-[rgba(33,31,32,0.25)] bg-cover bg-center bg-no-repeat overflow-hidden"
+              style={{ backgroundImage: `url(${connection.img})` }}
+            >
+            </div>
+            
+            {/* Name */}
+            <div className="text-[#211F20] font-poppins text-[20px] font-normal leading-[130%]">
+              {connection.name}, {connection.age || '27'}
+            </div>
+          </div>
+
+          {/* Action Buttons moved to the right side */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setDatesModalOpen(true)}
+              className="flex px-6 py-3 justify-center items-center gap-3 rounded-lg border border-[rgba(33,31,32,0.50)]"
+            >
+              <span className="text-[#211F20] font-poppins text-[16px] font-medium leading-normal">
+                View Dates
+              </span>
+            </button>
+            <button
+              onClick={handleOpenInviteModal}
+              className="flex px-6 py-3 justify-center items-center gap-3 rounded-lg bg-[#211F20]"
+            >
+              <span className="text-white font-poppins text-[16px] font-medium leading-normal">
+                Invite to Date
+              </span>
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* Unified Chat Frame - Takes remaining space */}
+      <div className="flex flex-col px-[50px] flex-1 gap-[30px] self-stretch rounded-[24px] overflow-hidden">
+        {/* Chat Messages - Scrollable area */}
+        <div className="flex flex-col flex-1 overflow-y-auto">
+          {messageArray.map((msg, idx) => (
+            <div key={idx} className="mb-4">
+              {msg.senderId === me ? (
+                // My message (right side, blue background)
+                <div className="flex flex-col items-end">
+                  <div className="flex items-end gap-2">
+                    <div className="max-w-[600px] px-4 py-4 rounded-lg rounded-br-none bg-[#1C50D8]">
+                      <span className="text-white font-poppins text-[16px] font-normal leading-normal break-words whitespace-pre-wrap">
+                        {msg.text}
+                      </span>
+                    </div>
+                    {/* My profile picture */}
+                    <div 
+                      className="flex w-8 h-8 justify-center items-center rounded-full border border-[rgba(33,31,32,0.25)] bg-cover bg-center bg-no-repeat overflow-hidden"
+                      style={{ backgroundImage: `url(${auth.currentUser?.photoURL || 'https://via.placeholder.com/32x32/9CA3AF/FFFFFF?text=U'})` }}
+                    >
+                    </div>
+                  </div>
+                  {/* Receipt for my message */}
+                  <div className="mt-2 mr-2">
+                    <span className="text-[rgba(34,34,34,0.75)] font-poppins text-base font-normal leading-normal">
+                      {new Date(msg.timeStamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true}).toUpperCase()} - You
+                    </span>
+                  </div>
+                </div>
+              ) : msg.senderId === "system" ? (
+                // System message (center)
+                <div className="flex justify-center">
+                  <div className="px-6 py-2 text-gray-700 bg-green-100 rounded text-center">
+                    {msg.text}
+                  </div>
+                </div>
+              ) : (
+                // Other person's message (left side, with profile picture)
+                <div className="flex items-start gap-3">
+                  {/* Other person's profile picture */}
+                  <div 
+                    className="flex w-8 h-8 justify-center items-center rounded-full border border-[rgba(33,31,32,0.25)] bg-cover bg-center bg-no-repeat overflow-hidden"
+                    style={{ backgroundImage: `url(${connection.img})` }}
+                  >
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div className="max-w-[600px] px-4 py-4 bg-white border border-gray-200 rounded-lg">
+                      <span className="text-[#211F20] font-poppins text-[16px] font-normal leading-normal break-words whitespace-pre-wrap">
+                        {msg.text}
+                      </span>
+                    </div>
+                    {/* Receipt for other person's message */}
+                    <div className="ml-2">
+                      <span className="text-[rgba(34,34,34,0.75)] font-poppins text-base font-normal leading-normal">
+                        {new Date(msg.timeStamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true}).toUpperCase()} - {connection.name}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Message Input - Fixed at bottom */}
+      <div className="flex py-3 px-6 items-center gap-6 self-stretch rounded-lg border border-[rgba(0,0,0,0.10)]">
+        <input
+          type="text"
+          value={newMessageText}
+          onChange={e => setNewMessageText(e.target.value)}
+          onKeyDown={handleOnKeyDown}
+          placeholder="Type a message"
+          className="flex-grow text-[#211F20] font-poppins text-base font-medium leading-normal opacity-50 outline-none bg-transparent"
+        />
+        <button
+          onClick={submitNewMessage}
+          disabled={!newMessageText.trim()}
+          className={`${!newMessageText.trim() ? "opacity-50 cursor-not-allowed" : ""}`}
+        >
+          <FaPaperPlane className="text-[#1C50D8] text-2xl cursor-pointer hover:text-[#1a45c0]" />
+        </button>
       </div>
 
       {/* Invite Modal */}
       {isInviteModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-xl font-semibold mb-4">Invite to Date</h3>
             <label className="block mb-2 text-sm">Date & Time</label>
@@ -220,7 +323,7 @@ export function DashMessages({ connection }) {
                 disabled={!inviteDateTime || !inviteLocation}
                 className={`px-4 py-2 rounded text-white ${
                   inviteDateTime && inviteLocation
-                    ? "bg-indigo-600 hover:bg-indigo-800"
+                    ? "bg-[#211F20] hover:bg-[#1a1a1a]"
                     : "bg-gray-400 cursor-not-allowed"
                 }`}
               >
@@ -233,7 +336,7 @@ export function DashMessages({ connection }) {
 
       {/* Dates Modal */}
       {isDatesModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
             <h3 className="text-xl font-semibold mb-4">Scheduled Dates</h3>
             <div className="space-y-3 max-h-60 overflow-y-auto">
@@ -255,7 +358,7 @@ export function DashMessages({ connection }) {
             <div className="mt-6 text-right">
               <button
                 onClick={() => setDatesModalOpen(false)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-800"
+                className="px-4 py-2 bg-[#211F20] text-white rounded hover:bg-[#1a1a1a]"
               >
                 Close
               </button>
@@ -265,96 +368,35 @@ export function DashMessages({ connection }) {
       )}
 
       {/* Pending Invites */}
-      <div className="px-4 py-2">
-        {invites.map(inv => {
-          const isInviteFromMe = inv.invitedBy === me;
-          
-          if (isInviteFromMe) {
-            // Show sent invite (waiting for response)
-            return (
-              <div
-                key={inv.id}
-                className="bg-blue-100 p-4 mb-2 rounded flex justify-between items-center"
-              >
-                <span>
-                  Date invitation sent to {connection.name} for{" "}
-                  {new Date(inv.timestamp.toDate()).toLocaleString()} @ {inv.location}
-                  <br />
-                  <span className="text-sm text-gray-600">Waiting for response...</span>
-                </span>
-                <div className="text-gray-500 text-sm">
-                  Pending
-                </div>
-              </div>
-            );
-          } else {
-            // Show received invite (can accept/decline)
-            return (
-              <div
-                key={inv.id}
-                className="bg-yellow-100 p-4 mb-2 rounded flex justify-between items-center"
-              >
-                <span>
-                  {connection.name} invited you on{" "}
-                  {new Date(inv.timestamp.toDate()).toLocaleString()} @ {inv.location}
-                </span>
-                <div className="space-x-2">
-                  <button
-                    onClick={() => handleRespond(inv.id, true)}
-                    className="px-3 py-1 bg-green-500 text-white rounded"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => handleRespond(inv.id, false)}
-                    className="px-3 py-1 bg-red-500 text-white rounded"
-                  >
-                    Decline
-                  </button>
-                </div>
-              </div>
-            );
-          }
-        })}
-      </div>
-
-      {/* Chat Messages */}
-      <div className="flex flex-col h-[57vh] pb-1 mt-1 mx-3 max-w-full shadow bg-white rounded-3xl border border-gray-50">
-        <div className="flex flex-col flex-grow overflow-y-auto px-11 pt-6 pb-4">
-          {messageArray.map((msg, idx) => (
+      {invites.length > 0 && (
+        <div className="px-4 py-2 mb-6">
+          {invites.map(inv => (
             <div
-              key={idx}
-              className={
-                msg.senderId === me
-                  ? "self-end px-8 py-3.5 text-white bg-blue-700 mt-4 rounded-[40px]"
-                  : msg.senderId === "system"
-                  ? "self-center px-6 py-2 text-gray-700 bg-green-100 mt-4 rounded"
-                  : "self-start px-6 py-3.5 text-black bg-gray-300 mt-4 rounded-[40px]"
-              }
+              key={inv.id}
+              className="bg-yellow-100 p-4 mb-2 rounded flex justify-between items-center"
             >
-              {msg.text}
+              <span>
+                {connection.name} invited you on{" "}
+                {new Date(inv.timestamp.toDate()).toLocaleString()} @ {inv.location}
+              </span>
+              <div className="space-x-2">
+                <button
+                  onClick={() => handleRespond(inv.id, true)}
+                  className="px-3 py-1 bg-green-500 text-white rounded"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => handleRespond(inv.id, false)}
+                  className="px-3 py-1 bg-red-500 text-white rounded"
+                >
+                  Decline
+                </button>
+              </div>
             </div>
           ))}
-          <div ref={messagesEndRef} />
         </div>
-        <div className="flex items-center gap-4 px-6 py-4 border-t border-gray-200">
-          <input
-            type="text"
-            value={newMessageText}
-            onChange={e => setNewMessageText(e.target.value)}
-            onKeyDown={handleOnKeyDown}
-            placeholder="Type a message..."
-            className="flex-grow text-2xl outline-none bg-transparent"
-          />
-          <button
-            onClick={submitNewMessage}
-            disabled={!newMessageText.trim()}
-            className={`${!newMessageText.trim() ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            <FaPaperPlane className="text-indigo-600 text-4xl cursor-pointer hover:text-indigo-800" />
-          </button>
-        </div>
-      </div>
-    </>
+      )}
+    </div>
   );
 }

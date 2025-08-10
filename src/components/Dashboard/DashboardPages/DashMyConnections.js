@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, forwardRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FaPaperPlane } from 'react-icons/fa';
 import { IoChevronBackCircleOutline } from 'react-icons/io5';
@@ -12,6 +12,7 @@ import imgNoise from '../../../images/noise.png';
 import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.svg';
 import { formatUserName } from '../../../utils/nameFormatter';
 import { DateTime } from 'luxon';
+import { markSparkAsRead, isSparkNew, markSparkAsViewed, refreshSidebarNotification } from '../../../utils/notificationManager';
 
 const MAX_SELECTIONS = 3;
 
@@ -90,7 +91,7 @@ async function isLatestEventWithin48Hours(userId) {
   }
 }
 
-const DashMyConnections = () => {
+const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect }, ref) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedConnection, setSelectedConnection] = useState(null);
@@ -297,6 +298,7 @@ const DashMyConnections = () => {
       const connectionToSelect = connections.find(conn => conn.id === location.state.selectedConnectionId);
       if (connectionToSelect) {
         setSelectedConnection(connectionToSelect);
+        onConnectionSelect?.(connectionToSelect);
         // Clear the state to prevent auto-selection on subsequent renders
         window.history.replaceState({}, document.title);
       }
@@ -342,31 +344,27 @@ const DashMyConnections = () => {
 
   useEffect(() => {
     const fetchConnections = async () => {
-      if (!auth.currentUser) {
-        // console.error('[CONNECTIONS] No authenticated user found');
-        return;
-      }
+      const user = auth.currentUser;
+      if (!user) return;
       
+      setLoading(true);
       try {
-        setLoading(true);
-        // Fetch connections from user's connections subcollection
-        const connectionsSnap = await getDocs(collection(db, 'users', auth.currentUser.uid, 'connections'));
+        // Get all connections
+        const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
         const connectionIds = connectionsSnap.docs.map(doc => doc.id);
         
         // Fetch profile data for each connection and check for mutual status
         const connectionProfiles = await Promise.all(
           connectionIds.map(async (connectionId) => {
             try {
-              
               const userDoc = await getDoc(doc(db, 'users', connectionId));
               if (!userDoc.exists()) {
                 return null;
               }
               
               // Get the connection document to retrieve the match score and status
-              const connectionDoc = await getDoc(doc(db, 'users', auth.currentUser.uid, 'connections', connectionId));
+              const connectionDoc = await getDoc(doc(db, 'users', user.uid, 'connections', connectionId));
               const connectionData = connectionDoc.exists() ? connectionDoc.data() : {};
-              
               
               // Only include mutual connections
               if (connectionData.status !== 'mutual') {
@@ -392,24 +390,16 @@ const DashMyConnections = () => {
         
         const validProfiles = connectionProfiles.filter(Boolean);
         
-        // Check for new sparks (mutual connections with no message sent by user)
-        const userId = auth.currentUser.uid;
-        const newSparks = await Promise.all(
+        // Check for new sparks using the notification manager
+        const connectionsWithNewFlag = await Promise.all(
           validProfiles.map(async (conn) => {
-            const convoId = userId < conn.id ? `${userId}${conn.id}` : `${conn.id}${userId}`;
-            const convoDoc = await getDoc(doc(db, "conversations", convoId));
-            if (!convoDoc.exists()) return true; // No conversation yet = new spark
-            const messages = convoDoc.data().messages || [];
-            const hasMessaged = messages.some(msg => msg.senderId === userId);
-            return !hasMessaged;
+            const isNew = await isSparkNew(conn.id);
+            return {
+              ...conn,
+              isNewSpark: isNew
+            };
           })
         );
-
-        // Add isNewSpark property to each connection object
-        const connectionsWithNewFlag = validProfiles.map((conn, idx) => ({
-          ...conn,
-          isNewSpark: newSparks[idx]
-        }));
         
         setConnections(connectionsWithNewFlag);
         
@@ -492,7 +482,25 @@ const DashMyConnections = () => {
 
             {/* Message button */}
             <button 
-              onClick={() => setSelectedConnection(connection)}
+              onClick={async () => {
+                // Mark the spark as read when user clicks message
+                if (connection.isNewSpark) {
+                  await markSparkAsRead(connection.id);
+                  await markSparkAsViewed(connection.id); // Mark as viewed
+                  // Update the local state to remove the red dot
+                  setConnections(prevConnections => 
+                    prevConnections.map(conn => 
+                      conn.id === connection.id 
+                        ? { ...conn, isNewSpark: false }
+                        : conn
+                    )
+                  );
+                  
+                  // Force refresh of sidebar notification state
+                  await refreshSidebarNotification();
+                }
+                setSelectedConnection(connection);
+              }}
               className="flex px-6 py-3 justify-center items-center gap-3 rounded-lg bg-[#211F20]"
             >
               {/* Icon */}
@@ -576,15 +584,13 @@ const DashMyConnections = () => {
         <ConnectionList />
       ) : (
         <div>
-          <div className="flex items-center gap-4 px-7 mb-6">
-            <button onClick={() => setSelectedConnection(null)}>
-              <IoChevronBackCircleOutline size={50} />
-            </button>
-            <div className="text-4xl font-semibold">
-              {selectedConnection.name}
-            </div>
-          </div>
-          <DashMessages connection={selectedConnection} />
+          <DashMessages 
+            connection={selectedConnection} 
+            onBack={() => {
+              setSelectedConnection(null);
+              onConnectionDeselect?.();
+            }} 
+          />
         </div>
       )}
 
@@ -622,14 +628,7 @@ const DashMyConnections = () => {
       )}
     </div>
   );
-};
-
-// Helper: compatibility color
-const getCompatibilityColor = score => {
-  if (score >= 80) return '#00E096';
-  if (score >= 60) return '#0095FF';
-  return '#C5A8FF';
-};
+});
 
 export default DashMyConnections;
 
