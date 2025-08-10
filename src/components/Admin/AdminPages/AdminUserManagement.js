@@ -9,6 +9,7 @@ import AdminUserDetailModal from './AdminUserDetailModal';
 import { DateTime } from 'luxon';
 import { signOutFromEvent, calculateActualCounts, reconcileCounts } from '../../../utils/eventSpotsUtils';
 import { formatUserName } from '../../../utils/nameFormatter';
+import { sortEventsByDate } from '../../../utils/eventSorter';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -195,11 +196,15 @@ const AdminUserManagement = () => {
             date: dateStr,
             time: timeStr,
             signUp: signUpStr,
+            // Add timestamp for sorting
+            timestamp: dt ? dt.toMillis() : (data.eventDate ? DateTime.fromISO(data.eventDate).toMillis() : 0),
           };
         })
       );
 
-      setUserEvents(enriched);
+      // Sort events chronologically from newest to oldest
+      const sortedEvents = sortEventsByDate(enriched);
+      setUserEvents(sortedEvents);
     } catch (error) {
       console.error('Error fetching user events:', error);
       setUserEvents([]);

@@ -19,6 +19,7 @@ import * as RiIcons from "react-icons/ri";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from '../../../firebaseConfig';
 import PopUp from './PopUp';
+import { hasNewSparks } from '../../../utils/notificationManager';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -29,45 +30,65 @@ const Sidebar = () => {
   const [hasNewSpark, setHasNewSpark] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  // Duplicate new sparks logic from DashHome.js
+  // Check for new sparks using the notification manager
   useEffect(() => {
-    const fetchConnections = async () => {
+    const checkNewSparks = async () => {
       const user = auth.currentUser;
       if (!user) return;
+      
       try {
-        const connsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
-        const uids = connsSnap.docs.map(d => d.id);
-        const profiles = await Promise.all(
-          uids.map(async (uid) => {
-            const userDoc = await getDoc(doc(db, 'users', uid));
-            if (!userDoc.exists()) return null;
-            const data = userDoc.data();
-            const connectionDoc = await getDoc(doc(db, 'users', user.uid, 'connections', uid));
-            const connectionData = connectionDoc.exists() ? connectionDoc.data() : {};
-            if (connectionData.status !== 'mutual') return null;
-            return { userId: uid, ...data };
-          })
-        );
-        const filteredProfiles = profiles.filter(Boolean);
-        const userId = user.uid;
-        const newSparks = await Promise.all(
-          filteredProfiles.map(async (conn) => {
-            const convoId = userId < conn.userId ? `${userId}${conn.userId}` : `${conn.userId}${userId}`;
-            const convoDoc = await getDoc(doc(db, "conversations", convoId));
-            if (!convoDoc.exists()) return true;
-            const messages = convoDoc.data().messages || [];
-            const hasMessaged = messages.some(msg => msg.senderId === userId);
-            return !hasMessaged;
-          })
-        );
-        setHasNewSpark(newSparks.some(isNew => isNew));
+        const hasNew = await hasNewSparks();
+        setHasNewSpark(hasNew);
+        console.log(`Sidebar automatic check: ${hasNew ? 'has new sparks' : 'no new sparks'}`);
       } catch (err) {
-        console.error('Error fetching connections for sidebar:', err);
+        console.error('Error checking for new sparks:', err);
         setHasNewSpark(false);
       }
     };
-    fetchConnections();
-  }, [auth.currentUser]);
+
+    checkNewSparks();
+    
+    // Set up interval to check for new sparks every 30 seconds (less frequent)
+    const interval = setInterval(checkNewSparks, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Also check when user navigates to sparks page
+  useEffect(() => {
+    if (location.pathname === "/dashboard/dashMyConnections") {
+      const checkNewSparks = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        
+        try {
+          const hasNew = await hasNewSparks();
+          setHasNewSpark(hasNew);
+          console.log(`Sidebar navigation check: ${hasNew ? 'has new sparks' : 'no new sparks'}`);
+        } catch (err) {
+          console.error('Error checking for new sparks:', err);
+          setHasNewSpark(false);
+        }
+      };
+      
+      // Check immediately when navigating to sparks page
+      checkNewSparks();
+    }
+  }, [location.pathname]);
+
+  // Listen for spark notification updates from other components
+  useEffect(() => {
+    const handleSparkNotificationUpdate = (event) => {
+      console.log('Sidebar received spark notification update:', event.detail.hasNewSparks);
+      setHasNewSpark(event.detail.hasNewSparks);
+    };
+
+    window.addEventListener('sparkNotificationUpdate', handleSparkNotificationUpdate);
+    
+    return () => {
+      window.removeEventListener('sparkNotificationUpdate', handleSparkNotificationUpdate);
+    };
+  }, []);
 
   // Fetch cart count from Firestore
   useEffect(() => {
@@ -270,19 +291,41 @@ const Sidebar = () => {
                     {item.icon}
                     <span>{item.title}</span>
                   </div>
-                  {/* Only for Sparks */}
+                  {/* Only for Sparks - Red dot notification */}
                   {item.title === "Sparks" && hasNewSpark && (
+                    <div className="flex items-center">
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#FF4848',
+                          display: 'inline-block',
+                          border: '1px solid #E5E7EB',
+                          marginLeft: '8px',
+                        }}
+                      />
+                    </div>
+                  )}
+                  {/* Cart indicator for Shop */}
+                  {item.title === "Shop" && cartCount > 0 && (
                     <span
                       style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '100px',
-                        background: '#FF4848',
-                        display: 'inline-block',
-                        border: '1px solid #E5E7EB',
+                        minWidth: '20px',
+                        height: '20px',
+                        borderRadius: '10px',
+                        background: '#0043F1',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: '600',
                         marginLeft: '8px',
                       }}
-                    />
+                    >
+                      {cartCount}
+                    </span>
                   )}
                   {/* Cart indicator for Shop */}
                   {item.title === "Shop" && cartCount > 0 && (

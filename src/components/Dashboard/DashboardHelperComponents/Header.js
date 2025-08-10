@@ -3,6 +3,7 @@ import { getAuth } from "firebase/auth";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from '../../../pages/firebaseConfig';
 import { IoPersonCircle } from 'react-icons/io5';
+import { IoArrowBack } from 'react-icons/io5';
 import { ReactComponent as VectorIcon } from '../../../images/Vector 6.svg';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { formatUserName } from "../../../utils/nameFormatter";
@@ -101,7 +102,7 @@ const Header = (props) => {
     "/dashboard/dashDateCalendar": "Shop", "/dashboard/DashCheckout": "Checkout", "/dashboard/dashMyCoupons": "My Coupons", 
     "/dashboard/dashMyProfile": "My Profile", "/dashboard/dashSettings": "Settings", "/dashboard/dashChangePassword": "Change Password", 
     "/dashboard/dashDeleteAccount": "Delete Account", "/dashboard/dashDeactivateAccount": "Deactivate Account", "/dashboard/dashSignOut": "Sign Out"}
-  const { path } = props;
+  const { path, activeConnection, onBackToConnections } = props;
   const currentPath = location.pathname;
 
   if (isLoading) {
@@ -121,32 +122,47 @@ const Header = (props) => {
   
 
   return (
-    <div className={`flex justify-between items-center p-6 bg-white border border-[rgba(33,31,32,0.10)] max-md:hidden max-sm:p-6`}>
-      {/* Desktop: Always show normal page title */}
-      <div 
-        className={`${["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(currentPath) ? "cursor-pointer hover:opacity-70" : ""}`}
-        style={{
-          color: 'var(--Raisin_Black, #211F20)',
-          fontFamily: '"Bricolage Grotesque"',
-          fontSize: 'var(--H8, 16px)',
-          fontStyle: 'normal',
-          fontWeight: '500',
-          lineHeight: '130%',
-          textTransform: 'uppercase'
-        }}
-        onClick={["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(currentPath) ? () => navigate('/dashboard/dashSettings') : undefined}
-      >
-        {["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(currentPath) ? (
-          <span className="flex items-center">
-            <img src="/arrow-left.svg" alt="Back" className="w-4 h-4 mr-2" />
-            {PathTitleMappings[currentPath]}
-          </span>
+    <div className="flex justify-between items-center p-6 bg-white border border-[rgba(33,31,32,0.10)]">
+      <div className="flex items-center gap-4">
+        {/* Show back arrow and connection name when in a conversation */}
+        {activeConnection && onBackToConnections ? (
+          <>
+            <button 
+              onClick={onBackToConnections}
+              className="flex w-5 h-5 justify-center items-center text-[#211F20] hover:text-[#1a1a1a] transition-colors"
+            >
+              <IoArrowBack size={20} />
+            </button>
+            <div className="text-[#211F20] font-bricolage text-base font-medium leading-[130%] uppercase tracking-wide">
+              {activeConnection.name}
+            </div>
+          </>
         ) : (
-          PathTitleMappings[currentPath] || "MY PROFILE"
+          /* Show regular page title when not in a conversation */
+          <div 
+            className={`${["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(currentPath) ? "cursor-pointer hover:opacity-70" : ""}`}
+            style={{
+              color: 'var(--Raisin_Black, #211F20)',
+              fontFamily: '"Bricolage Grotesque"',
+              fontSize: 'var(--H8, 16px)',
+              fontStyle: 'normal',
+              fontWeight: '500',
+              lineHeight: '130%',
+              textTransform: 'uppercase'
+            }}
+            onClick={["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(currentPath) ? () => navigate('/dashboard/dashSettings') : undefined}
+          >
+            {["/dashboard/dashChangePassword", "/dashboard/dashDeleteAccount", "/dashboard/dashDeactivateAccount"].includes(currentPath) ? (
+              <span className="flex items-center">
+                <img src="/arrow-left.svg" alt="Back" className="w-4 h-4 mr-2" />
+                {PathTitleMappings[currentPath]}
+              </span>
+            ) : (
+              PathTitleMappings[currentPath] || "MY PROFILE"
+            )}
+          </div>
         )}
       </div>
-
-
       
       <div className={`flex gap-5 items-center`}>
         <div className="flex justify-center items-center h-[66px] w-[62px]">

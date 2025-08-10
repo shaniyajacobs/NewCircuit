@@ -2,10 +2,9 @@ import styled from 'styled-components';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState } from 'react';
 import { FooterShapes } from './Login';
-import { auth, db } from './firebaseConfig';
-import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
+import { auth } from './firebaseConfig';
+import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { doc, setDoc } from 'firebase/firestore';
 
 const LoginContainer = styled.div`
   display: flex;

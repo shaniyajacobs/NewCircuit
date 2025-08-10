@@ -3,10 +3,10 @@ import cirCrossPBlue from '../images/cir_cross_PWhite.svg';
 import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
 import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { signInWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "./firebaseConfig"; // Import Firebase auth
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from "./firebaseConfig"; // Import Firestore
@@ -141,7 +141,7 @@ export const FooterShapes = () => {
   const rowCount = 8;
   const shapesPerRow = 12;
 
-  const patternData = useMemo(() => {
+  const patternData = React.useMemo(() => {
     // Generate grid of shapes
     const grid = Array(rowCount).fill().map(() => 
       Array(shapesPerRow).fill(shapeOptions[0])
