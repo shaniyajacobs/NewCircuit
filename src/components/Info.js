@@ -44,7 +44,7 @@ const Info = () => {
                                     />
                                 </span>
                                 {/* Rest of the text */}
-                                <span> you with single locals</span>
+                                <span> you with local singles</span>
                             </h2>
                         </div>
                         <p className="text-[16px] md:text-[20px] lg:text-[24px] text-black font-poppins font-light leading-normal pb-[2px] sm:pb-[4px] md:pb-[8px] lg:pb-[18px]">
