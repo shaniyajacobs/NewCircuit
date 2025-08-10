@@ -16,12 +16,15 @@ import PopUp from '../DashboardHelperComponents/PopUp';
 import { calculateAge } from '../../../utils/ageCalculator';
 import { filterByGenderPreference } from '../../../utils/genderPreferenceFilter';
 import { formatUserName } from '../../../utils/nameFormatter';
+import { sortEventsByDate, sortAndFilterUpcomingEvents } from '../../../utils/eventSorter';
 import homeSelectMySparks from '../../../images/home_select_my_sparks.jpg';
 import imgNoise from '../../../images/noise.png';
 import homeSeeMySparks from '../../../images/home_see_my_sparks.jpg';
 import homePurchaseMoreDates from '../../../images/home_purchase_more_dates.jpg';
 import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.svg';
 import filterIcon from '../../../images/setting-4.svg';
+import { markSparkAsRead, isSparkNew, markSparkAsViewed, refreshSidebarNotification } from "../../../utils/notificationManager";
+import { DashMessages } from "./DashMessages";
 import xIcon from "../../../images/x.svg";
 import tickCircle from "../../../images/tick-circle.svg";
 
@@ -207,6 +210,7 @@ const DashHome = () => {
   const [showSelectSparksCard, setShowSelectSparksCard] = useState(false);
   const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
   const [selectingMatches, setSelectingMatches] = useState(false);
+  const [selectedConnection, setSelectedConnection] = useState(null);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -214,6 +218,16 @@ const DashHome = () => {
     title: '',
     message: '',
   });
+
+  // Handle message click to open chat
+  const handleMessageClick = (connection) => {
+    setSelectedConnection(connection);
+  };
+
+  // Handle closing messages modal
+  const handleCloseMessages = () => {
+    setSelectedConnection(null);
+  };
 
   // Helper: fetch IDs of events the user has signed up for from their sub-collection
   const fetchUserSignedUpEventIds = async (userId) => {
@@ -368,32 +382,26 @@ const DashHome = () => {
       const filteredProfiles = profiles.filter(Boolean);
       setConnections(filteredProfiles);
 
-      // Check for new sparks (mutual connections with no message sent by user)
-      const userId = user.uid;
-      const newSparks = await Promise.all(
+      // Check for new sparks using the notification manager
+      const connectionsWithNewFlag = await Promise.all(
         filteredProfiles.map(async (conn) => {
-          const convoId = userId < conn.userId ? `${userId}${conn.userId}` : `${conn.userId}${userId}`;
-          const convoDoc = await getDoc(doc(db, "conversations", convoId));
-          if (!convoDoc.exists()) return true; // No conversation yet = new spark
-          const messages = convoDoc.data().messages || [];
-          const hasMessaged = messages.some(msg => msg.senderId === userId);
-          return !hasMessaged;
+          const isNew = await isSparkNew(conn.userId);
+          return {
+            ...conn,
+            isNewSpark: isNew
+          };
         })
       );
 
-      // Add isNewSpark property to each connection object
-      const connectionsWithNewFlag = filteredProfiles.map((conn, idx) => ({
-        ...conn,
-        isNewSpark: newSparks[idx]
-      }));
       setConnections(connectionsWithNewFlag);
-      setHasNewSpark(newSparks.some(isNew => isNew));
+      setHasNewSpark(connectionsWithNewFlag.some(conn => conn.isNewSpark));
       
       // Hide select sparks card if user has max selections
       if (filteredProfiles.length >= MAX_SELECTIONS) {
         setShowSelectSparksCard(false);
       }
     } catch (err) {
+      console.error('Error fetching connections:', err);
       setConnections([]);
       setHasNewSpark(false);
     } finally {
@@ -537,10 +545,13 @@ const DashHome = () => {
         );
 
       const filteredEvents = eventsList.filter(Boolean);
-      setAllEvents(filteredEvents);
+      
+      // Sort events chronologically from newest to oldest
+      const sortedEvents = sortEventsByDate(filteredEvents);
+      setAllEvents(sortedEvents);
 
-      // Upcoming-filter based on user location
-      const upcoming = getUpcomingEvents(filteredEvents, userProfile?.location);
+      // Upcoming-filter based on user location (already sorted)
+      const upcoming = getUpcomingEvents(sortedEvents, userProfile?.location);
       setFirebaseEvents(upcoming);
       setEvents(upcoming);
 
@@ -997,15 +1008,26 @@ useEffect(() => {
     // 9. Redirect to MyMatches
     navigate('myMatches');
     } catch (error) {
-      console.error('Error in handleMatchesClick:', error);
-      setErrorModal({
-        open: true,
-        title: "Error",
-        message: "An error occurred while processing your matches. Please try again.",
-      });
-    } finally {
-      setSelectingMatches(false);
+      console.error('[DASHHOME] Error in handleMatchesClick:', error);
+      // Fallback: try to navigate directly even if matchmaking fails
+      try {
+        console.log('[DASHHOME] Attempting fallback navigation to myMatches');
+        navigate('/dashboard/myMatches');
+      } catch (navError) {
+        console.error('[DASHHOME] Fallback navigation also failed:', navError);
+        setErrorModal({
+          open: true,
+          title: "Error",
+          message: "An error occurred while processing your matches. Please try again.",
+        });
+      }
     }
+  };
+
+  // Simple direct navigation function as backup
+  const handleDirectMatchesClick = () => {
+    console.log('[DASHHOME] Direct navigation to myMatches');
+    navigate('/dashboard/myMatches');
   };
 
   const handleConnectionsClick = () => {
@@ -1022,24 +1044,34 @@ useEffect(() => {
 
   // Use the same event limit for sign-up events
   const signUpEventLimit = useResponsiveEventLimit();
-  // Filter for upcoming and sign-up events
+  // Filter for upcoming and sign-up events (already sorted by date)
   const upcomingEvents = useMemo(() => {
-    return allEvents.filter(event =>
+    const filtered = allEvents.filter(event =>
       signedUpEventIds.has(event.firestoreID)
     );
-  }, [allEvents, signedUpEventIds,]);
+    // Ensure they remain sorted (should already be sorted from loadEvents)
+    return sortEventsByDate(filtered);
+  }, [allEvents, signedUpEventIds]);
 
-  // Show *all* events (regardless of date) that the user has not yet signed up for
+  // Show *all* events (regardless of date) that the user has not yet signed up for (sorted by date)
   const upcomingSignupEvents = useMemo(() => {
-    return allEvents.filter(event => {
+    const filtered = allEvents.filter(event => {
       // First, exclude events the user has already signed up for
       if (signedUpEventIds.has(event.firestoreID)) {
         return false;
       }
 
-      // If we get here, the event is available for sign-up
+      // Finally, check if the event is past its date
+      if (isEventPast(event, 0)) {
+        return false;
+      }
+
+      // If we get here, the event is available for sign-up and upcoming
       return true;
     });
+    
+    // Ensure they remain sorted (should already be sorted from loadEvents)
+    return sortEventsByDate(filtered);
   }, [allEvents, signedUpEventIds, userGender]);
 
   return (
@@ -1434,7 +1466,7 @@ useEffect(() => {
               {loadingConnections ? (
                 <div className="p-4 text-gray-600">Loading...</div>
               ) : (
-                <ConnectionsTable connections={connections} />
+                <ConnectionsTable connections={connections} onMessageClick={handleMessageClick} />
               )}
               {/*              <button
                 className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
@@ -1455,33 +1487,56 @@ useEffect(() => {
       </div> {/* Close the outer container with padding */}
 
       {/* Error Modal Overlay */}
-      <PopUp
-        isOpen={errorModal.open}
-        onClose={() => setErrorModal(prev => ({ ...prev, open: false }))}
-        title={errorModal.title}
-        subtitle={errorModal.message}
-        icon="✗"
-        iconColor="red"
-        primaryButton={{
-          text: "OK",
-          onClick: () => setErrorModal(prev => ({ ...prev, open: false }))
-        }}
-      />
+      {errorModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black opacity-50"
+            onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
+          />
+          {/* Modal content */}
+          <div className="relative bg-white rounded-2xl shadow-lg max-w-md w-full p-8 z-10">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-indigo-950">{errorModal.title}</h2>
+              <button
+                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            </div>
+            <p className="text-gray-700 whitespace-pre-line mb-6">{errorModal.message}</p>
+            <div className="flex justify-end">
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
+                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Congratulations Modal Overlay */}
-      <PopUp
-        isOpen={showCongratulationsModal}
-        onClose={() => setShowCongratulationsModal(false)}
-        title="Congratulations!"
-        subtitle="You picked your matches. We'll notify you if they match back and you have new sparks."
-        icon="✓"
-        iconColor="green"
-        maxWidth="max-w-2xl"
-        primaryButton={{
-          text: "Got It",
-          onClick: () => setShowCongratulationsModal(false)
-        }}
-      />
+      {/* DashMessages Modal */}
+      {selectedConnection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black opacity-50" onClick={handleCloseMessages} />
+          <div className="relative bg-white rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 z-10">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Message {selectedConnection.name}</h2>
+              <button 
+                className="text-gray-500 hover:text-gray-800 text-2xl" 
+                onClick={handleCloseMessages}
+              >
+                &times;
+              </button>
+            </div>
+            <DashMessages connection={selectedConnection} />
+          </div>
+        </div>
+      )}
 
     </div>
   );

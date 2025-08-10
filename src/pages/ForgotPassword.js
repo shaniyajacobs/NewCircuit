@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import { FooterShapes } from './Login';
-import { useNavigate, Link } from 'react-router-dom';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 const Container = styled.div`

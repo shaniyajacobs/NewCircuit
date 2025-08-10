@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Route, Routes, useLocation, useNavigate, Navigate } from "react-router-dom";
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { auth, db } from "./firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import AdminCoupons from "../components/Admin/AdminPages/AdminCoupons";
