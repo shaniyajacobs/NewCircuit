@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import { FooterShapes } from './Login';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -29,7 +28,7 @@ const VerifyEmail = () => {
         if (auth.currentUser && !auth.currentUser.emailVerified) {
             setEmailSent(true);
         }
-    }, [userData]);
+    }, [userData, navigate]);
 
     const createUserAndSendVerification = async () => {
         try {
