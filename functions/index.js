@@ -1,5 +1,6 @@
 const functions = require("firebase-functions/v2");
 const { onCall } = require("firebase-functions/v2/https");
+const { onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const Stripe = require("stripe");
@@ -267,53 +268,13 @@ exports.deleteUser = onCall({
     // Fetch user doc to retrieve gender for signup count adjustments
     const userSnap = await userRef.get();
     const userData = userSnap.exists ? userSnap.data() : {};
-    const gender = (userData.gender || '').toLowerCase();
 
-    // 1️⃣  Handle event sign-ups
+
     const signedUpEventsSnap = await userRef.collection('signedUpEvents').get();
-    const eventUpdates = signedUpEventsSnap.docs.map(async (evDoc) => {
-      const eventId = evDoc.id; // firestoreID of the event
+    const eventOps = signedUpEventsSnap.docs.map(async (evDoc) => {
+      const eventId = evDoc.id; // event firestoreID
       const eventRef = db.collection('events').doc(eventId);
-
-      // Remove from event's signedUpUsers sub-collection
       await eventRef.collection('signedUpUsers').doc(uid).delete().catch(() => {});
-
-      // Use transaction-based approach for reliable count updates
-      if (gender === 'male' || gender === 'female') {
-        try {
-          await db.runTransaction(async (transaction) => {
-            const eventDoc = await transaction.get(eventRef);
-            if (eventDoc.exists) {
-              const data = eventDoc.data();
-              const currentMenCount = data.menSignupCount || 0;
-              const currentWomenCount = data.womenSignupCount || 0;
-              
-              const updateData = {};
-              if (gender === 'male') {
-                updateData.menSignupCount = Math.max(currentMenCount - 1, 0);
-              } else if (gender === 'female') {
-                updateData.womenSignupCount = Math.max(currentWomenCount - 1, 0);
-              }
-              
-              transaction.update(eventRef, updateData);
-            }
-          });
-        } catch (error) {
-          console.log('⚠️ Transaction-based count update failed, using fallback:', error.message);
-          // Fallback: manually update counts
-          const signedUpUsersSnap = await eventRef.collection('signedUpUsers').get();
-          const users = signedUpUsersSnap.docs.map(doc => doc.data());
-          const menCount = users.filter(user => user.userGender?.toLowerCase() === 'male').length;
-          const womenCount = users.filter(user => user.userGender?.toLowerCase() === 'female').length;
-          
-          await eventRef.update({
-            menSignupCount: menCount,
-            womenSignupCount: womenCount
-          });
-        }
-      }
-
-      // Delete the signedUpEvents document under the user
       await evDoc.ref.delete().catch(() => {});
     });
 
@@ -329,7 +290,7 @@ exports.deleteUser = onCall({
     const adminRoleDeletion = db.collection('adminUsers').doc(uid).delete().catch(() => {});
 
     // 4️⃣  Wait for all parallel deletions
-    await Promise.all([...eventUpdates, ...connectionUpdates, adminRoleDeletion]);
+    await Promise.all([...eventOps, ...connectionUpdates, adminRoleDeletion]);
 
     // 5️⃣  Finally, recursively delete the user document (clears remaining sub-collections)
     await admin.firestore().recursiveDelete(userRef).catch(() => {});
@@ -380,3 +341,100 @@ exports.sendContactEmail = onCall({
   }
 });
 
+
+
+// 🆕 Automatically promote from waitlist when a signup is removed
+// 🆕 Automatically promote from waitlist when a signup is removed (transactional)
+exports.promoteFromWaitlist = onDocumentDeleted(
+  { region: "us-central1" },
+  "events/{eventId}/signedUpUsers/{uid}",
+  async (event) => {
+    const db = admin.firestore();
+    const { eventId, uid } = event.params;
+
+    // v2: deleted doc's data is available on event.data
+    const removedUser = event.data?.data() || {};
+    let gender = (removedUser.userGender || '').toLowerCase();
+
+    // Fallback: if gender wasn't on the signup doc, try user profile
+    if (!gender) {
+      const userSnap = await db.collection('users').doc(uid).get();
+      gender = (userSnap.data()?.gender || '').toLowerCase();
+    }
+    if (!gender) {
+      console.log(`[promoteFromWaitlist] No gender found for removed user ${uid}; skipping.`);
+      return;
+    }
+
+    const eventRef = db.collection("events").doc(eventId);
+
+    await db.runTransaction(async (tx) => {
+      const eventDoc = await tx.get(eventRef);
+      if (!eventDoc.exists) return;
+
+      const data = eventDoc.data() || {};
+      const spotsField = gender === "male" ? "menSpots" : "womenSpots";
+      const countField = gender === "male" ? "menSignupCount" : "womenSignupCount";
+
+      const spots = Number(data[spotsField] || 0);
+      const currentCount = Number(data[countField] || 0);
+
+      // 1) Decrement immediately because a signup doc was removed
+      const afterRemoval = Math.max(currentCount - 1, 0);
+      tx.update(eventRef, { [countField]: afterRemoval });
+
+      // 2) If no spot opened, stop here
+      const open = spots - afterRemoval;
+      if (open <= 0) return;
+
+      // 3) Find earliest waitlisted user of the same gender
+      const waitlistRef = eventRef.collection("waitlist");
+
+      // First try normalized equality query
+      let q = waitlistRef
+        .where("userGender", "==", gender)
+        .orderBy("waitlistTime", "asc")
+        .limit(1);
+      let snap = await tx.get(q);
+
+      // Fallback: scan earliest N and pick first case-insensitive match
+      if (snap.empty) {
+        const scan = await tx.get(waitlistRef.orderBy("waitlistTime", "asc").limit(25));
+        const firstMatch = scan.docs.find(d => (d.data().userGender || '').toLowerCase() === gender);
+        if (!firstMatch) return;
+
+        // Promote firstMatch
+        const promotedUid = firstMatch.id;
+        const firstInLine = firstMatch.data() || {};
+
+        const suRef = eventRef.collection("signedUpUsers").doc(promotedUid);
+        tx.set(suRef, {
+          ...firstInLine,
+          signUpTime: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        tx.update(eventRef, { [countField]: afterRemoval + 1 });
+        tx.delete(firstMatch.ref);
+        return;
+      }
+
+      // Promote the doc found by normalized query
+      const firstInLineDoc = snap.docs[0];
+      const promotedUid = firstInLineDoc.id;
+      const firstInLine = firstInLineDoc.data() || {};
+
+      const suRef = eventRef.collection("signedUpUsers").doc(promotedUid);
+      tx.set(suRef, {
+        ...firstInLine,
+        signUpTime: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // 4) Filled the spot → increment back
+      tx.update(eventRef, { [countField]: afterRemoval + 1 });
+
+      // 5) Remove from waitlist
+      tx.delete(firstInLineDoc.ref);
+    }).catch(err => {
+      console.error(`[promoteFromWaitlist] Transaction failed for event ${eventId}:`, err);
+    });
+  }
+);
