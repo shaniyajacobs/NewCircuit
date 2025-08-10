@@ -18,6 +18,7 @@ import * as IoIcons from "react-icons/io";
 import * as RiIcons from "react-icons/ri";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from '../../../firebaseConfig';
+import PopUp from './PopUp';
 import { hasNewSparks } from '../../../utils/notificationManager';
 
 const Sidebar = () => {
@@ -26,8 +27,8 @@ const Sidebar = () => {
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showTabletMenu, setShowTabletMenu] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [hasNewSpark, setHasNewSpark] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   // Check for new sparks using the notification manager
   useEffect(() => {
@@ -89,6 +90,66 @@ const Sidebar = () => {
     };
   }, []);
 
+  // Fetch cart count from Firestore
+  useEffect(() => {
+    const fetchCartCount = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const cart = userData.cart || [];
+          setCartCount(cart.length);
+        }
+      } catch (err) {
+        console.error('Error fetching cart count:', err);
+      }
+    };
+
+    fetchCartCount();
+    
+    // Set up real-time listener for cart changes
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        fetchCartCount();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth.currentUser]);
+
+  // Listen for cart update events from other components
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      const fetchCartCount = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const cart = userData.cart || [];
+            setCartCount(cart.length);
+          }
+        } catch (err) {
+          console.error('Error fetching cart count:', err);
+        }
+      };
+      
+      fetchCartCount();
+    };
+
+    // Listen for cart update events
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, [auth.currentUser]);
+
   const navItems = [
     { icon: "ti ti-home", text: "Home", active: true },
     { icon: "ti ti-users", text: "My Sparks" },
@@ -100,7 +161,9 @@ const Sidebar = () => {
   ];
 
   const handleSignOut = (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
     setShowSignOutModal(true);
     setShowSettingsDropdown(false);
   };
@@ -159,27 +222,27 @@ const Sidebar = () => {
       ),
       cName: "nav-text",
     },
-    //{
-    //  title: "My Coupons",
-    //  path: "/dashboard/dashMyCoupons",
-    //  icon: (
-        //<TicketIcon
-          //className="w-5 h-5"
-          //style={{
-            //color: location.pathname === "/dashboard/dashMyCoupons" ? "#1C50D8" : "#211f20"
-          //}}
-        ///>
-    //  ),
-    //  cName: "nav-text",
-    //},
+    {
+     title: "My Coupons",
+     path: "/dashboard/dashMyCoupons",
+     icon: (
+        <TicketIcon
+          className="w-5 h-5"
+          style={{
+            color: location.pathname === "/dashboard/dashMyCoupons" ? "#1C50D8" : "#211f20"
+          }}
+        />
+     ),
+     cName: "nav-text",
+    },
     {
       title: "My Profile",
-      path: "/dashboard/DashMyProfile",
+      path: "/dashboard/dashMyProfile",
       icon: (
         <ProfileCircleIcon
           className="w-5 h-5"
           style={{
-            color: location.pathname === "/dashboard/DashMyProfile" ? "#1C50D8" : "#211f20"
+            color: location.pathname === "/dashboard/dashMyProfile" ? "#1C50D8" : "#211f20"
           }}
         />
       ),
@@ -203,7 +266,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Desktop Sidebar (1280px and above) */}
-      <div className="hidden md:flex flex-col gap-2 sm:gap-2 md:gap-3 lg:gap-4 px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full border border-[rgba(33,31,32,0.10)]">  
+      <div className="hidden md:flex flex-col h-screen px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full border border-[rgba(33,31,32,0.10)] fixed left-0 top-0">  
         <Link to="/dashboard" className="p-6 sm:p-6 md:p-6 lg:p-6">
           <img
             loading="lazy"
@@ -214,7 +277,7 @@ const Sidebar = () => {
         </Link>
 
         {/* Main navigation items with top padding */}
-        <div className="pt-6">
+        <div className="pt-6 flex-1 overflow-y-auto">
           <div className="flex flex-col gap-2"> {/* Add vertical gap between options */}
             {SidebarData.slice(0, -2).map((item, index) => (
               <Link key={item.path} to={item.path} className="w-full">
@@ -244,17 +307,54 @@ const Sidebar = () => {
                       />
                     </div>
                   )}
+                  {/* Cart indicator for Shop */}
+                  {item.title === "Shop" && cartCount > 0 && (
+                    <span
+                      style={{
+                        minWidth: '20px',
+                        height: '20px',
+                        borderRadius: '10px',
+                        background: '#0043F1',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        marginLeft: '8px',
+                      }}
+                    >
+                      {cartCount}
+                    </span>
+                  )}
+                  {/* Cart indicator for Shop */}
+                  {item.title === "Shop" && cartCount > 0 && (
+                    <span
+                      style={{
+                        minWidth: '20px',
+                        height: '20px',
+                        borderRadius: '10px',
+                        background: '#0043F1',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        marginLeft: '8px',
+                      }}
+                    >
+                      {cartCount}
+                    </span>
+                  )}
                 </div>
               </Link>
             ))}
           </div>
         </div>
 
-        {/* Spacer to push Settings and Sign Out to bottom */}
-        <div className="flex-1"></div>
-
-        {/* Settings and Sign Out at bottom with bottom padding */}
-        <div className="pb-6 flex flex-col gap-2"> {/* Add vertical gap between settings and logout */}
+        {/* Settings and Sign Out at bottom - fixed */}
+        <div className="pb-6 flex flex-col gap-2 mt-auto"> {/* Add vertical gap between settings and logout */}
           {SidebarData.slice(-2).map((item, index) => (
             <div key={index}>
               {item.onClick ? (
@@ -294,9 +394,10 @@ const Sidebar = () => {
 
       {/* Tablet Header Bar (under 1280px) */}
       <div className="flex md:hidden justify-between items-center px-6 py-4 bg-white border-b border-[rgba(33,31,32,0.10)] w-full">
-        {/* Left side - Circuit logo */}
+        {/* Left side - Circuit logo / Page title text */}
         <div className="flex items-center">
-          <Link to="/dashboard">
+          {/* Desktop: Show Circuit logo */}
+          <Link to="/dashboard" className="max-md:hidden">
             <img
               loading="lazy"
               src={circuitLogo}
@@ -304,6 +405,35 @@ const Sidebar = () => {
               className="object-contain h-8"
             />
           </Link>
+          {/* Mobile & Tablet: Show page title text */}
+          <div 
+            className="hidden max-md:block"
+            style={{
+              color: 'var(--Raisin_Black, #211F20)',
+              fontFamily: '"Bricolage Grotesque"',
+              fontSize: 'var(--H8, 16px)',
+              fontStyle: 'normal',
+              fontWeight: '500',
+              lineHeight: '130%',
+              textTransform: 'uppercase'
+            }}
+          >
+            {(() => {
+              const path = location.pathname;
+              if (path === "/dashboard") return "HOME";
+              if (path.includes("dashMyConnections")) return "MY SPARKS";
+              if (path.includes("dashDateCalendar")) return "SHOP";
+              if (path.includes("dashMyCoupons")) return "MY COUPONS";
+              if (path.includes("dashMyProfile")) return "MY PROFILE";
+              if (path.includes("dashSettings")) return "SETTINGS";
+              if (path.includes("dashChangePassword")) return "CHANGE PASSWORD";
+              if (path.includes("dashDeleteAccount")) return "DELETE ACCOUNT";
+              if (path.includes("dashDeactivateAccount")) return "DEACTIVATE ACCOUNT";
+              if (path.includes("dashPaymentHistory")) return "PAYMENT HISTORY";
+              if (path.includes("dashMessages")) return "MESSAGES";
+              return "DASHBOARD";
+            })()}
+          </div>
         </div>
 
         {/* Right side - Vectors (clickable) */}
@@ -338,11 +468,23 @@ const Sidebar = () => {
               </button>
             </div>
 
-            {/* Tablet Menu Items */}
+            {/* Tablet/Mobile Menu Items */}
             <div className="flex-1 px-6 py-4">
               {SidebarData.map((item, index) => (
                 <div key={index} className="mb-2">
-                  {item.hasDropdown ? (
+                  {item.onClick ? (
+                    // Logout button with onClick handler
+                    <button
+                      onClick={() => {
+                        setShowTabletMenu(false);
+                        item.onClick();
+                      }}
+                      className="flex gap-4 items-center px-4 py-3 text-lg rounded-xl transition-all cursor-pointer duration-[0.2s] text-red-600 border border-transparent hover:bg-red-50 hover:border-[rgba(255,72,72,0.20)] w-full text-left"
+                    >
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </button>
+                  ) : item.hasDropdown ? (
                     <div className="relative">
                       <div
                         className={`flex gap-4 items-center px-4 py-3 text-lg rounded-xl transition-all cursor-pointer duration-[0.2s] text-slate-500 border
@@ -387,53 +529,53 @@ const Sidebar = () => {
                       >
                         {item.icon}
                         <span>{item.title}</span>
+                        {/* Cart indicator for Shop in mobile menu */}
+                        {item.title === "Shop" && cartCount > 0 && (
+                          <span
+                            style={{
+                              minWidth: '20px',
+                              height: '20px',
+                              borderRadius: '10px',
+                              background: '#0043F1',
+                              color: 'white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              marginLeft: 'auto',
+                            }}
+                          >
+                            {cartCount}
+                          </span>
+                        )}
                       </div>
                     </Link>
                   )}
                 </div>
               ))}
             </div>
-
-            {/* Tablet Menu Footer - Log Out Button */}
-            <div className="px-6 py-4 border-t border-[rgba(33,31,32,0.10)]">
-              <button
-                onClick={() => {
-                  handleSignOut();
-                  setShowTabletMenu(false);
-                }}
-                className="flex gap-4 items-center px-4 py-3 text-lg text-red-600 hover:bg-red-50 rounded-xl transition-colors duration-200 w-full"
-              >
-                <LogoutIcon className="w-5 h-5" />
-                <span>Log out</span>
-              </button>
-            </div>
           </div>
         </div>
       )}
 
       {/* Sign Out Modal */}
-      {showSignOutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-semibold mb-4">Sign Out</h2>
-            <p className="text-gray-600 mb-6">Are you sure you want to sign out?</p>
-            <div className="flex justify-end gap-4">
-              <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={() => setShowSignOutModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-[#0043F1] text-white rounded-lg hover:bg-[#0034BD] transition-colors"
-                onClick={handleSignOutConfirm}
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        title="Sign Out"
+        subtitle="Are you sure you want to sign out?"
+        icon="🚪"
+        iconColor="blue"
+        primaryButton={{
+          text: "Sign Out",
+          onClick: handleSignOutConfirm
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowSignOutModal(false)
+        }}
+      />
     </>
   );
 };

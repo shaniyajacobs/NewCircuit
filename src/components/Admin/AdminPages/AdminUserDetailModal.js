@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { db } from '../../../pages/firebaseConfig';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { FaSearchPlus, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
-import { formatUserName } from '../../../utils/nameFormatter';
+import PopUp from '../../Dashboard/DashboardHelperComponents/PopUp';
 
 const AdminUserDetailModal = ({ isOpen, onClose, user }) => {
   const [dates, setDates] = useState([]);
@@ -46,7 +46,7 @@ const AdminUserDetailModal = ({ isOpen, onClose, user }) => {
         if (d.partnerId) {
           try {
             const partnerDoc = await getDoc(doc(db, 'users', d.partnerId));
-            d.partnerName = partnerDoc.exists() ? formatUserName(partnerDoc.data()) : d.partnerId;
+            d.partnerName = partnerDoc.exists() ? `${partnerDoc.data().firstName || ''} ${partnerDoc.data().lastName || ''}`.trim() : d.partnerId;
           } catch (e) {
             d.partnerName = d.partnerId;
           }
@@ -145,7 +145,7 @@ const AdminUserDetailModal = ({ isOpen, onClose, user }) => {
       if (d.partnerId) {
         try {
           const partnerDoc = await getDoc(doc(db, 'users', d.partnerId));
-          d.partnerName = partnerDoc.exists() ? formatUserName(partnerDoc.data()) : d.partnerId;
+          d.partnerName = partnerDoc.exists() ? `${partnerDoc.data().firstName || ''} ${partnerDoc.data().lastName || ''}`.trim() : d.partnerId;
         } catch (e) {
           d.partnerName = d.partnerId;
         }
@@ -160,7 +160,7 @@ const AdminUserDetailModal = ({ isOpen, onClose, user }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full p-8 relative">
         <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl" onClick={onClose}>&times;</button>
-        <h2 className="text-2xl font-bold mb-4">{formatUserName(user)}'s Submitted Dates</h2>
+        <h2 className="text-2xl font-bold mb-4">{user.firstName} {user.lastName}'s Submitted Dates</h2>
         {loading ? (
           <div className="text-center py-8">Loading…</div>
         ) : (
@@ -261,36 +261,30 @@ const AdminUserDetailModal = ({ isOpen, onClose, user }) => {
         </div>
       )}
       {/* Reject Reason Modal */}
-      {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={() => setShowRejectModal(false)}>
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-8 relative" onClick={e => e.stopPropagation()}>
-            <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowRejectModal(false)}>&times;</button>
-            <h2 className="text-xl font-bold mb-4">Reject Dates</h2>
-            <p className="mb-2 text-gray-700">Please provide a reason for rejection:</p>
-            <textarea
-              className="w-full border border-gray-300 rounded-lg p-2 mb-4 min-h-[80px]"
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-              placeholder="Enter rejection reason..."
-            />
-            <div className="flex justify-end gap-4">
-              <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={() => setShowRejectModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors ${!rejectReason.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={confirmRejectSelected}
-                disabled={!rejectReason.trim()}
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        title="Reject Dates"
+        subtitle="Please provide a reason for rejection:"
+        icon="✗"
+        iconColor="red"
+        maxWidth="max-w-md"
+        primaryButton={{
+          text: "Reject",
+          onClick: confirmRejectSelected
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowRejectModal(false)
+        }}
+      >
+        <textarea
+          className="w-full border border-gray-300 rounded-lg p-2 min-h-[80px]"
+          value={rejectReason}
+          onChange={e => setRejectReason(e.target.value)}
+          placeholder="Enter rejection reason..."
+        />
+      </PopUp>
     </div>
   );
 };
