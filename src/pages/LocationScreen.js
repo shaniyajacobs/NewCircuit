@@ -40,7 +40,7 @@ const LocationScreen = () => {
     const location = useLocation();
     // Destructure userData, and provide a fallback if it's undefined
     const initialUserData = location.state?.userData || {};
-    const [userData, setUserData] = useState(initialUserData || {});
+    const [userData] = useState(initialUserData || {});
     const [selectedCity, setSelectedCity] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [imagesLoaded, setImagesLoaded] = useState(false);

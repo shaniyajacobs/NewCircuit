@@ -1,11 +1,10 @@
 import styled from 'styled-components';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { FooterShapes } from './Login';
-import { auth, db, storage } from './firebaseConfig';
-import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
+import { auth, storage } from './firebaseConfig';
+import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
 import ImageUploading from 'react-images-uploading';
 import { IoPersonCircle } from 'react-icons/io5';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
