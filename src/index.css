@@ -49,4 +49,22 @@ footer .footer-link:hover {
   opacity: 0.6;
 }
 
+/* Dashboard background override - ensure white background for dashboard pages */
+.dashboard-container {
+  background-color: white !important;
+}
+
+.dashboard-container body,
+.dashboard-container html,
+.dashboard-container #root {
+  background-color: white !important;
+}
+
+/* Additional override for dashboard routes */
+body.dashboard-bg,
+html.dashboard-bg,
+#root.dashboard-bg {
+  background-color: white !important;
+}
+
 

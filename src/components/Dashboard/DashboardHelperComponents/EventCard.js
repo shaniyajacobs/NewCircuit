@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DateTime } from 'luxon';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from '../../../pages/firebaseConfig';
@@ -6,6 +6,8 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../pages/firebaseConfig';
 import { ReactComponent as LocationIcon } from '../../../images/location.svg';
 import { ReactComponent as TimerIcon } from '../../../images/timer.svg';
+import { getEventSpots } from '../../../utils/eventSpotsUtils';
+import PopUp from './PopUp';
 
 function getDateParts(dateString, timeString, timeZone) {
   const normalizedTime = timeString ? timeString.replace(/am|pm/i, m => m.toUpperCase()).trim() : '';
@@ -87,9 +89,38 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [spotsData, setSpotsData] = useState({ menCount: 0, womenCount: 0, menSpots: 0, womenSpots: 0 });
+  
   // Prefer Remo timestamp if available
   const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
   const { dayOfWeek, day, month, timeLabel } = dateParts;
+  
+  // Fetch reliable spot data
+  useEffect(() => {
+    const fetchSpots = async () => {
+      if (event?.firestoreID) {
+        const spots = await getEventSpots(event.firestoreID);
+        setSpotsData(spots);
+      }
+    };
+    fetchSpots();
+  }, [event?.firestoreID]);
+  
+  // Calculate time range for display
+  const getTimeRange = () => {
+    if (event.startTime && event.endTime) {
+      const startDt = DateTime.fromMillis(Number(event.startTime));
+      const endDt = DateTime.fromMillis(Number(event.endTime));
+      const startTime = startDt.toFormat('h:mm a');
+      const endTime = endDt.toFormat('h:mm a');
+      return `${startTime} - ${endTime}`;
+    } else if (timeLabel) {
+      return timeLabel;
+    }
+    return '';
+  };
+  
+  const timeRange = getTimeRange();
   
   return (
     <>
@@ -203,25 +234,17 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                   uppercase
                   text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
                 ">
-                  {event.eventType || ''}{event.eventType && timeLabel ? ' @ ' : ''}{timeLabel || ''}
+                  {event.eventType || ''}{event.eventType && timeRange ? ' @ ' : ''}{timeRange}
                 </span>
               </div>
               
               {/* Open Spots Group */}
               <div className="flex flex-col gap-0">
                 <div className="text-sm text-gray-600">
-                  Open Spots for Men: {(() => {
-                    const total = Number(event.menSpots) || 0;
-                    const signedUp = Number(event.menSignupCount) || 0;
-                    return `${Math.max(total - signedUp, 0)}/${total}`;
-                  })()}
+                  Open Spots for Men: {Math.max(spotsData.menSpots - spotsData.menCount, 0)}/{spotsData.menSpots}
                 </div>
                 <div className="text-sm text-gray-600">
-                  Open Spots for Women: {(() => {
-                    const total = Number(event.womenSpots) || 0;
-                    const signedUp = Number(event.womenSignupCount) || 0;
-                    return `${Math.max(total - signedUp, 0)}/${total}`;
-                  })()}
+                  Open Spots for Women: {Math.max(spotsData.womenSpots - spotsData.womenCount, 0)}/{spotsData.womenSpots}
                 </div>
               </div>
             </div>
@@ -237,40 +260,139 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 alert('Missing event ID');
                 return;
               }
+              
+              // Prevent multiple clicks
+              if (joining) return;
+              
               try {
                 setJoining(true);
+                console.log('[JOIN NOW] Starting join process for event:', event.eventID);
+                
+                // Step 1: Handle onSignUp if provided (non-blocking with timeout)
                 if (onSignUp) {
                   console.log('[JOIN NOW] Calling onSignUp for event:', event);
-                  await onSignUp(event);
-                  console.log('[JOIN NOW] onSignUp finished');
+                  try {
+                    // Add a timeout for the onSignUp function to prevent hanging
+                    const signUpPromise = onSignUp(event);
+                    const timeoutPromise = new Promise((_, reject) => 
+                      setTimeout(() => reject(new Error('SignUp timeout')), 15000) // 15 second timeout
+                    );
+                    
+                    await Promise.race([signUpPromise, timeoutPromise]);
+                    console.log('[JOIN NOW] onSignUp finished successfully');
+                  } catch (signUpError) {
+                    console.error('[JOIN NOW] onSignUp failed or timed out:', signUpError);
+                    // Continue anyway - don't fail the entire process
+                  }
                 }
+                
+                // Step 2: Get event data from Remo
+                console.log('[JOIN NOW] Fetching event data from Remo...');
                 const functions = getFunctions();
-                console.log('About to call getEventData');
-                const getEventData = httpsCallable(functions, 'getEventData'); // returns full event
+                const getEventData = httpsCallable(functions, 'getEventData');
                 const res = await getEventData({ eventId: event.eventID });
-                console.log('getEventData response:', res);
+                console.log('[JOIN NOW] getEventData response:', res);
+                
                 const { event: remoEvent } = res.data || {};
-                if (!remoEvent) {
-                  alert('Event data not available yet.');
-                  return;
+                if (!remoEvent || !remoEvent.code) {
+                  throw new Error('Event data not available yet or missing event code.');
                 }
-                // Record the latest event this user joined
+                
+                // Step 3: Record the latest event this user joined (non-blocking)
                 if (auth.currentUser) {
-                  await setDoc(
-                    doc(db, 'users', auth.currentUser.uid),
-                    {
-                      latestEventId: event.eventID,
-                    },
-                    { merge: true }
-                  );
+                  try {
+                    // Don't await this - make it non-blocking
+                    setDoc(
+                      doc(db, 'users', auth.currentUser.uid),
+                      {
+                        latestEventId: event.eventID,
+                      },
+                      { merge: true }
+                    ).then(() => {
+                      console.log('[JOIN NOW] Recorded latest event ID');
+                    }).catch((recordError) => {
+                      console.error('[JOIN NOW] Failed to record latest event ID:', recordError);
+                    });
+                  } catch (recordError) {
+                    console.error('[JOIN NOW] Failed to record latest event ID:', recordError);
+                    // Continue anyway
+                  }
                 }
-                // Build join URL on the client
+                
+                // Step 4: Build and open join URL
                 const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
-                window.open(joinUrl, '_blank');
+                console.log('[JOIN NOW] Join URL:', joinUrl);
+                
+                // Mobile-friendly approach for opening URLs
+                const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                console.log('[JOIN NOW] Is mobile device:', isMobile);
+                
+                if (isMobile) {
+                  // For mobile devices, try multiple approaches
+                  let success = false;
+                  
+                  // Approach 1: Try using window.location.href (most reliable for mobile)
+                  try {
+                    console.log('[JOIN NOW] Mobile: Trying window.location.href');
+                    window.location.href = joinUrl;
+                    success = true;
+                  } catch (error1) {
+                    console.error('[JOIN NOW] Mobile: window.location.href failed:', error1);
+                  }
+                  
+                  // Approach 2: If Approach 1 failed, try creating and clicking a link
+                  if (!success) {
+                    try {
+                      console.log('[JOIN NOW] Mobile: Trying programmatic link click');
+                      const link = document.createElement('a');
+                      link.href = joinUrl;
+                      link.target = '_blank';
+                      link.rel = 'noopener noreferrer';
+                      link.style.display = 'none';
+                      document.body.appendChild(link);
+                      link.click();
+                      
+                      // Clean up the link after a short delay
+                      setTimeout(() => {
+                        if (document.body.contains(link)) {
+                          document.body.removeChild(link);
+                        }
+                      }, 1000);
+                      
+                      success = true;
+                    } catch (error2) {
+                      console.error('[JOIN NOW] Mobile: Programmatic link click failed:', error2);
+                    }
+                  }
+                  
+                  // Approach 3: If both failed, show URL to copy
+                  if (!success) {
+                    console.log('[JOIN NOW] Mobile: All navigation methods failed, showing URL to copy');
+                    alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
+                  }
+                } else {
+                  // For desktop, try to open in new tab/window
+                  try {
+                    console.log('[JOIN NOW] Desktop: Trying window.open');
+                    const newWindow = window.open(joinUrl, '_blank');
+                    
+                    // Check if the window was blocked or failed to open
+                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                      console.log('[JOIN NOW] Desktop: window.open failed, showing URL to copy');
+                      alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
+                    }
+                  } catch (windowError) {
+                    console.error('[JOIN NOW] Desktop: Error opening window:', windowError);
+                    alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
+                  }
+                }
+                
+                console.log('[JOIN NOW] Join process completed successfully');
               } catch (err) {
-                console.error('Error fetching join URL:', err);
-                alert('Unable to fetch join link. Please try again later.');
+                console.error('[JOIN NOW] Error in join process:', err);
+                alert(`Error: ${err.message || 'Unable to fetch join link. Please try again later.'}`);
               } finally {
+                console.log('[JOIN NOW] Setting joining to false');
                 setJoining(false);
               }
             }}
@@ -297,7 +419,8 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
             disabled={joining}
             onClick={async () => {
               if (!event?.eventID) {
-                alert('Missing event ID');
+                setErrorMessage('Missing event ID');
+                setShowErrorModal(true);
                 return;
               }
               try {
@@ -314,7 +437,8 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 console.log('getEventData response:', res);
                 const { event: remoEvent } = res.data || {};
                 if (!remoEvent) {
-                  alert('Event data not available yet.');
+                  setErrorMessage('Event data not available yet.');
+                  setShowErrorModal(true);
                   return;
                 }
                 // Record the latest event this user joined
@@ -327,10 +451,12 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     { merge: true }
                   );
                 }
-                // Do NOT redirect to Remo site for signup events
+                // Show success modal
+                setShowSuccessModal(true);
               } catch (err) {
                 console.error('Error fetching join URL:', err);
-                alert('Unable to fetch join link. Please try again later.');
+                setErrorMessage('Unable to fetch join link. Please try again later.');
+                setShowErrorModal(true);
               } finally {
                 setJoining(false);
               }
@@ -357,50 +483,32 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
       </div>
 
       {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <div className="text-center">
-              <div className="text-green-500 text-4xl mb-4">✓</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Successfully Signed Up!
-              </h3>
-              <p className="text-gray-600 mb-4">
-                You've been successfully signed up for this event. Please check your email for the virtual event invitation.
-              </p>
-              <button
-                onClick={() => setShowSuccessModal(false)}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Got it!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Successfully Signed Up!"
+        subtitle="You've been successfully signed up for this event. Please check your email for the virtual event invitation."
+        icon="✓"
+        iconColor="green"
+        primaryButton={{
+          text: "Got it!",
+          onClick: () => setShowSuccessModal(false)
+        }}
+      />
 
       {/* Error Modal */}
-      {showErrorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <div className="text-center">
-              <div className="text-red-500 text-4xl mb-4">✗</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Sign Up Failed
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {errorMessage}
-              </p>
-              <button
-                onClick={() => setShowErrorModal(false)}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopUp
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Sign Up Failed"
+        subtitle={errorMessage}
+        icon="✗"
+        iconColor="red"
+        primaryButton={{
+          text: "Try Again",
+          onClick: () => setShowErrorModal(false)
+        }}
+      />
     </>
   );
 };

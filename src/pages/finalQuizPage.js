@@ -1,6 +1,4 @@
-import {React, useMemo} from 'react';
-import HeaderBar from '../components/HeaderBar';
-import primaryMixedLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import cirCrossPBlack from '../images/cir_cross_Black.svg';
 import cirHeartPBlack from '../images/cir_heart_Black.svg';
@@ -104,36 +102,34 @@ const FooterShapesBlack = () => {
 
 const FinalQuizPage = () => {
     const navigate = useNavigate();
-
     return (
-        <div className="min-h-screen flex flex-col relative">
-            <HeaderBar 
-                showBack={true}
-                logo={primaryMixedLogo}
-                logoHeight="h-20"
-                titleSize="text-4xl"
-                className="w-full flex justify-center items-center text-center relative"
-            />
-            <div className="bg-[#8F3F3F3] flex-grow flex flex-col items-center justify-center px-8 relative">
-                {/* <div className="absolute top-12 w-3/4 h-4 bg-[#1E40AF] rounded-full"></div> */}
-                <div className="flex-grow flex flex-col justify-center items-center mb-4">
-                    <h1 className="text-black text-4xl font-bold text-center mb-6">
-                         <span className="text-[#1E40AF]">You’re all set!</span>
-                    </h1>
-                    <p className="text-xl text-center text-gray-700 max-w-2xl mb-12">
-                    We’ll use your personality insights to help spark the best connections during your speed dates
-                    </p>
+        <div className="quiz-bg">
+            {/* Top Bar */}
+            <div className="top-bar">
+                <span className="location-text">PERSONALITY TEST</span>
+            </div>
+            {/* Progress Bar */}
+            <div className="progress-bar-margin-layout">
+                <div className="progress-bar-bg">
+                    <div className="progress-bar-fill" style={{ width: '100%' }} />
+                </div>
+            </div>
+            {/* Main Content */}
+            <div className="main-content">
+                <div className="final-message">
+                    What a winning personality!
                 </div>
                 <button 
                     onClick={() => navigate('/dashboard')}
-                    className="mb-20 bg-[#0043F1] text-white px-8 py-4 rounded-xl text-xl font-semibold border-2 border-black shadow-md hover:bg-opacity-90 transition-all z-10 relative"
+                    className="dashboard-btn"
                 >
                     Navigate to Dashboard
                 </button>
             </div>
-            <FooterShapesBlack />
         </div>
     );
 };
+
+
 
 export default FinalQuizPage;

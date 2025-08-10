@@ -123,6 +123,16 @@ export function DashMessages({ connection }) {
         timeStamp: inv.timestamp.toMillis()
       };
       payload.messages = arrayUnion(confirmationMsg);
+    } else {
+      // Add declined message
+      const inv = invites.find(i => i.id === inviteId);
+      const declinedMsg = {
+        senderId: "system",
+        receiverId: null,
+        text: `Date invitation declined for ${new Date(inv.timestamp.toDate()).toLocaleString()} @ ${inv.location}`,
+        timeStamp: Date.now()
+      };
+      payload.messages = arrayUnion(declinedMsg);
     }
 
     await updateDoc(ref, payload);

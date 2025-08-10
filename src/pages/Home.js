@@ -20,9 +20,9 @@ const Home = () => {
             <UpcomingEventsHome />
             <MapPage />
             <Current />
-            <Values/>
+            {/* <Values/> */}
             <Pricing/>
-            <FAQSection/>
+            {/* <FAQSection/> */}
             <Waiting />
             <Footer />
         </>
