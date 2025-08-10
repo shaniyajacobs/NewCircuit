@@ -34,7 +34,7 @@ const NavBar = () => {
         <>
         <div className={styles.top_text_box + (showAnnouncement ? '' : ' ' + styles.hide)}>
             <span className={styles.top_text}>
-                The #1 speed dating app in north america
+                The #1 Speed Dating App
             </span>
         </div>
         <nav className={styles.navContainer}>

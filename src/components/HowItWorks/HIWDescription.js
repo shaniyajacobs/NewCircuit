@@ -20,40 +20,40 @@ const HIWDescription = () => {
                         </h1>
                         <div className="flex flex-col items-center text-center gap-4 sm:gap-6 md:gap-8 lg:gap-[50px] w-full">
                             <GradientDescription 
-                                headerText="Sign up to Circuit"
-                                bodyText="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+                                headerText="Sign Up on Circuit"
+                                bodyText="Create your profile and take our personality indicator so we can connect you with potential sparks in your area."
                                 gradientColors={{
                                     inside: "#79FFC7",
                                     outside: "#FFF9A1"
                                 }}
                             />
                             <GradientDescription 
-                                headerText="Find a speed date in your city"
-                                bodyText="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+                                headerText="Find a Speed Date in Your City"
+                                bodyText="Choose from upcoming virtual speed dating events designed to help you meet new people face-to-face, all from your home."
                                 gradientColors={{
                                     inside: "#8EFF7A",
                                     outside: "#D7FFF8"
                                 }}
                             />
                             <GradientDescription 
-                                headerText="Join the meeting"
-                                bodyText="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+                                headerText="Join the Event"
+                                bodyText="Hop into the virtual room and enjoy a series of quick, engaging conversations that let you make real first impressions"
                                 gradientColors={{
                                     inside: "#B0EEFF",
                                     outside: "#E7E9FF"
                                 }}
                             />
                             <GradientDescription 
-                                headerText="We match you with 3 sparks"
-                                bodyText="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+                                headerText="Select Up to 3 Connections"
+                                bodyText="After the event, choose the people you’d like to connect with further. If they choose you too, it’s a spark! Time to start Chatting!"
                                 gradientColors={{
                                     inside: "#B4FFF2",
                                     outside: "#E1FFD6"
                                 }}
                             />
                             <GradientDescription 
-                                headerText="Go on dates with them"
-                                bodyText="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+                                headerText="Take It Offline"
+                                bodyText="Plan your first two in-person dates, then claim your free drinks or appetizers when you reach your third date together with our Third Date On Us offer."
                                 gradientColors={{
                                     inside: "#E2FF65",
                                     outside: "#D2FFD7"
@@ -142,7 +142,7 @@ const HIWDescription = () => {
                                     }}
                                     className="text-[14px] sm:text-[14px] md:text-[16px] lg:text-[20px] max-w-[350px] md:max-w-[500px] lg:max-w-[800px] font-light drop-shadow-lg mb-4 sm:mb-6 md:mb-8 lg:mb-10"
                                 >
-                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+                                    Some connections are worth celebrating. We’ll treat you on date number three.
                                 </p>
                                 
                                 {/* Arrow SVG */}

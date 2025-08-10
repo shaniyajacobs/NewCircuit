@@ -6,17 +6,17 @@ import styles from './CircuitHowItWorks.module.css';
 const featureData = [
   {
     title: "Live E-Dates with Rooms",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.",
+    description: "Join our virtual speed-dating rooms for face-to-face first impressions",
     image: "/Feature1.webp"
   },
   {
     title: "Your own host to guide the experience",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.",
+    description: "A friendly host keeps the conversations flowing and makes sure everyone feels welcome.",
     image: "/Feature2.webp"
   },
   {
     title: "Our tailored algorithm finds you sparks",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.",
+    description: "Get three suggested picks from your speed date based on personality results. They'll become sparks when the feeling is mutual.",
     image: "/Feature3.webp"
   }
 ];
@@ -75,12 +75,13 @@ const FeatureCards = () => {
     >
       {/* Cards Row/Column Responsive */}
       <div
-        className="relative flex flex-col md:flex-row items-center feature-cards-container"
+        className="relative flex flex-col md:flex-row items-stretch feature-cards-container"
         style={{
           display: 'flex',
-          justifyContent: 'center',
+          justifyContent: 'stretch',
           gap: 'var(--gap-m)',
           alignSelf: 'stretch',
+          width: '100%',
         }}
       >
         {featureData.map((feature, index) => (
@@ -88,11 +89,10 @@ const FeatureCards = () => {
             key={index}
             className="feature-card-wrapper"
             style={{
-              flex: '0 0 auto',
-              width: 'var(--card-width)',
-              minWidth: 'var(--card-minwidth)',
-              maxWidth: 'var(--card-maxwidth)',
-              margin: 0,
+              flex: '1 1 0%',
+              minWidth: '0',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             <FeatureCard
