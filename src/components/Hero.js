@@ -91,7 +91,7 @@ const Hero = () => {
                 alignSelf: 'stretch',
               }}
             >
-              We bring singles together for face-to-face first impressions and genuine connection, all from the comfort of your home.
+              We bring singles together for face-to-face first impressions and genuine connection.
 
             </p>
             <Link to="/create-account" className="inline-block">
@@ -135,7 +135,7 @@ const Hero = () => {
             {/* Testimonials Section */}
             <section className={styles['testimonials-section']}>
                 <div className={styles['testimonials-container']}>
-                    <h2 className={styles['testimonials-heading']}>WHAT THEY'RE SAYING</h2>
+                    <h2 className={styles['testimonials-heading']}>What They're Saying</h2>
                     <div className={styles['testimonials-list-marquee']} ref={marqueeContainerRef}>
                       {/* Hidden for measurement only */}
                       <div style={{ display: 'inline-block', visibility: 'hidden', position: 'absolute', left: 0, top: 0 }} ref={marqueeContentRef}>

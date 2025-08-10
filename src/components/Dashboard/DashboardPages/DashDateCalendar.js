@@ -345,7 +345,7 @@ const DashDateCalendar = () => {
         },
         {
           title: "The Introduction",
-          features: ["All eligible venues", "Basic Matching Algorithm", "1 Dinner"],
+          features: ["All eligible venues", "Advanced Matching Algorithm", "1 Dinner"],
           dates: 3,
           venue: userLocation,
           price: "$78",

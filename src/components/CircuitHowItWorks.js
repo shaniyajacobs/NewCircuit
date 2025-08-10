@@ -145,7 +145,7 @@ export function HowItWorks() {
           marginBottom: 'var(--gap-xxl)',
         }}
       >
-        How it works
+        How It Works
       </h2>
       {/* Cards Row/Column Responsive */}
       <div
