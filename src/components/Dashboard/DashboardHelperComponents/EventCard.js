@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { DateTime } from 'luxon';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from '../../../pages/firebaseConfig';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '../../../pages/firebaseConfig';
 import { ReactComponent as LocationIcon } from '../../../images/location.svg';
 import { ReactComponent as TimerIcon } from '../../../images/timer.svg';
@@ -88,7 +88,9 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [joining, setJoining] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [waitlistClicked, setWaitlistClicked] = useState(false);
   const [spotsData, setSpotsData] = useState({ menCount: 0, womenCount: 0, menSpots: 0, womenSpots: 0 });
   
   // Prefer Remo timestamp if available
@@ -105,7 +107,9 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
     };
     fetchSpots();
   }, [event?.firestoreID]);
-  
+
+
+
   // Calculate time range for display
   const getTimeRange = () => {
     if (event.startTime && event.endTime) {
@@ -121,6 +125,61 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   };
   
   const timeRange = getTimeRange();
+  
+  // Check if there are 0 available spots for the user's gender
+  const hasNoSpotsForUser = () => {
+    if (!userGender || !spotsData) return false;
+    
+    const userGenderLower = userGender.toLowerCase();
+    if (userGenderLower === 'male') {
+      return Math.max(spotsData.menSpots - spotsData.menCount, 0) <= 0;
+    } else if (userGenderLower === 'female') {
+      return Math.max(spotsData.womenSpots - spotsData.womenCount, 0) <= 0;
+    }
+    return false;
+  };
+  
+  const shouldShowWaitlist = hasNoSpotsForUser();
+  
+  // Check if user is already on waitlist when component loads
+  useEffect(() => {
+    const checkIfUserOnWaitlist = async () => {
+      if (event?.firestoreID && auth.currentUser && shouldShowWaitlist) {
+        try {
+          const waitlistDoc = await getDoc(doc(db, 'events', event.firestoreID, 'waitlist', auth.currentUser.uid));
+          if (waitlistDoc.exists()) {
+            setWaitlistClicked(true);
+            console.log('✅ User already on waitlist for this event');
+          }
+        } catch (error) {
+          console.error('Error checking waitlist status:', error);
+        }
+      }
+    };
+
+    checkIfUserOnWaitlist();
+  }, [event?.firestoreID, auth.currentUser, shouldShowWaitlist]);
+  
+  // Function to add user to waitlist in Firebase
+  const addToWaitlist = async (eventId, userId) => {
+    try {
+      // Add user to waitlist subcollection
+      await setDoc(
+        doc(db, 'events', eventId, 'waitlist', userId),
+        {
+          userID: userId,
+          userGender: userGender || null, 
+          waitlistTime: serverTimestamp(),
+          eventID: event.eventID,
+          eventTitle: event.title || null,
+        }
+      );
+      console.log('✅ User added to waitlist successfully');
+    } catch (error) {
+      console.error('❌ Failed to add user to waitlist:', error);
+      throw error;
+    }
+  };
   
   return (
     <>
@@ -416,7 +475,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
           </button>
         ) : (
           <button
-            disabled={joining}
+            disabled={joining || (shouldShowWaitlist && waitlistClicked)}
             onClick={async () => {
               if (!event?.eventID) {
                 setErrorMessage('Missing event ID');
@@ -425,6 +484,24 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               }
               try {
                 setJoining(true);
+                if (shouldShowWaitlist) {
+                  try {
+                    if (!auth.currentUser) {
+                      setErrorMessage('Please log in to join the waitlist.');
+                      setShowErrorModal(true);
+                      return;
+                    }
+                    await addToWaitlist(event.firestoreID, auth.currentUser.uid);
+                    setWaitlistClicked(true);
+                    setShowWaitlistModal(true);
+                  } catch (err) {
+                    console.error('Failed to add to waitlist:', err);
+                    setErrorMessage('Failed to add to waitlist. Please try again.');
+                    setShowErrorModal(true);
+                  }
+                  return; // ✅ stop here, do NOT run signup flow
+                }
+
                 if (onSignUp) {
                   console.log('[JOIN NOW] Calling onSignUp for event:', event);
                   await onSignUp(event);
@@ -451,7 +528,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     { merge: true }
                   );
                 }
-                // Show success modal
                 setShowSuccessModal(true);
               } catch (err) {
                 console.error('Error fetching join URL:', err);
@@ -462,10 +538,9 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               }
             }}
             className={`
-              bg-[#211F20] 
+              ${shouldShowWaitlist ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#211F20] hover:bg-gray-800'}
               text-white 
               font-medium 
-              hover:bg-gray-800 
               transition-colors 
               text-left
               rounded-lg
@@ -475,9 +550,10 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               leading-normal
               text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
               ${joining ? 'opacity-60 cursor-not-allowed' : ''}
+              ${shouldShowWaitlist && waitlistClicked ? 'opacity-50 cursor-not-allowed' : ''}
             `}
           >
-            {joining ? 'Loading…' : 'Sign Up'}
+            {joining ? 'Loading…' : shouldShowWaitlist ? (waitlistClicked ? 'Added to Waitlist' : 'Waitlist') : 'Sign Up'}
           </button>
         )}
       </div>
@@ -493,6 +569,20 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
         primaryButton={{
           text: "Got it!",
           onClick: () => setShowSuccessModal(false)
+        }}
+      />
+
+      {/* Waitlist Modal */}
+      <PopUp
+        isOpen={showWaitlistModal}
+        onClose={() => setShowWaitlistModal(false)}
+        title="Added to Waitlist!"
+        subtitle="You've been added to the waitlist for this event. If spots become available, you'll be added automatically."
+        icon="⏳"
+        iconColor="orange"
+        primaryButton={{
+          text: "Got it!",
+          onClick: () => setShowWaitlistModal(false)
         }}
       />
 

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where, onSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where, onSnapshot, deleteDoc } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
@@ -298,6 +298,7 @@ const DashHome = () => {
     console.log('Filtering events, input size:', eventsList.length, 'output size:', filtered.length);
     return filtered;
   };
+
 
   // Fetch user gender and datesRemaining from Firestore
   useEffect(() => {
@@ -711,9 +712,113 @@ const getEventData = async (eventID) => {
       }
     } catch (error) {
       console.error('❌ Error during event signup:', error);
-      alert(error.message || 'Failed to sign up for event. Please try again.');
+      // Don't show alert for capacity errors since users should see waitlist button
+      if (!error.message.includes('Event is full for')) {
+        alert(error.message || 'Failed to sign up for event. Please try again.');
+      }
     }
   };
+
+  // // Function to check waitlist when spots become available
+  // const checkWaitlistForEvent = async (eventId, userGender) => {
+  //   try {
+  //     const waitlistRef = collection(db, 'events', eventId, 'waitlist');
+  //     const waitlistSnap = await getDocs(waitlistRef);
+      
+  //     // Find the first person on waitlist for this gender
+  //     const waitlistEntries = waitlistSnap.docs
+  //       .map(doc => ({ id: doc.id, ...doc.data() }))
+  //       .filter(entry => entry.userGender?.toLowerCase() === userGender?.toLowerCase())
+  //       .sort((a, b) => a.waitlistTime?.toDate() - b.waitlistTime?.toDate()); // Use waitlistTime instead of joinTime
+      
+  //     if (waitlistEntries.length > 0) {
+  //       const firstInLine = waitlistEntries[0];
+        
+  //       // Remove from waitlist
+  //       await deleteDoc(doc(db, 'events', eventId, 'waitlist', firstInLine.id));
+        
+  //       // Find the event object to pass to handleSignUp
+  //       const eventDoc = await getDoc(doc(db, 'events', eventId));
+  //       if (eventDoc.exists()) {
+  //         const eventData = eventDoc.data();
+          
+  //         // Create event object with the structure handleSignUp expects
+  //         const event = {
+  //           firestoreID: eventId,
+  //           eventID: eventData.eventID,
+  //           title: eventData.title || eventData.eventName,
+  //           date: eventData.date,
+  //           time: eventData.time,
+  //           location: eventData.location,
+  //           ageRange: eventData.ageRange,
+  //           eventType: eventData.eventType,
+  //         };
+          
+  //         // Call handleSignUp with the event - this will handle all the enrollment logic
+  //         await handleSignUp(event);
+          
+  //         console.log(`User ${firstInLine.userID} has been automatically enrolled in event ${eventId} from waitlist`);
+  //         return firstInLine;
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Error checking waitlist:', error);
+  //   }
+  //   return null;
+  // };
+
+  // // Add this new function after your existing functions
+  // const monitorEventSpots = async () => {
+  //   try {
+  //     // Get all events to check for available spots
+  //     const eventsSnapshot = await getDocs(collection(db, 'events'));
+      
+  //     for (const eventDoc of eventsSnapshot.docs) {
+  //       const eventData = eventDoc.data();
+  //       const eventId = eventDoc.id;
+        
+  //       // Check men's spots
+  //       if (eventData.menSpots && eventData.menSignupCount !== undefined) {
+  //         const availableMenSpots = Number(eventData.menSpots) - Number(eventData.menSignupCount);
+  //         if (availableMenSpots > 0) {
+  //           // Check if there are men on the waitlist
+  //           const waitlistRef = collection(db, 'events', eventId, 'waitlist');
+  //           const waitlistSnap = await getDocs(waitlistRef);
+  //           const menOnWaitlist = waitlistSnap.docs
+  //             .map(doc => ({ id: doc.id, ...doc.data() }))
+  //             .filter(entry => entry.userGender?.toLowerCase() === 'male')
+  //             .sort((a, b) => a.waitlistTime?.toDate() - b.waitlistTime?.toDate());
+            
+  //           if (menOnWaitlist.length > 0) {
+  //             console.log(`Found ${menOnWaitlist.length} men on waitlist for event ${eventId}, checking for enrollment...`);
+  //             await checkWaitlistForEvent(eventId, 'male');
+  //           }
+  //         }
+  //       }
+        
+  //       // Check women's spots
+  //       if (eventData.womenSpots && eventData.womenSignupCount !== undefined) {
+  //         const availableWomenSpots = Number(eventData.womenSpots) - Number(eventData.womenSignupCount);
+  //         if (availableWomenSpots > 0) {
+  //           // Check if there are women on the waitlist
+  //           const waitlistRef = collection(db, 'events', eventId, 'waitlist');
+  //           const waitlistSnap = await getDocs(waitlistRef);
+  //           const womenOnWaitlist = waitlistSnap.docs
+  //             .map(doc => ({ id: doc.id, ...doc.data() }))
+  //             .filter(entry => entry.userGender?.toLowerCase() === 'female')
+  //             .sort((a, b) => a.waitlistTime?.toDate() - b.waitlistTime?.toDate());
+            
+  //           if (womenOnWaitlist.length > 0) {
+  //             console.log(`Found ${womenOnWaitlist.length} women on waitlist for event ${eventId}, checking for enrollment...`);
+  //             await checkWaitlistForEvent(eventId, 'female');
+  //           }
+  //         }
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Error monitoring event spots:', error);
+  //   }
+  // };
 
   const handleMatchesClick = async () => {
     const currentUser = auth.currentUser;
@@ -921,31 +1026,6 @@ const getEventData = async (eventID) => {
       // First, exclude events the user has already signed up for
       if (signedUpEventIds.has(event.firestoreID)) {
         return false;
-      }
-
-      // Then check if the event is full for the user's gender
-      if (userGender) {
-        const userGenderLower = userGender.toLowerCase();
-        
-        if (userGenderLower === 'male') {
-          const totalMenSpots = Number(event.menSpots) || 0;
-          const signedUpMen = Number(event.menSignupCount) || 0;
-          const availableMenSpots = totalMenSpots - signedUpMen;
-          
-          // If no spots available for men, exclude this event
-          if (availableMenSpots <= 0) {
-            return false;
-          }
-        } else if (userGenderLower === 'female') {
-          const totalWomenSpots = Number(event.womenSpots) || 0;
-          const signedUpWomen = Number(event.womenSignupCount) || 0;
-          const availableWomenSpots = totalWomenSpots - signedUpWomen;
-          
-          // If no spots available for women, exclude this event
-          if (availableWomenSpots <= 0) {
-            return false;
-          }
-        }
       }
 
       // If we get here, the event is available for sign-up
