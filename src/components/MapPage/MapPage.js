@@ -30,7 +30,6 @@ const MapPage = () => {
   const [filter, setFilter] = useState("");
   const marqueeContainerRef = useRef(null);
   const marqueeContentRef = useRef(null);
-  const [repeatCount, setRepeatCount] = useState(2);
 
   const handleSearch = (query) => {
     setFilter(query);
@@ -46,23 +45,16 @@ const MapPage = () => {
       // Ensure at least 2x container width for seamless looping
       const minWidth = containerWidth * 2;
       const count = Math.ceil(minWidth / contentWidth) + 1;
-      setRepeatCount(count);
+      // Note: repeatCount is calculated but not used in current implementation
     }
     updateRepeatCount();
     window.addEventListener('resize', updateRepeatCount);
     return () => window.removeEventListener('resize', updateRepeatCount);
   }, []);
 
-  const marqueePhrase = (
-    <span className={styles.mapBarText}>
-      Pick your city and get started <span role="img" aria-label="location pin">📍</span>
-    </span>
-  );
-
   // Render the phrase once for measurement, then repeat as needed
   return (
     <div className={styles.mapBackground}>
-      <MapHeroSection />
       <SlidingBar 
         phrase={
           <span className={styles.mapBarText}>

@@ -23,15 +23,15 @@ const NewFeatureCard = () => {
                         />
                         <div className="relative w-[303px] sm:w-[622px] md:w-[501px] lg:w-[520px]">
                             <h2 className="font-bricolage text-[32px] md:text-[48px] lg:text-[64px] font-semibold text-black leading-[130%]">
-                                Take our personality test today to find your match
+                                Take Our Personality Indicator Today
                             </h2>
                         </div>
                         <p className="text-[16px] md:text-[20px] lg:text-[24px] text-black font-poppins font-light leading-normal pb-[2px] sm:pb-[4px] md:pb-[8px] lg:pb-[18px]">
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+                        Discover your top 3 suggested connections, tailored by our personality insights.
                         </p>
                         <Link to="/create-account">
                             <button className="px-6 py-2 sm:px-6 sm:py-2 md:px-7 md:py-2.5 lg:px-8 lg:py-3 flex items-center justify-center rounded-[4px] sm:rounded-[6px] md:rounded-[6px] lg:rounded-[8px] bg-black text-white font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-normal transition-transform hover:scale-105 hover:opacity-60 mb-16 sm:mb-20 md:mb-24 lg:mb-32">
-                                Take the personality test
+                                Take the personality indicator
                             </button>
                         </Link>
                     </div>

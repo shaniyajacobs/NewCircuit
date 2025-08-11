@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import { FooterShapes } from './Login';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -29,7 +28,7 @@ const VerifyEmail = () => {
         if (auth.currentUser && !auth.currentUser.emailVerified) {
             setEmailSent(true);
         }
-    }, [userData]);
+    }, [userData, navigate]);
 
     const createUserAndSendVerification = async () => {
         try {
@@ -58,7 +57,7 @@ const VerifyEmail = () => {
                     image: userData.image,
                     isActive: true,
                     location: userData.location,
-                    datesRemaining: 50, // TODO: change when finished testing
+                    datesRemaining: 0, 
                     profileComplete: true,
                     preferencesComplete: false,
                     locationSet: false,
@@ -239,13 +238,15 @@ const Subtitle = styled.p`
 const Button = styled.button`
   width: 100%;
   padding: 0.75rem;
-  background-color: ${props => props.secondary ? 'white' : '#211f20'};
+  background-color: ${props => props.secondary ? 'white' : '#007bff'};
   color: ${props => props.secondary ? '#000' : 'white'};
   border: ${props => props.secondary ? '1px solid #000' : 'none'};
-  border-radius: 6px;
+  border-radius: 12px;
   font-size: 1rem;
   cursor: pointer;
   margin-bottom: 1rem;
+  min-height: 42px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
   &:hover {
     opacity: 0.9;
@@ -253,16 +254,27 @@ const Button = styled.button`
 `;
 
 const ResendLink = styled.button`
-  background: none;
-  border: none;
+  background-color: #6c757d;
   color: white;
+  border: none;
+  border-radius: 12px;
   font-size: 1rem;
   cursor: pointer;
-  text-decoration: underline;
+  padding: 0.75rem 1.5rem;
   margin-top: 16px;
+  min-height: 42px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 
   &:hover {
-    opacity: 0.8;
+    background-color: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 

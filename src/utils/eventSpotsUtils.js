@@ -309,6 +309,76 @@ export const updateDatesRemaining = async (userId, changeAmount, reason = '') =>
   });
 };
 
+// Transaction-based date purchase with payment verification
+export const processDatePurchase = async (userId, cartItems, paymentIntentId, totalAmount) => {
+  debug.log('processDatePurchase', `Starting transaction-based date purchase`);
+  debug.log('processDatePurchase', `UserId: ${userId}, CartItems: ${cartItems.length}, PaymentIntent: ${paymentIntentId}`);
+  
+  return await runTransaction(db, async (transaction) => {
+    debug.log('processDatePurchase', 'Transaction started');
+    
+    // 1. READ: Get user document
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await transaction.get(userRef);
+    
+    if (!userDoc.exists()) {
+      debug.error('processDatePurchase', `User not found for userId: ${userId}`);
+      throw new Error('User not found');
+    }
+    
+    // 2. PROCESS: Calculate total dates purchased
+    const totalDatesPurchased = cartItems.reduce((total, item) => {
+      const itemDates = item.quantity * (item.numDates || 1);
+      debug.log('processDatePurchase', `Item: ${item.title}, Quantity: ${item.quantity}, Dates: ${item.numDates || 1}, Total: ${itemDates}`);
+      return total + itemDates;
+    }, 0);
+    
+    debug.log('processDatePurchase', `Total dates to be added: ${totalDatesPurchased}`);
+    
+    // 3. READ: Get current dates remaining
+    const userData = userDoc.data();
+    const currentDatesRemaining = userData.datesRemaining || 0;
+    const newDatesRemaining = currentDatesRemaining + totalDatesPurchased;
+    
+    debug.log('processDatePurchase', 'User dates data:', {
+      currentDatesRemaining,
+      totalDatesPurchased,
+      newDatesRemaining
+    });
+    
+    // 4. WRITE: Update user document with new dates remaining
+    transaction.update(userRef, {
+      datesRemaining: newDatesRemaining,
+      lastPurchaseDate: new Date(),
+      totalPurchases: (userData.totalPurchases || 0) + 1
+    });
+    
+    // 5. WRITE: Create purchase record in user's purchases subcollection
+    const purchaseRef = doc(collection(db, 'users', userId, 'purchases'));
+    const purchaseData = {
+      purchaseId: purchaseRef.id,
+      paymentIntentId: paymentIntentId,
+      totalAmount: totalAmount,
+      totalDatesPurchased: totalDatesPurchased,
+      cartItems: cartItems,
+      purchaseDate: new Date(),
+      status: 'completed'
+    };
+    
+    transaction.set(purchaseRef, purchaseData);
+    
+    debug.success('processDatePurchase', `Successfully processed date purchase: ${currentDatesRemaining} → ${newDatesRemaining}`);
+    return { 
+      success: true, 
+      previousDates: currentDatesRemaining,
+      newDates: newDatesRemaining,
+      totalDatesPurchased,
+      purchaseId: purchaseRef.id,
+      reason: 'Date purchase completed'
+    };
+  });
+};
+
 // Combined transaction for signup with dates update
 export const signUpForEventWithDates = async (eventId, userId, userData, datesChange = -1) => {
   debug.log('signUpForEventWithDates', 'Starting combined transaction');
@@ -414,4 +484,63 @@ export const signUpForEventWithDates = async (eventId, userId, userData, datesCh
       newDates: newDatesRemaining
     };
   });
+};
+
+// Clear latestEventId if the event being removed is the user's latest event
+export const clearLatestEventIdIfNeeded = async (userId, eventId) => {
+  debug.log('clearLatestEventIdIfNeeded', `Checking if event ${eventId} is latest for user ${userId}`);
+  
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      debug.warn('clearLatestEventIdIfNeeded', `User document does not exist for userId: ${userId}`);
+      return;
+    }
+    
+    const userData = userDoc.data();
+    const latestEventId = userData.latestEventId;
+    
+    // Check if the eventId matches the latestEventId directly (Firebase event ID)
+    if (latestEventId === eventId) {
+      debug.log('clearLatestEventIdIfNeeded', `Event ${eventId} is the latest event for user ${userId}, clearing latestEventId`);
+      
+      await updateDoc(userRef, {
+        latestEventId: null
+      });
+      
+      debug.success('clearLatestEventIdIfNeeded', `Successfully cleared latestEventId for user ${userId}`);
+      return;
+    }
+    
+    // If not a direct match, check if the eventId is a Firebase event ID that corresponds to a Remo event
+    // We need to find the event document and check if its eventID field matches the latestEventId
+    try {
+      const eventRef = doc(db, 'events', eventId);
+      const eventDoc = await getDoc(eventRef);
+      
+      if (eventDoc.exists()) {
+        const eventData = eventDoc.data();
+        const remoEventId = eventData.eventID;
+        
+        if (remoEventId && remoEventId === latestEventId) {
+          debug.log('clearLatestEventIdIfNeeded', `Event ${eventId} (Remo ID: ${remoEventId}) is the latest event for user ${userId}, clearing latestEventId`);
+          
+          await updateDoc(userRef, {
+            latestEventId: null
+          });
+          
+          debug.success('clearLatestEventIdIfNeeded', `Successfully cleared latestEventId for user ${userId}`);
+          return;
+        }
+      }
+    } catch (error) {
+      debug.warn('clearLatestEventIdIfNeeded', `Could not check event document for eventId ${eventId}:`, error.message);
+    }
+    
+    debug.log('clearLatestEventIdIfNeeded', `Event ${eventId} is not the latest event for user ${userId} (latest is: ${latestEventId})`);
+  } catch (error) {
+    debug.error('clearLatestEventIdIfNeeded', `Error clearing latestEventId for user ${userId}:`, error);
+  }
 };
