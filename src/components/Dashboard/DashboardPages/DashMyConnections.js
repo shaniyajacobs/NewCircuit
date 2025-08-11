@@ -1,8 +1,8 @@
 import React, { useEffect, useState, forwardRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FaPaperPlane } from 'react-icons/fa';
-import { IoChevronBackCircleOutline } from 'react-icons/io5';
-import { doc, getDoc, getDocs, collection, setDoc, serverTimestamp } from 'firebase/firestore';
+import { IoChevronBackCircleOutline, IoPersonCircle } from 'react-icons/io5';
+import { doc, getDoc, getDocs, collection, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { auth, db } from '../../../pages/firebaseConfig';
 import {DashMessages} from './DashMessages';
 import { calculateAge } from '../../../utils/ageCalculator';
@@ -13,15 +13,23 @@ import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.sv
 import { formatUserName } from '../../../utils/nameFormatter';
 import { DateTime } from 'luxon';
 import { markSparkAsRead, isSparkNew, markSparkAsViewed, refreshSidebarNotification } from '../../../utils/notificationManager';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const MAX_SELECTIONS = 3;
 
 // Helper: map event timeZone field to IANA
 const eventZoneMap = {
   'PST': 'America/Los_Angeles',
+  'PDT': 'America/Los_Angeles',
   'EST': 'America/New_York',
+  'EDT': 'America/New_York',
   'CST': 'America/Chicago',
+  'CDT': 'America/Chicago',
   'MST': 'America/Denver',
+  'MDT': 'America/Denver',
+  'UTC': 'UTC',
+  'GMT': 'Europe/London',
+  'BST': 'Europe/London',
   // Add more as needed
 };
 
@@ -32,57 +40,51 @@ async function isLatestEventWithin48Hours(userId) {
     const latestEventId = userDoc.data()?.latestEventId;
     
     if (!latestEventId) {
+      console.log('[48HOURS] No latestEventId found for user:', userId);
       return false;
     }
     
-    // Find the event document
-    const eventsSnapshot = await getDocs(collection(db, 'events'));
-    let eventData = null;
-    eventsSnapshot.forEach(docSnap => {
-      if (docSnap.data().eventID === latestEventId) {
-        eventData = docSnap.data();
-      }
-    });
+    // Use getEventData Cloud Function to get event data from Remo
+    const functionsInst = getFunctions();
+    const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
+    const res = await getEventDataCF({ eventId: latestEventId });
     
-    if (!eventData) {
+    if (!res.data?.event) {
+      console.log('[48HOURS] No event data returned from getEventData:', latestEventId);
       return false;
     }
     
-    // Calculate event end time
-    let eventDateTime;
-    if (eventData.startTime) {
-      // Use startTime if available (Remo events)
-      eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
-    } else if (eventData.date && eventData.time && eventData.timeZone) {
-      // Use date/time for regular events
-      const normalizedTime = eventData.time.replace(/am|pm/i, match => match.toUpperCase());
-      const eventZone = eventZoneMap[eventData.timeZone] || eventData.timeZone || 'UTC';
-      
-      eventDateTime = DateTime.fromFormat(
-        `${eventData.date} ${normalizedTime}`,
-        'yyyy-MM-dd h:mma',
-        { zone: eventZone }
-      );
-      
-      if (!eventDateTime.isValid) {
-        eventDateTime = DateTime.fromFormat(
-          `${eventData.date} ${normalizedTime}`,
-          'yyyy-MM-dd H:mm',
-          { zone: eventZone }
-        );
-      }
-    }
-    
-    if (!eventDateTime || !eventDateTime.isValid) {
-      return false;
-    }
-    
-    // Add 90 minutes for event duration
-    const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+    const eventData = res.data.event;
+    console.log('[48HOURS] Event data from getEventData:', { eventID: eventData.id, endTime: eventData.endTime, startTime: eventData.startTime });
     
     // Check if event ended within the last 48 hours
     const now = DateTime.now();
+    let eventEndDateTime;
+    
+    if (eventData.endTime) {
+      eventEndDateTime = DateTime.fromMillis(Number(eventData.endTime));
+      console.log('[48HOURS] Using endTime:', eventEndDateTime.toISO());
+    } else if (eventData.startTime) {
+      const eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
+      eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+      console.log('[48HOURS] Using startTime + 90min:', eventEndDateTime.toISO());
+    } else {
+      console.log('[48HOURS] No valid time data in event');
+      return false;
+    }
+    
+    if (!eventEndDateTime || !eventEndDateTime.isValid) {
+      console.log('[48HOURS] Failed to calculate event end time');
+      return false;
+    }
+    
     const hoursSinceEvent = now.diff(eventEndDateTime, 'hours').hours;
+    
+    console.log('[48HOURS] Time calculation:', { 
+      eventEnd: eventEndDateTime.toISO(), 
+      now: now.toISO(), 
+      hoursSinceEvent: Math.round(hoursSinceEvent * 100) / 100 
+    });
     
     return hoursSinceEvent <= 48;
   } catch (error) {
@@ -316,23 +318,29 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
         if (!userDoc.exists()) return;
 
         const data = userDoc.data();
+        console.log('[SELECTSPARKS] User data:', { latestEventId: data.latestEventId, hasConnections: data.connections });
         
         // Check if latest event was within 48 hours
         const within48Hours = await isLatestEventWithin48Hours(user.uid);
+        console.log('[SELECTSPARKS] Within 48 hours:', within48Hours);
         
         // Check if user has already made max selections for the latest event
         let hasMaxSelections = false;
         if (within48Hours && data.latestEventId) {
           const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
           const connectionDocs = connectionsSnap.docs;
+          console.log('[SELECTSPARKS] Current connections count:', connectionDocs.length, 'MAX:', MAX_SELECTIONS);
           
           // If user has reached max selections
           if (connectionDocs.length >= MAX_SELECTIONS) {
             hasMaxSelections = true;
+            console.log('[SELECTSPARKS] User has max selections, hiding banner');
           }
         }
         
-        setShowSelectSparksCard(within48Hours && !hasMaxSelections);
+        const shouldShow = within48Hours && !hasMaxSelections;
+        console.log('[SELECTSPARKS] Final decision - show banner:', shouldShow, { within48Hours, hasMaxSelections });
+        setShowSelectSparksCard(shouldShow);
       } catch (error) {
         console.error('Error checking select sparks card:', error);
         setShowSelectSparksCard(false);
@@ -375,7 +383,7 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
               const profile = {
                 id: connectionId,
                 name: formatUserName(userData),
-                img: userData.image || '/default-profile.png',
+                img: userData.image || null,
                 age: calculateAge(userData.birthDate),
                 // Use the actual AI match score stored when connection was created, rounded
                 compatibility: Math.round(connectionData.matchScore || 0)
@@ -453,9 +461,15 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
             />
             
             {/* Profile picture */}
-            <div className="flex w-12 h-12 justify-center items-center rounded-full border border-[rgba(33,31,32,0.25)] bg-cover bg-center bg-no-repeat mr-4 overflow-hidden"
-                 style={{ backgroundImage: `url(${connection.img})` }}>
-            </div>
+            {connection.img ? (
+              <div className="flex w-12 h-12 justify-center items-center rounded-full border border-[rgba(33,31,32,0.25)] bg-cover bg-center bg-no-repeat mr-4 overflow-hidden"
+                   style={{ backgroundImage: `url(${connection.img})` }}>
+              </div>
+            ) : (
+              <div className="flex w-12 h-12 justify-center items-center rounded-full border border-[rgba(33,31,32,0.25)] bg-gray-200 mr-4 overflow-hidden">
+                <IoPersonCircle className="w-16 h-16 text-gray-400 transform scale-125" />
+              </div>
+            )}
             
             {/* Name and age */}
             <div className="text-[#211F20] font-poppins text-body-m-med font-medium leading-[110%] mr-6">
@@ -564,18 +578,21 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
               <SmallFlashIcon className="w-6 h-6 mr-2" />
               You just went on a date! Select sparks to match with!
             </span>
-            <button
-              onClick={handleMatchesClick}
-              onDoubleClick={handleDirectMatchesClick}
-              disabled={selectingMatches}
-              className={`bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition ${
-                selectingMatches 
-                  ? 'opacity-60 cursor-not-allowed' 
-                  : 'hover:bg-[#d4f85a]'
-              }`}
-            >
-              {selectingMatches ? 'Loading…' : 'Select my sparks'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleMatchesClick}
+                onDoubleClick={handleDirectMatchesClick}
+                disabled={selectingMatches}
+                className={`bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition ${
+                  selectingMatches 
+                    ? 'opacity-60 cursor-not-allowed' 
+                    : 'hover:bg-[#d4f85a]'
+                }`}
+              >
+                {selectingMatches ? 'Loading…' : 'Select my sparks'}
+              </button>
+
+            </div>
           </div>
         </div>
       )}
