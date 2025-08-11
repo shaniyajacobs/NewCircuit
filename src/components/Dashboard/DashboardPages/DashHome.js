@@ -47,9 +47,16 @@ const cityToTimeZone = {
 // Helper: map event timeZone field to IANA
 const eventZoneMap = {
   'PST': 'America/Los_Angeles',
+  'PDT': 'America/Los_Angeles',
   'EST': 'America/New_York',
+  'EDT': 'America/New_York',
   'CST': 'America/Chicago',
+  'CDT': 'America/Chicago',
   'MST': 'America/Denver',
+  'MDT': 'America/Denver',
+  'UTC': 'UTC',
+  'GMT': 'Europe/London',
+  'BST': 'Europe/London',
   // Add more as needed
 };
 
@@ -113,57 +120,51 @@ async function isLatestEventWithin48Hours(userId) {
     const latestEventId = userDoc.data()?.latestEventId;
     
     if (!latestEventId) {
+      console.log('[48HOURS] No latestEventId found for user:', userId);
       return false;
     }
     
-    // Find the event document
-    const eventsSnapshot = await getDocs(collection(db, 'events'));
-    let eventData = null;
-    eventsSnapshot.forEach(docSnap => {
-      if (docSnap.data().eventID === latestEventId) {
-        eventData = docSnap.data();
-      }
-    });
+    // Use getEventData Cloud Function to get event data from Remo
+    const functionsInst = getFunctions();
+    const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
+    const res = await getEventDataCF({ eventId: latestEventId });
     
-    if (!eventData) {
+    if (!res.data?.event) {
+      console.log('[48HOURS] No event data returned from getEventData:', latestEventId);
       return false;
     }
     
-    // Calculate event end time
-    let eventDateTime;
-    if (eventData.startTime) {
-      // Use startTime if available (Remo events)
-      eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
-    } else if (eventData.date && eventData.time && eventData.timeZone) {
-      // Use date/time for regular events
-      const normalizedTime = eventData.time.replace(/am|pm/i, match => match.toUpperCase());
-      const eventZone = eventZoneMap[eventData.timeZone] || eventData.timeZone || 'UTC';
-      
-      eventDateTime = DateTime.fromFormat(
-        `${eventData.date} ${normalizedTime}`,
-        'yyyy-MM-dd h:mma',
-        { zone: eventZone }
-      );
-      
-      if (!eventDateTime.isValid) {
-        eventDateTime = DateTime.fromFormat(
-          `${eventData.date} ${normalizedTime}`,
-          'yyyy-MM-dd H:mm',
-          { zone: eventZone }
-        );
-      }
-    }
-    
-    if (!eventDateTime || !eventDateTime.isValid) {
-      return false;
-    }
-    
-    // Add 90 minutes for event duration
-    const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+    const eventData = res.data.event;
+    console.log('[48HOURS] Event data from getEventData:', { eventID: eventData.id, endTime: eventData.endTime, startTime: eventData.startTime });
     
     // Check if event ended within the last 48 hours
     const now = DateTime.now();
+    let eventEndDateTime;
+    
+    if (eventData.endTime) {
+      eventEndDateTime = DateTime.fromMillis(Number(eventData.endTime));
+      console.log('[48HOURS] Using endTime:', eventEndDateTime.toISO());
+    } else if (eventData.startTime) {
+      const eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
+      eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+      console.log('[48HOURS] Using startTime + 90min:', eventEndDateTime.toISO());
+    } else {
+      console.log('[48HOURS] No valid time data in event');
+      return false;
+    }
+    
+    if (!eventEndDateTime || !eventEndDateTime.isValid) {
+      console.log('[48HOURS] Failed to calculate event end time');
+      return false;
+    }
+    
     const hoursSinceEvent = now.diff(eventEndDateTime, 'hours').hours;
+    
+    console.log('[48HOURS] Time calculation:', { 
+      eventEnd: eventEndDateTime.toISO(), 
+      now: now.toISO(), 
+      hoursSinceEvent: Math.round(hoursSinceEvent * 100) / 100 
+    });
     
     return hoursSinceEvent <= 48;
   } catch (error) {
@@ -333,20 +334,25 @@ const DashHome = () => {
           
           // Check if latest event was within 48 hours to show "Select my sparks" card
           const within48Hours = await isLatestEventWithin48Hours(user.uid);
+          console.log('[SELECTSPARKS] Within 48 hours:', within48Hours);
           
           // Check if user has already made max selections for the latest event
           let hasMaxSelections = false;
           if (within48Hours && data.latestEventId) {
             const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
             const connectionDocs = connectionsSnap.docs;
+            console.log('[SELECTSPARKS] Current connections count:', connectionDocs.length, 'MAX:', MAX_SELECTIONS);
             
             // If user has reached max selections
             if (connectionDocs.length >= MAX_SELECTIONS) {
               hasMaxSelections = true;
+              console.log('[SELECTSPARKS] User has max selections, hiding banner');
             }
           }
           
-          setShowSelectSparksCard(within48Hours && !hasMaxSelections);
+          const shouldShow = within48Hours && !hasMaxSelections;
+          console.log('[SELECTSPARKS] Final decision - show banner:', shouldShow, { within48Hours, hasMaxSelections });
+          setShowSelectSparksCard(shouldShow);
         }
       }
     });
@@ -1134,6 +1140,7 @@ useEffect(() => {
                 >
                   {selectingMatches ? 'Loading…' : 'Select my sparks'}
                 </button>
+
               </div>
             </div>
             )}

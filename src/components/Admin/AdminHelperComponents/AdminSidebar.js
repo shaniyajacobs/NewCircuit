@@ -21,7 +21,9 @@ const AdminSidebar = () => {
   const [showTabletMenu, setShowTabletMenu] = useState(false);
 
   const handleSignOut = (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
     setShowSignOutModal(true);
     setShowSettingsDropdown(false);
   };

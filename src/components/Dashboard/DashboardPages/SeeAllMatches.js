@@ -6,6 +6,7 @@ import { calculateAge } from '../../../utils/ageCalculator';
 import { DateTime } from 'luxon';
 import PopUp from '../DashboardHelperComponents/PopUp';
 import { formatUserName } from '../../../utils/nameFormatter';
+import { IoPersonCircle } from 'react-icons/io5';
 
 const MAX_SELECTIONS = 3; // maximum matches a user can choose
 
@@ -99,7 +100,7 @@ const SeeAllMatches = () => {
               id: m.userId,
               name: formatUserName(d),
               age: calculateAge(d.birthDate),
-              image: d.image || '/default-profile.png',
+              image: d.image || null,
               compatibility: Math.round(m.score),
               selected: prevSelectedIds.includes(m.userId),
             };
@@ -232,8 +233,8 @@ const SeeAllMatches = () => {
               className="w-12 h-12 rounded-full object-cover border border-gray-300"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-400 text-xl">👤</span>
+            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center border border-gray-300 overflow-hidden">
+              <IoPersonCircle className="w-16 h-16 text-gray-400 transform scale-125" />
             </div>
           )}
           <div className="w-2 sm:w-3 xl:w-3.5 2xl:w-4"></div>
