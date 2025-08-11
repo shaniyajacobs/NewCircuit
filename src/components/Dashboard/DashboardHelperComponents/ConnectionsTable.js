@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { IoPersonCircle } from "react-icons/io5";
 import { ReactComponent as SendIcon } from "../../../images/send-2.svg";
 import { formatUserName } from "../../../utils/nameFormatter";
+import { markSparkAsRead, markSparkAsViewed, refreshSidebarNotification } from "../../../utils/notificationManager";
 
 const ConnectionsTable = ({ connections, onMessageClick }) => {
   const navigate = useNavigate();
@@ -10,7 +11,16 @@ const ConnectionsTable = ({ connections, onMessageClick }) => {
   if (!connections.length)
     return <div className="p-4 text-gray-600">No connections yet.</div>;
 
-  const handleMessageClick = (connection) => {
+  const handleMessageClick = async (connection) => {
+    // Mark the spark as read when user clicks message
+    if (connection.isNewSpark) {
+      await markSparkAsRead(connection.userId);
+      await markSparkAsViewed(connection.userId); // Mark as viewed
+      
+      // Force refresh of sidebar notification state
+      await refreshSidebarNotification();
+    }
+
     if (onMessageClick) {
       onMessageClick(connection);
     } else {

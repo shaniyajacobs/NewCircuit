@@ -34,7 +34,8 @@ const Waiting = ({ imagePath = "/Lasthook_BG.webp" }) => {
               }}
               className="text-[32px] sm:text-[32px] md:text-[48px] lg:text-[64px] pb-[16px] sm:pb-[16px] md:pb-[20px] lg:pb-[24px]"
             >
-              What are you waiting for?
+              What Are You Waiting For?
+
             </h1>
             <p
               style={{

@@ -7,8 +7,9 @@ import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import AdminUserDetailModal from './AdminUserDetailModal';
 import { DateTime } from 'luxon';
-import { signOutFromEvent, calculateActualCounts, reconcileCounts } from '../../../utils/eventSpotsUtils';
+import { signOutFromEvent, calculateActualCounts, reconcileCounts, clearLatestEventIdIfNeeded } from '../../../utils/eventSpotsUtils';
 import { formatUserName } from '../../../utils/nameFormatter';
+import { sortEventsByDate } from '../../../utils/eventSorter';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -195,11 +196,15 @@ const AdminUserManagement = () => {
             date: dateStr,
             time: timeStr,
             signUp: signUpStr,
+            // Add timestamp for sorting
+            timestamp: dt ? dt.toMillis() : (data.eventDate ? DateTime.fromISO(data.eventDate).toMillis() : 0),
           };
         })
       );
 
-      setUserEvents(enriched);
+      // Sort events chronologically from newest to oldest
+      const sortedEvents = sortEventsByDate(enriched);
+      setUserEvents(sortedEvents);
     } catch (error) {
       console.error('Error fetching user events:', error);
       setUserEvents([]);
@@ -313,6 +318,9 @@ const AdminUserManagement = () => {
       try {
         await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', eventId));
         console.log('✅ Deleted from user signedUpEvents');
+        
+        // Clear latestEventId if this was the user's latest event
+        await clearLatestEventIdIfNeeded(userId, eventId);
       } catch (error) {
         console.log('⚠️ Could not delete from user signedUpEvents (might not exist):', error.message);
       }
@@ -405,171 +413,190 @@ const AdminUserManagement = () => {
   );
 
   return (
-    <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)]">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">User Management</h1>
-        <div className="relative">
+    <div className="p-4 sm:p-6 lg:p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)]">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-xl sm:text-2xl font-semibold">User Management</h1>
+        <div className="relative flex-1 sm:flex-none">
           <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search users..."
-            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <div
-        className="max-h-[calc(100vh-250px)] overflow-y-auto overflow-x-auto"
-        onScroll={() => hoverUserId && setHoverUserId(null)}
-      >
-        <table className="min-w-full w-full whitespace-nowrap text-sm">
-          <thead className="bg-gray-50 sticky top-0">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preference</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sparks</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Events</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {loading ? (
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50">
               <tr>
-                <td colSpan="8" className="text-center py-4">Loading...</td>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[150px]">Name</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Status</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[80px]">Role</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[80px]">Gender</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Preference</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[80px]">Dates</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[80px]">Sparks</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[80px]">Events</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Actions</th>
               </tr>
-            ) : filteredUsers.map(user => (
-              <tr key={user.id} className={user.id === auth.currentUser?.uid ? 'bg-blue-50' : ''}>
-                <td className="px-6 py-4 whitespace-nowrap cursor-pointer text-blue-700 hover:underline" onClick={() => { setSelectedUserDetail(user); setShowUserDetailModal(true); }}>
-                  <span
-                    className="relative text-gray-900 cursor-default"
-                    onMouseEnter={() => setHoverUserId(user.id)}
-                  >
-                    {formatUserName(user)}
-                    {hoverUserId === user.id && (
-                      <div
-                        className="absolute z-10 left-full ml-4 top-1/2 -translate-y-1/2 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs whitespace-nowrap"
-                        onMouseLeave={() => setHoverUserId(null)}
-                        onMouseEnter={() => setHoverUserId(user.id)}
-                      >
-                        <div><span className="font-semibold">Email:</span> {user.email}</div>
-                        <div><span className="font-semibold">User ID:</span> {user.id}</div>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td colSpan="9" className="text-center py-8 text-gray-600">Loading...</td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="text-center py-8 text-gray-600">No users found.</td>
+                </tr>
+              ) : (
+                filteredUsers.map(user => (
+                  <tr key={user.id} className={`hover:bg-gray-50 ${user.id === auth.currentUser?.uid ? 'bg-blue-50' : ''}`}>
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap cursor-pointer text-blue-700 hover:underline" onClick={() => { setSelectedUserDetail(user); setShowUserDetailModal(true); }}>
+                      <div className="flex items-center">
+                        <span
+                          className="relative text-gray-900 cursor-default"
+                          onMouseEnter={() => setHoverUserId(user.id)}
+                          onMouseLeave={() => setHoverUserId(null)}
+                        >
+                          <div className="truncate max-w-[150px] sm:max-w-[200px]" title={formatUserName(user)}>
+                            {formatUserName(user)}
+                          </div>
+                          {hoverUserId === user.id && (
+                            <div
+                              className="absolute z-10 left-full ml-4 top-1/2 -translate-y-1/2 bg-white border border-gray-300 shadow-lg rounded-lg p-3 text-xs whitespace-nowrap"
+                              onMouseEnter={() => setHoverUserId(user.id)}
+                              onMouseLeave={() => setHoverUserId(null)}
+                            >
+                              <div className="font-semibold text-gray-700 mb-1">User Details</div>
+                              <div><span className="font-medium">Email:</span> {user.email}</div>
+                              <div><span className="font-medium">User ID:</span> {user.id}</div>
+                            </div>
+                          )}
+                        </span>
+                        {user.id === auth.currentUser?.uid && (
+                          <span className="ml-2 text-xs text-blue-600">(Me)</span>
+                        )}
                       </div>
-                    )}
-                  </span>
-                  {user.id === auth.currentUser?.uid && (
-                    <span className="ml-2 text-xs text-blue-600">(Me)</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {user.isActive ? <IoMdCheckmark className="mr-1" /> : <IoMdClose className="mr-1" />}
-                    {user.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    adminUsers.includes(user.id) ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    <FaUserShield className="mr-1" />
-                    {adminUsers.includes(user.id) ? 'Admin' : 'User'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap capitalize">{user.gender || '-'}</td>
-                <td className="px-6 py-4 whitespace-nowrap capitalize">{user.sexualPreference || user.genderPreference || '-'}</td>
-                {/* Dates column */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">{user.datesRemaining || 0}</span>
-                    <button
-                      onClick={() => handleEditDates(user)}
-                      className="text-blue-600 hover:text-blue-900 text-sm"
-                      title="Edit Dates"
-                    >
-                      ✏️
-                    </button>
-                  </div>
-                </td>
-                {/* Sparks column */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleShowConnections(user)}
-                    className="px-3 py-1 bg-pink-600 text-white text-sm rounded-lg hover:bg-pink-700 transition-colors"
-                  >
-                    Sparks
-                  </button>
-                </td>
-                {/* Events column */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleShowEvents(user)}
-                    className="px-3 py-1 bg-[#0043F1] text-white text-sm rounded-lg hover:bg-[#0034BD] transition-colors"
-                  >
-                    Events
-                  </button>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-3">
-                    {!adminUsers.includes(user.id) && (
+                    </td>
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.isActive ? <IoMdCheckmark className="mr-1" /> : <IoMdClose className="mr-1" />}
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        adminUsers.includes(user.id) ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        <FaUserShield className="mr-1" />
+                        {adminUsers.includes(user.id) ? 'Admin' : 'User'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap capitalize">
+                      <div className="truncate max-w-[80px]" title={user.gender || '-'}>
+                        {user.gender || '-'}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap capitalize">
+                      <div className="truncate max-w-[100px]" title={user.sexualPreference || user.genderPreference || '-'}>
+                        {user.sexualPreference || user.genderPreference || '-'}
+                      </div>
+                    </td>
+                    {/* Dates column */}
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium">{user.datesRemaining || 0}</span>
+                        <button
+                          onClick={() => handleEditDates(user)}
+                          className="text-blue-600 hover:text-blue-900 text-sm hover:bg-blue-50 p-1 rounded transition-colors"
+                          title="Edit Dates"
+                        >
+                          ✏️
+                        </button>
+                      </div>
+                    </td>
+                    {/* Sparks column */}
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                       <button
-                        onClick={() => handleMakeAdmin(user)}
-                        className="text-purple-600 hover:text-purple-900"
-                        title="Make Admin"
+                        onClick={() => handleShowConnections(user)}
+                        className="px-3 py-1 bg-pink-600 text-white text-sm rounded-lg hover:bg-pink-700 transition-colors hover:shadow-md"
                       >
-                        <FaUserShield />
+                        Sparks
                       </button>
-                    )}
-                    {adminUsers.includes(user.id) && user.id !== auth.currentUser?.uid && (
+                    </td>
+                    {/* Events column */}
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                       <button
-                        onClick={() => handleRemoveAdmin(user)}
-                        className="text-orange-600 hover:text-orange-900"
-                        title="Remove Admin"
+                        onClick={() => handleShowEvents(user)}
+                        className="px-3 py-1 bg-[#0043F1] text-white text-sm rounded-lg hover:bg-[#0034BD] transition-colors hover:shadow-md"
                       >
-                        <FaUserShield />
+                        Events
                       </button>
-                    )}
-                    {user.id !== auth.currentUser?.uid && (
-                      <button
-                        onClick={() => handleDeleteUser(user)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete User"
-                      >
-                        <FaTrash />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        {!adminUsers.includes(user.id) && (
+                          <button
+                            onClick={() => handleMakeAdmin(user)}
+                            className="text-purple-600 hover:text-purple-900 transition-colors p-1 rounded hover:bg-purple-50"
+                            title="Make Admin"
+                          >
+                            <FaUserShield className="w-4 h-4" />
+                          </button>
+                        )}
+                        {adminUsers.includes(user.id) && user.id !== auth.currentUser?.uid && (
+                          <button
+                            onClick={() => handleRemoveAdmin(user)}
+                            className="text-orange-600 hover:text-orange-900 transition-colors p-1 rounded hover:bg-orange-50"
+                            title="Remove Admin"
+                          >
+                            <FaUserShield className="w-4 h-4" />
+                          </button>
+                        )}
+                        {user.id !== auth.currentUser?.uid && (
+                          <button
+                            onClick={() => handleDeleteUser(user)}
+                            className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
+                            title="Delete User"
+                          >
+                            <FaTrash className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-semibold mb-4">Delete User</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-md w-full mx-4">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4">Delete User</h2>
             <p className="text-gray-600 mb-6">
               Are you sure you want to delete {formatUserName(selectedUser)}? 
               This action cannot be undone.
             </p>
-            <div className="flex justify-end gap-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
               <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
                 onClick={() => setShowDeleteModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors order-1 sm:order-2"
                 onClick={confirmDelete}
               >
                 Delete
@@ -581,22 +608,22 @@ const AdminUserManagement = () => {
 
       {/* Make Admin Modal */}
       {showAdminModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-semibold mb-4">Make User Admin</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-md w-full mx-4">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4">Make User Admin</h2>
             <p className="text-gray-600 mb-6">
               Are you sure you want to make {formatUserName(selectedUser)} an admin? 
               They will have full administrative access.
             </p>
-            <div className="flex justify-end gap-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
               <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
                 onClick={() => setShowAdminModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors order-1 sm:order-2"
                 onClick={confirmMakeAdmin}
               >
                 Make Admin
@@ -608,22 +635,22 @@ const AdminUserManagement = () => {
 
       {/* Remove Admin Modal */}
       {showRemoveAdminModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-semibold mb-4">Remove Admin Status</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-md w-full mx-4">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4">Remove Admin Status</h2>
             <p className="text-gray-600 mb-6">
               Are you sure you want to remove admin status from {selectedUser?.firstName} {selectedUser?.lastName}? 
               They will lose administrative access.
             </p>
-            <div className="flex justify-end gap-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
               <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
                 onClick={() => setShowRemoveAdminModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors order-1 sm:order-2"
                 onClick={confirmRemoveAdmin}
               >
                 Remove Admin
@@ -644,50 +671,80 @@ const AdminUserManagement = () => {
 
       {/* User Events Modal */}
       {showEventsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-2xl font-semibold mb-4">Events for {formatUserName(selectedUser)}</h2>
-            {loadingEvents ? (
-              <div className="text-center py-8">Loading...</div>
-            ) : userEvents.length === 0 ? (
-              <div className="text-center py-8 text-gray-600">No events found.</div>
-            ) : (
-              <table className="min-w-full text-sm table-fixed">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Title</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Date</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Time</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Signed-Up At</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Event ID</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {userEvents.map(ev => (
-                    <tr key={ev.id}>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.title}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.date}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.time}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.signUp}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">{ev.id}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/6 truncate">
-                        <button
-                          onClick={() => handleDeleteEvent(ev)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
-                          title="Remove user from event"
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            <div className="flex justify-end mt-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex-shrink-0">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-4">Events for {formatUserName(selectedUser)}</h2>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {loadingEvents ? (
+                <div className="text-center py-8">Loading...</div>
+              ) : userEvents.length === 0 ? (
+                <div className="text-center py-8 text-gray-600">No events found.</div>
+              ) : (
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[150px]">Title</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[100px]">Date</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[100px]">Time</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[120px]">Signed-Up At</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[120px]">Event ID</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[100px]">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {userEvents.map(ev => (
+                          <tr key={ev.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <div className="truncate max-w-[150px] sm:max-w-[200px]" title={ev.title}>
+                                {ev.title}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <div className="truncate max-w-[100px]" title={ev.date}>
+                                {ev.date}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <div className="truncate max-w-[100px]" title={ev.time}>
+                                {ev.time}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <div className="truncate max-w-[120px]" title={ev.signUp}>
+                                {ev.signUp}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <div className="truncate max-w-[120px]" title={ev.id}>
+                                {ev.id}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <button
+                                onClick={() => handleDeleteEvent(ev)}
+                                className="text-red-600 hover:text-red-800 text-sm font-medium hover:underline"
+                                title="Remove user from event"
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex-shrink-0 flex justify-end mt-6 pt-4 border-t border-gray-200">
               <button
-                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
                 onClick={() => setShowEventsModal(false)}
               >
                 Close
@@ -699,52 +756,82 @@ const AdminUserManagement = () => {
 
       {/* User Sparks (Connections) Modal */}
       {showConnectionsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h2 className="text-2xl font-semibold mb-4">Sparks for {formatUserName(selectedUser)}</h2>
-            {loadingConnections ? (
-              <div className="text-center py-8">Loading...</div>
-            ) : userConnections.length === 0 ? (
-              <div className="text-center py-8 text-gray-600">No sparks found.</div>
-            ) : (
-              <table className="min-w-full text-sm table-fixed">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Name</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Email</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Gender</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Status</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/6">Match %</th>
-                    <th className="px-4 py-2 text-left font-medium text-gray-600 w-1/5">Connected At</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {userConnections.map(conn => (
-                    <tr key={conn.id}>
-                      <td className="px-4 py-2 whitespace-nowrap truncate w-1/5">{conn.name}</td>
-                      <td className="px-4 py-2 whitespace-nowrap truncate w-1/6">{conn.email}</td>
-                      <td className="px-4 py-2 whitespace-nowrap capitalize w-1/6">{conn.gender}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/6">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          conn.status === 'mutual'
-                            ? 'bg-green-100 text-green-800'
-                            : conn.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {conn.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/6">{conn.matchScore ?? '-'}</td>
-                      <td className="px-4 py-2 whitespace-nowrap w-1/5">{conn.connectedAt ? conn.connectedAt.toLocaleDateString() : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            <div className="flex justify-end mt-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex-shrink-0">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-4">Sparks for {formatUserName(selectedUser)}</h2>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {loadingConnections ? (
+                <div className="text-center py-8">Loading...</div>
+              ) : userConnections.length === 0 ? (
+                <div className="text-center py-8 text-gray-600">No sparks found.</div>
+              ) : (
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[150px]">Name</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[200px]">Email</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[80px]">Gender</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[100px]">Status</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[80px]">Match %</th>
+                          <th className="px-3 py-3 sm:px-4 sm:py-3 text-left font-medium text-gray-600 min-w-[120px]">Connected At</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {userConnections.map(conn => (
+                          <tr key={conn.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <div className="truncate max-w-[150px] sm:max-w-[200px]" title={conn.name}>
+                                {conn.name}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <div className="truncate max-w-[200px]" title={conn.email}>
+                                {conn.email}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap capitalize">
+                              <div className="truncate max-w-[80px]" title={conn.gender}>
+                                {conn.gender}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                conn.status === 'mutual'
+                                  ? 'bg-green-100 text-green-800'
+                                  : conn.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {conn.status}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <div className="truncate max-w-[80px]" title={conn.matchScore ?? '-'}>
+                                {conn.matchScore ?? '-'}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 sm:px-4 sm:py-3 whitespace-nowrap">
+                              <div className="truncate max-w-[120px]" title={conn.connectedAt ? conn.connectedAt.toLocaleDateString() : '-'}>
+                                {conn.connectedAt ? conn.connectedAt.toLocaleDateString() : '-'}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex-shrink-0 flex justify-end mt-6 pt-4 border-t border-gray-200">
               <button
-                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
                 onClick={() => setShowConnectionsModal(false)}
               >
                 Close
@@ -756,9 +843,9 @@ const AdminUserManagement = () => {
 
       {/* Delete Event Confirmation Modal */}
       {showDeleteEventModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-semibold mb-4">Remove User from Event</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-md w-full mx-4">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4">Remove User from Event</h2>
             <p className="text-gray-600 mb-6">
               Are you sure you want to remove <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> from the event "{selectedEventToDelete?.title}"?
             </p>
@@ -766,9 +853,9 @@ const AdminUserManagement = () => {
               This action will remove the user from the event and update the signup counts. This action cannot be undone.<br/>
               <span className="text-xs text-red-500 block mt-2">Reminder: You must manually remove this user from the Remo event in the Remo dashboard. This is not handled automatically.</span>
             </p>
-            <div className="flex justify-end gap-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
               <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
                 onClick={() => {
                   setShowDeleteEventModal(false);
                   setSelectedEventToDelete(null);
@@ -778,7 +865,7 @@ const AdminUserManagement = () => {
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 order-1 sm:order-2"
                 onClick={confirmDeleteEvent}
                 disabled={deletingEvent}
               >
@@ -791,9 +878,9 @@ const AdminUserManagement = () => {
 
       {/* Edit Dates Modal */}
       {showEditDatesModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-semibold mb-4">Edit User Dates</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-md w-full mx-4">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4">Edit User Dates</h2>
             <p className="text-gray-600 mb-6">
               Update the number of dates remaining for <strong>{selectedUserForDates?.firstName} {selectedUserForDates?.lastName}</strong>
             </p>
@@ -810,9 +897,9 @@ const AdminUserManagement = () => {
                 placeholder="Enter number of dates"
               />
             </div>
-            <div className="flex justify-end gap-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
               <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
                 onClick={() => {
                   setShowEditDatesModal(false);
                   setSelectedUserForDates(null);
@@ -823,7 +910,7 @@ const AdminUserManagement = () => {
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 order-1 sm:order-2"
                 onClick={confirmUpdateDates}
                 disabled={updatingDates}
               >

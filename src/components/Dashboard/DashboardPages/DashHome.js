@@ -3,10 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where, onSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, serverTimestamp, increment, query, where, onSnapshot, deleteDoc } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from "../../../firebaseConfig";
 import CircuitEvent from "../DashboardHelperComponents/CircuitEvent";
+import { collectionGroup, documentId } from "firebase/firestore";
 import { auth } from "../../../firebaseConfig";
 import { signUpForEventWithDates } from '../../../utils/eventSpotsUtils';
 import { onAuthStateChanged } from "firebase/auth";
@@ -15,12 +16,15 @@ import PopUp from '../DashboardHelperComponents/PopUp';
 import { calculateAge } from '../../../utils/ageCalculator';
 import { filterByGenderPreference } from '../../../utils/genderPreferenceFilter';
 import { formatUserName } from '../../../utils/nameFormatter';
+import { sortEventsByDate, sortAndFilterUpcomingEvents } from '../../../utils/eventSorter';
 import homeSelectMySparks from '../../../images/home_select_my_sparks.jpg';
 import imgNoise from '../../../images/noise.png';
 import homeSeeMySparks from '../../../images/home_see_my_sparks.jpg';
 import homePurchaseMoreDates from '../../../images/home_purchase_more_dates.jpg';
 import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.svg';
 import filterIcon from '../../../images/setting-4.svg';
+import { markSparkAsRead, isSparkNew, markSparkAsViewed, refreshSidebarNotification } from "../../../utils/notificationManager";
+import { DashMessages } from "./DashMessages";
 import xIcon from "../../../images/x.svg";
 import tickCircle from "../../../images/tick-circle.svg";
 
@@ -43,9 +47,16 @@ const cityToTimeZone = {
 // Helper: map event timeZone field to IANA
 const eventZoneMap = {
   'PST': 'America/Los_Angeles',
+  'PDT': 'America/Los_Angeles',
   'EST': 'America/New_York',
+  'EDT': 'America/New_York',
   'CST': 'America/Chicago',
+  'CDT': 'America/Chicago',
   'MST': 'America/Denver',
+  'MDT': 'America/Denver',
+  'UTC': 'UTC',
+  'GMT': 'Europe/London',
+  'BST': 'Europe/London',
   // Add more as needed
 };
 
@@ -109,57 +120,51 @@ async function isLatestEventWithin48Hours(userId) {
     const latestEventId = userDoc.data()?.latestEventId;
     
     if (!latestEventId) {
+      console.log('[48HOURS] No latestEventId found for user:', userId);
       return false;
     }
     
-    // Find the event document
-    const eventsSnapshot = await getDocs(collection(db, 'events'));
-    let eventData = null;
-    eventsSnapshot.forEach(docSnap => {
-      if (docSnap.data().eventID === latestEventId) {
-        eventData = docSnap.data();
-      }
-    });
+    // Use getEventData Cloud Function to get event data from Remo
+    const functionsInst = getFunctions();
+    const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
+    const res = await getEventDataCF({ eventId: latestEventId });
     
-    if (!eventData) {
+    if (!res.data?.event) {
+      console.log('[48HOURS] No event data returned from getEventData:', latestEventId);
       return false;
     }
     
-    // Calculate event end time
-    let eventDateTime;
-    if (eventData.startTime) {
-      // Use startTime if available (Remo events)
-      eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
-    } else if (eventData.date && eventData.time && eventData.timeZone) {
-      // Use date/time for regular events
-      const normalizedTime = eventData.time.replace(/am|pm/i, match => match.toUpperCase());
-      const eventZone = eventZoneMap[eventData.timeZone] || eventData.timeZone || 'UTC';
-      
-      eventDateTime = DateTime.fromFormat(
-        `${eventData.date} ${normalizedTime}`,
-        'yyyy-MM-dd h:mma',
-        { zone: eventZone }
-      );
-      
-      if (!eventDateTime.isValid) {
-        eventDateTime = DateTime.fromFormat(
-          `${eventData.date} ${normalizedTime}`,
-          'yyyy-MM-dd H:mm',
-          { zone: eventZone }
-        );
-      }
-    }
-    
-    if (!eventDateTime || !eventDateTime.isValid) {
-      return false;
-    }
-    
-    // Add 90 minutes for event duration
-    const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+    const eventData = res.data.event;
+    console.log('[48HOURS] Event data from getEventData:', { eventID: eventData.id, endTime: eventData.endTime, startTime: eventData.startTime });
     
     // Check if event ended within the last 48 hours
     const now = DateTime.now();
+    let eventEndDateTime;
+    
+    if (eventData.endTime) {
+      eventEndDateTime = DateTime.fromMillis(Number(eventData.endTime));
+      console.log('[48HOURS] Using endTime:', eventEndDateTime.toISO());
+    } else if (eventData.startTime) {
+      const eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
+      eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+      console.log('[48HOURS] Using startTime + 90min:', eventEndDateTime.toISO());
+    } else {
+      console.log('[48HOURS] No valid time data in event');
+      return false;
+    }
+    
+    if (!eventEndDateTime || !eventEndDateTime.isValid) {
+      console.log('[48HOURS] Failed to calculate event end time');
+      return false;
+    }
+    
     const hoursSinceEvent = now.diff(eventEndDateTime, 'hours').hours;
+    
+    console.log('[48HOURS] Time calculation:', { 
+      eventEnd: eventEndDateTime.toISO(), 
+      now: now.toISO(), 
+      hoursSinceEvent: Math.round(hoursSinceEvent * 100) / 100 
+    });
     
     return hoursSinceEvent <= 48;
   } catch (error) {
@@ -206,6 +211,7 @@ const DashHome = () => {
   const [showSelectSparksCard, setShowSelectSparksCard] = useState(false);
   const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
   const [selectingMatches, setSelectingMatches] = useState(false);
+  const [selectedConnection, setSelectedConnection] = useState(null);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -213,6 +219,16 @@ const DashHome = () => {
     title: '',
     message: '',
   });
+
+  // Handle message click to open chat
+  const handleMessageClick = (connection) => {
+    setSelectedConnection(connection);
+  };
+
+  // Handle closing messages modal
+  const handleCloseMessages = () => {
+    setSelectedConnection(null);
+  };
 
   // Helper: fetch IDs of events the user has signed up for from their sub-collection
   const fetchUserSignedUpEventIds = async (userId) => {
@@ -299,6 +315,7 @@ const DashHome = () => {
     return filtered;
   };
 
+
   // Fetch user gender and datesRemaining from Firestore
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -317,20 +334,25 @@ const DashHome = () => {
           
           // Check if latest event was within 48 hours to show "Select my sparks" card
           const within48Hours = await isLatestEventWithin48Hours(user.uid);
+          console.log('[SELECTSPARKS] Within 48 hours:', within48Hours);
           
           // Check if user has already made max selections for the latest event
           let hasMaxSelections = false;
           if (within48Hours && data.latestEventId) {
             const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
             const connectionDocs = connectionsSnap.docs;
+            console.log('[SELECTSPARKS] Current connections count:', connectionDocs.length, 'MAX:', MAX_SELECTIONS);
             
             // If user has reached max selections
             if (connectionDocs.length >= MAX_SELECTIONS) {
               hasMaxSelections = true;
+              console.log('[SELECTSPARKS] User has max selections, hiding banner');
             }
           }
           
-          setShowSelectSparksCard(within48Hours && !hasMaxSelections);
+          const shouldShow = within48Hours && !hasMaxSelections;
+          console.log('[SELECTSPARKS] Final decision - show banner:', shouldShow, { within48Hours, hasMaxSelections });
+          setShowSelectSparksCard(shouldShow);
         }
       }
     });
@@ -366,32 +388,26 @@ const DashHome = () => {
       const filteredProfiles = profiles.filter(Boolean);
       setConnections(filteredProfiles);
 
-      // Check for new sparks (mutual connections with no message sent by user)
-      const userId = user.uid;
-      const newSparks = await Promise.all(
+      // Check for new sparks using the notification manager
+      const connectionsWithNewFlag = await Promise.all(
         filteredProfiles.map(async (conn) => {
-          const convoId = userId < conn.userId ? `${userId}${conn.userId}` : `${conn.userId}${userId}`;
-          const convoDoc = await getDoc(doc(db, "conversations", convoId));
-          if (!convoDoc.exists()) return true; // No conversation yet = new spark
-          const messages = convoDoc.data().messages || [];
-          const hasMessaged = messages.some(msg => msg.senderId === userId);
-          return !hasMessaged;
+          const isNew = await isSparkNew(conn.userId);
+          return {
+            ...conn,
+            isNewSpark: isNew
+          };
         })
       );
 
-      // Add isNewSpark property to each connection object
-      const connectionsWithNewFlag = filteredProfiles.map((conn, idx) => ({
-        ...conn,
-        isNewSpark: newSparks[idx]
-      }));
       setConnections(connectionsWithNewFlag);
-      setHasNewSpark(newSparks.some(isNew => isNew));
+      setHasNewSpark(connectionsWithNewFlag.some(conn => conn.isNewSpark));
       
       // Hide select sparks card if user has max selections
       if (filteredProfiles.length >= MAX_SELECTIONS) {
         setShowSelectSparksCard(false);
       }
     } catch (err) {
+      console.error('Error fetching connections:', err);
       setConnections([]);
       setHasNewSpark(false);
     } finally {
@@ -535,10 +551,13 @@ const DashHome = () => {
         );
 
       const filteredEvents = eventsList.filter(Boolean);
-      setAllEvents(filteredEvents);
+      
+      // Sort events chronologically from newest to oldest
+      const sortedEvents = sortEventsByDate(filteredEvents);
+      setAllEvents(sortedEvents);
 
-      // Upcoming-filter based on user location
-      const upcoming = getUpcomingEvents(filteredEvents, userProfile?.location);
+      // Upcoming-filter based on user location (already sorted)
+      const upcoming = getUpcomingEvents(sortedEvents, userProfile?.location);
       setFirebaseEvents(upcoming);
       setEvents(upcoming);
 
@@ -711,9 +730,121 @@ const getEventData = async (eventID) => {
       }
     } catch (error) {
       console.error('❌ Error during event signup:', error);
-      alert(error.message || 'Failed to sign up for event. Please try again.');
+      // Don't show alert for capacity errors since users should see waitlist button
+      if (!error.message.includes('Event is full for')) {
+        alert(error.message || 'Failed to sign up for event. Please try again.');
+      }
     }
   };
+
+  // Runs once to fix UI + Remo after waitlist promotion
+  const reconcileUserEventState = async ({ force = false } = {}) => {
+    const user = auth.currentUser;
+    if (!user) return;
+  
+    try {
+      // A) current signedUpEvents
+      const mySignedUpSnap = await getDocs(collection(db, 'users', user.uid, 'signedUpEvents'));
+      const mySignedUpSet = new Set(mySignedUpSnap.docs.map(d => d.id));
+  
+      // B) promotions across events via field filter (not documentId)
+      const cgQ = query(collectionGroup(db, 'signedUpUsers'), where('userID', '==', user.uid));
+      const cgSnap = await getDocs(cgQ);
+  
+      for (const suDoc of cgSnap.docs) {
+        const eventRef = suDoc.ref.parent.parent; // events/{eventId}
+        if (!eventRef) continue;
+        const eventFirestoreId = eventRef.id;
+  
+        if (!mySignedUpSet.has(eventFirestoreId)) {
+          const eventSnap = await getDoc(eventRef);
+          if (!eventSnap.exists()) continue;
+          const e = eventSnap.data() || {};
+  
+          await setDoc(
+            doc(db, 'users', user.uid, 'signedUpEvents', eventFirestoreId),
+            {
+              eventID: e.eventID || eventFirestoreId,
+              signUpTime: serverTimestamp(),
+              eventTitle: e.title || e.eventName || null,
+              eventDate: e.date || null,
+              eventTime: e.time || null,
+              eventLocation: e.location || null,
+              eventAgeRange: e.ageRange || null,
+              eventType: e.eventType || null,
+            },
+            { merge: true }
+          );
+  
+          mySignedUpSet.add(eventFirestoreId);
+  
+          await setDoc(
+            doc(db, 'users', user.uid),
+            { latestEventId: e.eventID || eventFirestoreId },
+            { merge: true }
+          );
+        }
+      }
+  
+      // C) Ensure Remo enrollment (unchanged)
+      const fn = getFunctions();
+      const getEventMembers = httpsCallable(fn, 'getEventMembers');
+      const addUserToRemoEvent = httpsCallable(fn, 'addUserToRemoEvent');
+      const myEmail = (user.email || '').toLowerCase();
+  
+      for (const eventFirestoreId of mySignedUpSet) {
+        const evSnap = await getDoc(doc(db, 'events', eventFirestoreId));
+        if (!evSnap.exists()) continue;
+        const e = evSnap.data() || {};
+        const remoEventId = e.eventID;
+        if (!remoEventId || !myEmail) continue;
+  
+        try {
+          const res = await getEventMembers({ eventId: remoEventId });
+          const payload = res?.data;
+          const attendees = Array.isArray(payload) ? payload : (payload?.attendees || []);
+          const emails = attendees.map(a => a?.user?.email).filter(Boolean).map(x => x.toLowerCase());
+  
+          if (!emails.includes(myEmail)) {
+            await addUserToRemoEvent({ eventId: remoEventId, userEmail: myEmail });
+          }
+        } catch (err) {
+          console.warn('Remo reconcile failed for', remoEventId, err);
+        }
+      }
+  
+      setSignedUpEventIds(new Set(mySignedUpSet));
+    } catch (e) {
+      console.warn('reconcileUserEventState error:', e);
+    }
+  };
+  
+
+useEffect(() => {
+  if (userProfile && auth.currentUser) {
+    // after profile is ready, fix any missing links + Remo
+    reconcileUserEventState();
+  }
+}, [userProfile]);
+
+
+useEffect(() => {
+  if (!auth.currentUser || !userProfile) return;
+
+  const q = query(
+    collectionGroup(db, 'signedUpUsers'),
+    where('userID', '==', auth.currentUser.uid) // 👈 field match
+  );
+
+  const unsub = onSnapshot(q, (snap) => {
+    if (!snap.empty) {
+      reconcileUserEventState({ force: true }); // run immediately
+    }
+  });
+
+  return () => unsub();
+}, [userProfile, auth.currentUser]);
+
 
   const handleMatchesClick = async () => {
     const currentUser = auth.currentUser;
@@ -883,15 +1014,26 @@ const getEventData = async (eventID) => {
     // 9. Redirect to MyMatches
     navigate('myMatches');
     } catch (error) {
-      console.error('Error in handleMatchesClick:', error);
-      setErrorModal({
-        open: true,
-        title: "Error",
-        message: "An error occurred while processing your matches. Please try again.",
-      });
-    } finally {
-      setSelectingMatches(false);
+      console.error('[DASHHOME] Error in handleMatchesClick:', error);
+      // Fallback: try to navigate directly even if matchmaking fails
+      try {
+        console.log('[DASHHOME] Attempting fallback navigation to myMatches');
+        navigate('/dashboard/myMatches');
+      } catch (navError) {
+        console.error('[DASHHOME] Fallback navigation also failed:', navError);
+        setErrorModal({
+          open: true,
+          title: "Error",
+          message: "An error occurred while processing your matches. Please try again.",
+        });
+      }
     }
+  };
+
+  // Simple direct navigation function as backup
+  const handleDirectMatchesClick = () => {
+    console.log('[DASHHOME] Direct navigation to myMatches');
+    navigate('/dashboard/myMatches');
   };
 
   const handleConnectionsClick = () => {
@@ -908,49 +1050,34 @@ const getEventData = async (eventID) => {
 
   // Use the same event limit for sign-up events
   const signUpEventLimit = useResponsiveEventLimit();
-  // Filter for upcoming and sign-up events
+  // Filter for upcoming and sign-up events (already sorted by date)
   const upcomingEvents = useMemo(() => {
-    return allEvents.filter(event =>
+    const filtered = allEvents.filter(event =>
       signedUpEventIds.has(event.firestoreID)
     );
-  }, [allEvents, signedUpEventIds,]);
+    // Ensure they remain sorted (should already be sorted from loadEvents)
+    return sortEventsByDate(filtered);
+  }, [allEvents, signedUpEventIds]);
 
-  // Show *all* events (regardless of date) that the user has not yet signed up for
+  // Show *all* events (regardless of date) that the user has not yet signed up for (sorted by date)
   const upcomingSignupEvents = useMemo(() => {
-    return allEvents.filter(event => {
+    const filtered = allEvents.filter(event => {
       // First, exclude events the user has already signed up for
       if (signedUpEventIds.has(event.firestoreID)) {
         return false;
       }
 
-      // Then check if the event is full for the user's gender
-      if (userGender) {
-        const userGenderLower = userGender.toLowerCase();
-        
-        if (userGenderLower === 'male') {
-          const totalMenSpots = Number(event.menSpots) || 0;
-          const signedUpMen = Number(event.menSignupCount) || 0;
-          const availableMenSpots = totalMenSpots - signedUpMen;
-          
-          // If no spots available for men, exclude this event
-          if (availableMenSpots <= 0) {
-            return false;
-          }
-        } else if (userGenderLower === 'female') {
-          const totalWomenSpots = Number(event.womenSpots) || 0;
-          const signedUpWomen = Number(event.womenSignupCount) || 0;
-          const availableWomenSpots = totalWomenSpots - signedUpWomen;
-          
-          // If no spots available for women, exclude this event
-          if (availableWomenSpots <= 0) {
-            return false;
-          }
-        }
+      // Finally, check if the event is past its date
+      if (isEventPast(event, 0)) {
+        return false;
       }
 
-      // If we get here, the event is available for sign-up
+      // If we get here, the event is available for sign-up and upcoming
       return true;
     });
+    
+    // Ensure they remain sorted (should already be sorted from loadEvents)
+    return sortEventsByDate(filtered);
   }, [allEvents, signedUpEventIds, userGender]);
 
   return (
@@ -1013,6 +1140,7 @@ const getEventData = async (eventID) => {
                 >
                   {selectingMatches ? 'Loading…' : 'Select my sparks'}
                 </button>
+
               </div>
             </div>
             )}
@@ -1345,7 +1473,7 @@ const getEventData = async (eventID) => {
               {loadingConnections ? (
                 <div className="p-4 text-gray-600">Loading...</div>
               ) : (
-                <ConnectionsTable connections={connections} />
+                <ConnectionsTable connections={connections} onMessageClick={handleMessageClick} />
               )}
               {/*              <button
                 className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
@@ -1366,33 +1494,56 @@ const getEventData = async (eventID) => {
       </div> {/* Close the outer container with padding */}
 
       {/* Error Modal Overlay */}
-      <PopUp
-        isOpen={errorModal.open}
-        onClose={() => setErrorModal(prev => ({ ...prev, open: false }))}
-        title={errorModal.title}
-        subtitle={errorModal.message}
-        icon="✗"
-        iconColor="red"
-        primaryButton={{
-          text: "OK",
-          onClick: () => setErrorModal(prev => ({ ...prev, open: false }))
-        }}
-      />
+      {errorModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black opacity-50"
+            onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
+          />
+          {/* Modal content */}
+          <div className="relative bg-white rounded-2xl shadow-lg max-w-md w-full p-8 z-10">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-indigo-950">{errorModal.title}</h2>
+              <button
+                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            </div>
+            <p className="text-gray-700 whitespace-pre-line mb-6">{errorModal.message}</p>
+            <div className="flex justify-end">
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-[#0043F1] rounded-lg hover:bg-[#0034BD] transition-colors"
+                onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Congratulations Modal Overlay */}
-      <PopUp
-        isOpen={showCongratulationsModal}
-        onClose={() => setShowCongratulationsModal(false)}
-        title="Congratulations!"
-        subtitle="You picked your matches. We'll notify you if they match back and you have new sparks."
-        icon="✓"
-        iconColor="green"
-        maxWidth="max-w-2xl"
-        primaryButton={{
-          text: "Got It",
-          onClick: () => setShowCongratulationsModal(false)
-        }}
-      />
+      {/* DashMessages Modal */}
+      {selectedConnection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black opacity-50" onClick={handleCloseMessages} />
+          <div className="relative bg-white rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 z-10">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Message {selectedConnection.name}</h2>
+              <button 
+                className="text-gray-500 hover:text-gray-800 text-2xl" 
+                onClick={handleCloseMessages}
+              >
+                &times;
+              </button>
+            </div>
+            <DashMessages connection={selectedConnection} />
+          </div>
+        </div>
+      )}
 
     </div>
   );
