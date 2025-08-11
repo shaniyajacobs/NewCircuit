@@ -4,7 +4,7 @@ import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, query, where, g
 import { FaSearch, FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
-import { signOutFromEvent, calculateActualCounts, reconcileCounts } from '../../../utils/eventSpotsUtils';
+import { signOutFromEvent, calculateActualCounts, reconcileCounts, clearLatestEventIdIfNeeded } from '../../../utils/eventSpotsUtils';
 import { formatUserName } from '../../../utils/nameFormatter';
 import { sortEventsByDate } from '../../../utils/eventSorter';
 
@@ -273,6 +273,9 @@ const AdminEvents = () => {
           
           // Remove event from user's signedUpEvents collection
           await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', selectedEvent.id));
+          
+          // Clear latestEventId if this was the user's latest event
+          await clearLatestEventIdIfNeeded(userId, selectedEvent.id);
         } catch (error) {
           console.log(`⚠️ Could not update user ${userId}:`, error.message);
         }
@@ -366,6 +369,9 @@ const AdminEvents = () => {
       
       try {
         await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', eventId));
+        
+        // Clear latestEventId if this was the user's latest event
+        await clearLatestEventIdIfNeeded(userId, eventId);
       } catch (error) {
         console.log('⚠️ Could not delete from user signedUpEvents (might not exist):', error.message);
       }

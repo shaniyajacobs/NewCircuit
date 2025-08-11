@@ -122,7 +122,7 @@ const Header = (props) => {
   
 
   return (
-    <div className="flex justify-between items-center p-6 bg-white border border-[rgba(33,31,32,0.10)]">
+    <div className="hidden md:flex justify-between items-center p-6 bg-white border border-[rgba(33,31,32,0.10)]">
       <div className="flex items-center gap-4">
         {/* Show back arrow and connection name when in a conversation */}
         {activeConnection && onBackToConnections ? (
