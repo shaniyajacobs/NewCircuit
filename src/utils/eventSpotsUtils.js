@@ -485,3 +485,62 @@ export const signUpForEventWithDates = async (eventId, userId, userData, datesCh
     };
   });
 };
+
+// Clear latestEventId if the event being removed is the user's latest event
+export const clearLatestEventIdIfNeeded = async (userId, eventId) => {
+  debug.log('clearLatestEventIdIfNeeded', `Checking if event ${eventId} is latest for user ${userId}`);
+  
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      debug.warn('clearLatestEventIdIfNeeded', `User document does not exist for userId: ${userId}`);
+      return;
+    }
+    
+    const userData = userDoc.data();
+    const latestEventId = userData.latestEventId;
+    
+    // Check if the eventId matches the latestEventId directly (Firebase event ID)
+    if (latestEventId === eventId) {
+      debug.log('clearLatestEventIdIfNeeded', `Event ${eventId} is the latest event for user ${userId}, clearing latestEventId`);
+      
+      await updateDoc(userRef, {
+        latestEventId: null
+      });
+      
+      debug.success('clearLatestEventIdIfNeeded', `Successfully cleared latestEventId for user ${userId}`);
+      return;
+    }
+    
+    // If not a direct match, check if the eventId is a Firebase event ID that corresponds to a Remo event
+    // We need to find the event document and check if its eventID field matches the latestEventId
+    try {
+      const eventRef = doc(db, 'events', eventId);
+      const eventDoc = await getDoc(eventRef);
+      
+      if (eventDoc.exists()) {
+        const eventData = eventDoc.data();
+        const remoEventId = eventData.eventID;
+        
+        if (remoEventId && remoEventId === latestEventId) {
+          debug.log('clearLatestEventIdIfNeeded', `Event ${eventId} (Remo ID: ${remoEventId}) is the latest event for user ${userId}, clearing latestEventId`);
+          
+          await updateDoc(userRef, {
+            latestEventId: null
+          });
+          
+          debug.success('clearLatestEventIdIfNeeded', `Successfully cleared latestEventId for user ${userId}`);
+          return;
+        }
+      }
+    } catch (error) {
+      debug.warn('clearLatestEventIdIfNeeded', `Could not check event document for eventId ${eventId}:`, error.message);
+    }
+    
+    debug.log('clearLatestEventIdIfNeeded', `Event ${eventId} is not the latest event for user ${userId} (latest is: ${latestEventId})`);
+  } catch (error) {
+    debug.error('clearLatestEventIdIfNeeded', `Error clearing latestEventId for user ${userId}:`, error);
+  }
+};

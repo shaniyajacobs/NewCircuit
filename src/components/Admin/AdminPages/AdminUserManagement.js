@@ -7,7 +7,7 @@ import { IoMdCheckmark, IoMdClose } from 'react-icons/io';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import AdminUserDetailModal from './AdminUserDetailModal';
 import { DateTime } from 'luxon';
-import { signOutFromEvent, calculateActualCounts, reconcileCounts } from '../../../utils/eventSpotsUtils';
+import { signOutFromEvent, calculateActualCounts, reconcileCounts, clearLatestEventIdIfNeeded } from '../../../utils/eventSpotsUtils';
 import { formatUserName } from '../../../utils/nameFormatter';
 import { sortEventsByDate } from '../../../utils/eventSorter';
 
@@ -318,6 +318,9 @@ const AdminUserManagement = () => {
       try {
         await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', eventId));
         console.log('✅ Deleted from user signedUpEvents');
+        
+        // Clear latestEventId if this was the user's latest event
+        await clearLatestEventIdIfNeeded(userId, eventId);
       } catch (error) {
         console.log('⚠️ Could not delete from user signedUpEvents (might not exist):', error.message);
       }
