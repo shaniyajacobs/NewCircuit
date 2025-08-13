@@ -336,19 +336,10 @@ const DashHome = () => {
           const within48Hours = await isLatestEventWithin48Hours(user.uid);
           console.log('[SELECTSPARKS] Within 48 hours:', within48Hours);
           
-          // Check if user has already made max selections for the latest event
+          // Note: We're not checking max selections here anymore
+          // This allows users to select connections for new events
+          // The MAX_SELECTIONS limit is enforced during the selection process in SeeAllMatches
           let hasMaxSelections = false;
-          if (within48Hours && data.latestEventId) {
-            const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
-            const connectionDocs = connectionsSnap.docs;
-            console.log('[SELECTSPARKS] Current connections count:', connectionDocs.length, 'MAX:', MAX_SELECTIONS);
-            
-            // If user has reached max selections
-            if (connectionDocs.length >= MAX_SELECTIONS) {
-              hasMaxSelections = true;
-              console.log('[SELECTSPARKS] User has max selections, hiding banner');
-            }
-          }
           
           const shouldShow = within48Hours && !hasMaxSelections;
           console.log('[SELECTSPARKS] Final decision - show banner:', shouldShow, { within48Hours, hasMaxSelections });
@@ -402,10 +393,8 @@ const DashHome = () => {
       setConnections(connectionsWithNewFlag);
       setHasNewSpark(connectionsWithNewFlag.some(conn => conn.isNewSpark));
       
-      // Hide select sparks card if user has max selections
-      if (filteredProfiles.length >= MAX_SELECTIONS) {
-        setShowSelectSparksCard(false);
-      }
+      // Note: We don't hide the select sparks card here anymore
+      // The MAX_SELECTIONS limit is enforced during the selection process in SeeAllMatches
     } catch (err) {
       console.error('Error fetching connections:', err);
       setConnections([]);
