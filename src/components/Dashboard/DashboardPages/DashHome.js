@@ -332,18 +332,8 @@ const DashHome = () => {
           setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
           
-          // Check if latest event was within 48 hours to show "Select my sparks" card
-          const within48Hours = await isLatestEventWithin48Hours(user.uid);
-          console.log('[SELECTSPARKS] Within 48 hours:', within48Hours);
-          
-          // Note: We're not checking max selections here anymore
-          // This allows users to select connections for new events
-          // The MAX_SELECTIONS limit is enforced during the selection process in SeeAllMatches
-          let hasMaxSelections = false;
-          
-          const shouldShow = within48Hours && !hasMaxSelections;
-          console.log('[SELECTSPARKS] Final decision - show banner:', shouldShow, { within48Hours, hasMaxSelections });
-          setShowSelectSparksCard(shouldShow);
+          // 48 hour banner filtering disabled; always show the 'Select my sparks' banner
+          setShowSelectSparksCard(true);
         }
       }
     });
@@ -839,6 +829,7 @@ useEffect(() => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
       console.error('[DASHHOME] No authenticated user found');
+      setSelectingMatches(false);
       return;
     }
 
@@ -855,6 +846,7 @@ useEffect(() => {
         title: "No Event Found",
         message: "You have not joined any events yet, or the event you are trying to access does not exist.",
       });
+      setSelectingMatches(false);
       return;
     }
     console.log('[MATCHES] latestEventId:', latestEventId);
@@ -874,6 +866,7 @@ useEffect(() => {
           title: "Event Not Found",
           message: "The event you are trying to access could not be found. It may have been removed or is no longer available.",
         });
+        setSelectingMatches(false);
         return;
       }
       console.log('[DASHHOME] Found event doc ID:', eventDocId);
@@ -927,20 +920,38 @@ useEffect(() => {
         }
       }
 
+      // Always add current user's quiz and profile if not already present
+      if (!quizResponses.find(q => q.userId === currentUser.uid)) {
+        const myQuizDocRef = doc(db, 'users', currentUser.uid, 'quizResponses', 'latest');
+        const myProfileRef = doc(db, 'users', currentUser.uid);
+        const [myQuizDoc, myProfileDoc] = await Promise.all([
+          getDoc(myQuizDocRef),
+          getDoc(myProfileRef)
+        ]);
+        if (myQuizDoc.exists()) {
+          quizResponses.push({ userId: currentUser.uid, answers: myQuizDoc.data().answers });
+        }
+        if (myProfileDoc.exists()) {
+          userProfiles.push({ userId: currentUser.uid, ...myProfileDoc.data() });
+        }
+      }
+
       // 6. Find current user's answers and profile
       const currentUserAnswers = quizResponses.find(q => q.userId === currentUser.uid)?.answers;
       const currentUserProfile = userProfiles.find(p => p.userId === currentUser.uid);
       
       if (!currentUserAnswers) {
-        console.log('[DASHHOME] No quiz answers found for current user');
-        alert('You must complete your quiz to get matches.');
-        return;
+  console.log('[DASHHOME] No quiz answers found for current user');
+  alert('You must complete your quiz to get matches.');
+  setSelectingMatches(false);
+  return;
       }
 
       if (!currentUserProfile) {
-        console.log('[DASHHOME] No user profile found for current user');
-        alert('User profile not found. Please complete your profile setup.');
-        return;
+  console.log('[DASHHOME] No user profile found for current user');
+  alert('User profile not found. Please complete your profile setup.');
+  setSelectingMatches(false);
+  return;
       }
 
       // 7. Filter other users by gender preference
@@ -1004,6 +1015,7 @@ useEffect(() => {
     navigate('myMatches');
     } catch (error) {
       console.error('[DASHHOME] Error in handleMatchesClick:', error);
+      setSelectingMatches(false);
       // Fallback: try to navigate directly even if matchmaking fails
       try {
         console.log('[DASHHOME] Attempting fallback navigation to myMatches');
@@ -1090,7 +1102,7 @@ useEffect(() => {
               Welcome back, {userProfile?.firstName}
             </h2>
 
-            {/* Select my sparks card - only show if latest event was within 48 hours */}
+            {/* Select my sparks card - always visible (48 hour filter disabled) */}
             {showSelectSparksCard && (
             <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
               <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
