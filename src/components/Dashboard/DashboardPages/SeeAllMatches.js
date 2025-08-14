@@ -54,7 +54,20 @@ const SeeAllMatches = () => {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]); // up to 3
   const [showMaxModal, setShowMaxModal] = useState(false); // controls the "max reached" modal visibility
-  const [showCongratulationsModal, setShowCongratulationsModal] = useState(false); // controls the congratulations modal
+
+  // Helper to persist per-event selections
+  async function persistEventSelections(updatedMatches) {
+    const user = auth.currentUser;
+    if (!user) return;
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const latestEventId = userDoc.data()?.latestEventId;
+    if (!latestEventId) return;
+    const selectedMatches = updatedMatches.filter(m => m.selected).map(m => m.id).slice(0, MAX_SELECTIONS);
+    // setDoc will create the collection/doc if it doesn't exist
+    await setDoc(doc(db, 'users', user.uid, 'eventSelections', latestEventId), {
+      selectedMatches
+    }, { merge: true });
+  }
   const [eventDate, setEventDate] = useState(''); // stores the formatted event date
 
   useEffect(() => {
@@ -68,7 +81,7 @@ const SeeAllMatches = () => {
           setMatches([]);
           return;
         }
-        
+
         // Get the latest event details to display the date
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const latestEventId = userDoc.data()?.latestEventId;
@@ -85,10 +98,20 @@ const SeeAllMatches = () => {
             setEventDate(formattedDate);
           }
         }
-        // Fetch any existing selections from the user's connections sub-collection so that
-        // previously chosen sparks appear pre-selected.
-        const prevConnSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
-        const prevSelectedIds = prevConnSnap.docs.map(d => d.id);
+
+        // 1. Try to load per-event selections
+        let eventSelectedIds = [];
+        if (latestEventId) {
+          const eventSelDoc = await getDoc(doc(db, 'users', user.uid, 'eventSelections', latestEventId));
+          if (eventSelDoc.exists()) {
+            eventSelectedIds = eventSelDoc.data().selectedMatches || [];
+          } else {
+            // Fallback: migrate from old connections for this event only (one-time)
+            const prevConnSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+            const prevSelectedIds = prevConnSnap.docs.map(d => d.id);
+            eventSelectedIds = prevSelectedIds;
+          }
+        }
 
         const results = (matchesDoc.data().results || []).sort((a,b) => b.score - a.score);
         const profiles = await Promise.all(
@@ -102,13 +125,13 @@ const SeeAllMatches = () => {
               age: calculateAge(d.birthDate),
               image: d.image || null,
               compatibility: Math.round(m.score),
-              selected: prevSelectedIds.includes(m.userId),
+              selected: eventSelectedIds.includes(m.userId),
             };
           })
         );
         const filtered = profiles.filter(Boolean);
         setMatches(filtered);
-        setSelectedIds(prevSelectedIds.slice(0, MAX_SELECTIONS));
+        setSelectedIds(filtered.filter(m => m.selected).map(m => m.id).slice(0, MAX_SELECTIONS));
       } catch (err) {
         console.error('Error fetching full matches', err);
         setMatches([]);
@@ -119,15 +142,25 @@ const SeeAllMatches = () => {
     fetchMatches();
   }, []);
 
+
+
   const toggleSelect = (matchId) => {
-    // Update the selected state for the clicked user (we assume capacity already checked)
-    setMatches((prev) => prev.map(m => m.id === matchId ? { ...m, selected: !m.selected } : m));
+    setMatches((prev) => {
+      const updated = prev.map(m => m.id === matchId ? { ...m, selected: !m.selected } : m);
+      // Persist to Firestore per-event selection
+      persistEventSelections(updated);
+      return updated;
+    });
 
     setSelectedIds((prev) => {
       const exists = prev.includes(matchId);
-      return exists ? prev.filter(id => id !== matchId) : [...prev, matchId];
+      const newIds = exists ? prev.filter(id => id !== matchId) : [...prev, matchId];
+      return newIds;
     });
   };
+
+  // Helper to persist per-event selections
+
 
   // Handle the card click while respecting the max-selection rule
   const handleCardClick = (match) => {
@@ -156,15 +189,24 @@ const SeeAllMatches = () => {
         const matchObj = matches.find(m => m.id === matchedUid);
         const score = matchObj ? matchObj.compatibility : null;
 
+        const connRef = doc(db, 'users', user.uid, 'connections', matchedUid);
+        const connSnap = await getDoc(connRef);
+        let dataToSet = {
+          status: 'pending',
+          matchScore: score,
+        };
+        if (!connSnap.exists() || !connSnap.data().connectedAt) {
+          dataToSet.connectedAt = serverTimestamp();
+        }
+
         const otherRef = doc(db, 'users', matchedUid, 'connections', user.uid);
         const otherSnap = await getDoc(otherRef);
         const isMutual = otherSnap.exists();
+        if (isMutual) {
+          dataToSet.status = 'mutual';
+        }
 
-        await setDoc(doc(db, 'users', user.uid, 'connections', matchedUid), {
-          connectedAt: serverTimestamp(),
-          status: isMutual ? 'mutual' : 'pending',
-          matchScore: score,
-        }, { merge: true });
+        await setDoc(connRef, dataToSet, { merge: true });
 
         if (isMutual) {
           // Also store the match score on the other user's document if it wasn't set before
