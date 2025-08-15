@@ -62,14 +62,21 @@ const eventZoneMap = {
 
 // Updated isEventUpcoming function
 function isEventUpcoming(event, userLocation) {
-  if (!event.date || !event.time || !event.timeZone) return false;
+  if (!event.date || !event.time || !event.timeZone) {
+    console.warn('[isEventUpcoming] Rejected: missing date/time/timeZone', {
+      title: event.title,
+      date: event.date,
+      time: event.time,
+      timeZone: event.timeZone
+    });
+    return false;
+  }
 
   // Parse event time zone
   let eventZone = eventZoneMap[event.timeZone] || event.timeZone || 'UTC';
 
   // Normalize time string to uppercase AM/PM
   const normalizedTime = event.time ? event.time.replace(/am|pm/i, match => match.toUpperCase()) : '';
-  console.log('Original event.time:', event.time, '| Normalized:', normalizedTime);
 
   // Combine date and time (assume time is like '6:00pm' or '18:00')
   // Try both 12-hour and 24-hour formats
@@ -84,8 +91,17 @@ function isEventUpcoming(event, userLocation) {
       'yyyy-MM-dd H:mm',
       { zone: eventZone }
     );
+    if (!eventDateTime.isValid) {
+      console.warn('[isEventUpcoming] Rejected: could not parse event time', {
+        title: event.title,
+        date: event.date,
+        time: event.time,
+        normalizedTime,
+        eventZone
+      });
+      return false;
+    }
   }
-  if (!eventDateTime.isValid) return false;
 
   // Add 90 minutes for event duration
   const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
@@ -95,10 +111,6 @@ function isEventUpcoming(event, userLocation) {
   const now = DateTime.now().setZone(userZone);
 
   // Compare event end time (converted to user's zone) with now
-  console.log(
-    `[isEventUpcoming] Event: ${event.title} | Date: ${event.date} | Time: ${event.time} | Normalized: ${normalizedTime} | EventZone: ${eventZone} | UserZone: ${userZone}\n` +
-    `Parsed Start: ${eventDateTime.toString()} | Parsed End: ${eventEndDateTime.setZone(userZone).toString()} | Now: ${now.toString()}`
-  );
   return eventEndDateTime.setZone(userZone) > now;
 }
 
@@ -462,36 +474,7 @@ const DashHome = () => {
     }
   }, []);
 
-  // Helper to check if event is past (for sign-up: event start; for upcoming: event start + 90min)
-  function isEventPast(event, addMinutes = 0) {
-    if (!event.date || !event.time || !event.timeZone) return true;
-    let eventZone = eventZoneMap[event.timeZone] || event.timeZone || 'UTC';
-    const normalizedTime = event.time ? event.time.replace(/am|pm/i, match => match.toUpperCase()) : '';
-    let eventDateTime = DateTime.fromFormat(
-      `${event.date} ${normalizedTime}`,
-      'yyyy-MM-dd h:mma',
-      { zone: eventZone }
-    );
-    if (!eventDateTime.isValid) {
-      eventDateTime = DateTime.fromFormat(
-        `${event.date} ${normalizedTime}`,
-        'yyyy-MM-dd H:mm',
-        { zone: eventZone }
-      );
-    }
-    if (!eventDateTime.isValid) return true;
 
-    // Extend the threshold: event is considered "past" only 24 hours after it started
-    let eventThreshold = eventDateTime;
-    if (addMinutes) {
-      eventThreshold = eventThreshold.plus({ minutes: addMinutes });
-    }
-    // Keep the event visible for an extra day
-    eventThreshold = eventThreshold.plus({ days: 1 });
-
-    const now = DateTime.now().setZone(eventZone);
-    return eventThreshold <= now;
-  }
 
   // Centralized event loader so we can reuse for initial mount and Refresh button
   const loadEvents = async () => {
@@ -504,45 +487,71 @@ const DashHome = () => {
       const functionsInst = getFunctions();
       const getEventDataCF = httpsCallable(functionsInst, "getEventData");
 
-        const eventsList = await Promise.all(
-          querySnapshot.docs.map(async (docSnapshot) => {
-            const docData = docSnapshot.data() || {};
-            const eventId = docData.eventID || docSnapshot.id; // fallback
-            try {
-              const res = await getEventDataCF({ eventId });
-              const remoEvent = res.data?.event;
-              if (remoEvent) {
-                const finalTitle = remoEvent.name || remoEvent.title || docData.title || docData.eventName || 'Untitled';
-                return {
-                  ...remoEvent,
-                  ...docData, // firebase fields (eventType etc.) override Remo
-                  title: finalTitle,
-                  eventType: docData.eventType || docData.type || remoEvent.eventType,
-                  firestoreID: docSnapshot.id,
-                  eventID: eventId,
-                };
+      const eventsList = await Promise.all(
+        querySnapshot.docs.map(async (docSnapshot) => {
+          const docData = docSnapshot.data() || {};
+          const eventId = docData.eventID || docSnapshot.id; // fallback
+          try {
+            const res = await getEventDataCF({ eventId });
+            const remoEvent = res.data?.event;
+            if (remoEvent) {
+              const finalTitle = remoEvent.name || remoEvent.title || docData.title || docData.eventName || 'Untitled';
+              // If Remo's startTime is present, extract date, time, and timeZone from it
+              let date = docData.date || null;
+              let time = docData.time || null;
+              let timeZone = docData.timeZone || null;
+              if (remoEvent.startTime) {
+                const dt = DateTime.fromMillis(Number(remoEvent.startTime));
+                if (dt.isValid) {
+                  date = dt.toFormat('yyyy-MM-dd');
+                  time = dt.toFormat('h:mma');
+                  timeZone = dt.zoneName;
+                }
+              } else {
+                // fallback to Remo's date/time/timeZone fields if present
+                date = remoEvent.date || date;
+                time = remoEvent.time || time;
+                timeZone = remoEvent.timeZone || timeZone;
               }
-            } catch (err) {
-              console.error(`Failed fetching Remo event for ${eventId}:`, err);
+              const eventObj = {
+                ...remoEvent,
+                ...docData, // Firebase fields override Remo for all other fields
+                title: finalTitle,
+                eventType: docData.eventType || docData.type || remoEvent.eventType,
+                firestoreID: docSnapshot.id,
+                eventID: eventId,
+                date,
+                time,
+                timeZone,
+              };
+              console.log('[ALL EVENTS] Event loaded:', eventObj);
+              return eventObj;
             }
-            return null;
-          })
-        );
+          } catch (err) {
+            console.error(`Failed fetching Remo event for ${eventId}:`, err);
+          }
+          return null;
+        })
+      );
 
       const filteredEvents = eventsList.filter(Boolean);
-      
+      console.log('[ALL EVENTS] Fetched events:', eventsList, 'events');
+      console.log('[ALL EVENTS] Filtered events:', filteredEvents);
       // Sort events chronologically from newest to oldest
       const sortedEvents = sortEventsByDate(filteredEvents);
+      console.log('[ALL EVENTS] Sorted events:', sortedEvents);
       setAllEvents(sortedEvents);
 
       // Upcoming-filter based on user location (already sorted)
       const upcoming = getUpcomingEvents(sortedEvents, userProfile?.location);
+      console.log('[ALL EVENTS] Upcoming events:', upcoming);
       setFirebaseEvents(upcoming);
       setEvents(upcoming);
 
       // Signed-up IDs to highlight joined events
       if (auth.currentUser) {
         const signedUpIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
+        console.log('[ALL EVENTS] Signed up event IDs:', signedUpIds);
         setSignedUpEventIds(signedUpIds);
       }
     } finally {
@@ -1068,18 +1077,19 @@ useEffect(() => {
         return false;
       }
 
-      // Finally, check if the event is past its date
-      if (isEventPast(event, 0)) {
+      // Use isEventUpcoming for filtering
+      const isUpcoming = isEventUpcoming(event, userProfile?.location);
+      console.log('[upcomingSignupEvents] Event:', event.title, '| isUpcoming:', isUpcoming);
+      if (!isUpcoming) {
         return false;
       }
 
       // If we get here, the event is available for sign-up and upcoming
       return true;
     });
-    
     // Ensure they remain sorted (should already be sorted from loadEvents)
     return sortEventsByDate(filtered);
-  }, [allEvents, signedUpEventIds, userGender]);
+  }, [allEvents, signedUpEventIds, userProfile?.location]);
 
   return (
     <div>
