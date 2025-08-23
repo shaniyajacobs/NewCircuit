@@ -24,6 +24,8 @@ const cities = [
     state: "District of Columbia",
     position: [38.9072, -77.0369],
   },
+  { name: "Portland", state: "Oregon", position: [45.5152, -122.6784] },
+  { name: "Louisville", state: "Kentucky", position: [38.2527, -85.7585] },
 ];
 
 const MapPage = () => {
