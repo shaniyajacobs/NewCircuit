@@ -211,6 +211,9 @@ const DashMyProfile = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         birthDate: formData.dateOfBirth,
+        location: formData.location,
+        gender: formData.gender,
+        sexualPreference: formData.sexualPreference,
         image: formData.profilePicture
       });
 
@@ -628,30 +631,87 @@ const DashMyProfile = () => {
           }}>
             Location
           </label>
-          <input
-            type="text"
-            name="location"
-            value={formData.location}
-            readOnly
-            style={{
-              display: 'flex',
-              padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
-              alignItems: 'center',
-              gap: 'var(--Gap-S, 24px)',
-              alignSelf: 'stretch',
-              borderRadius: 'var(--Radius-S, 8px)',
-              border: '1px solid rgba(0, 0, 0, 0.10)',
-              flex: '1 0 0',
-              color: 'var(--Raisin_Black, #211F20)',
-              fontFamily: 'Poppins',
-              fontSize: 'var(--Body-S-Med, 16px)',
-              fontStyle: 'normal',
-              fontWeight: '500',
-              lineHeight: 'normal',
-              background: 'transparent',
-              outline: 'none'
-            }}
-          />
+          {isEditing ? (
+            <select
+              name="location"
+              value={formData.location}
+              onChange={handleInputChange}
+              style={{
+                display: 'flex',
+                padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
+                alignItems: 'center',
+                gap: 'var(--Gap-S, 24px)',
+                alignSelf: 'stretch',
+                borderRadius: 'var(--Radius-S, 8px)',
+                border: '2px solid rgba(0, 0, 0, 0.15)',
+                flex: '1 0 0',
+                color: 'var(--Raisin_Black, #211F20)',
+                fontFamily: 'Poppins',
+                fontSize: 'var(--Body-S-Med, 16px)',
+                fontStyle: 'normal',
+                fontWeight: '500',
+                lineHeight: 'normal',
+                background: 'white',
+                outline: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: 'right 12px center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '16px',
+                paddingRight: '48px'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'rgba(0, 0, 0, 0.3)';
+                e.target.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'rgba(0, 0, 0, 0.15)';
+                e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+              }}
+            >
+              <option value="">Select your city</option>
+              <option value="Atlanta">Atlanta</option>
+              <option value="Chicago">Chicago</option>
+              <option value="Dallas">Dallas</option>
+              <option value="Houston">Houston</option>
+              <option value="Los Angeles">Los Angeles</option>
+              <option value="Louisville">Louisville</option>
+              <option value="Miami">Miami</option>
+              <option value="New York City">New York City</option>
+              <option value="Sacramento">Sacramento</option>
+              <option value="San Francisco / Bay Area">San Francisco / Bay Area</option>
+              <option value="Seattle">Seattle</option>
+              <option value="Washington D.C.">Washington D.C.</option>
+            </select>
+          ) : (
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              readOnly
+              style={{
+                display: 'flex',
+                padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
+                alignItems: 'center',
+                gap: 'var(--Gap-S, 24px)',
+                alignSelf: 'stretch',
+                borderRadius: 'var(--Radius-S, 8px)',
+                border: '1px solid rgba(0, 0, 0, 0.10)',
+                flex: '1 0 0',
+                color: 'var(--Raisin_Black, #211F20)',
+                fontFamily: 'Poppins',
+                fontSize: 'var(--Body-S-Med, 16px)',
+                fontStyle: 'normal',
+                fontWeight: '500',
+                lineHeight: 'normal',
+                background: 'transparent',
+                outline: 'none'
+              }}
+            />
+          )}
         </div>
 
         {/* Gender */}
@@ -668,30 +728,80 @@ const DashMyProfile = () => {
           }}>
             Gender
           </label>
-          <input
-            type="text"
-            name="gender"
-            value={formData.gender}
-            readOnly
-            style={{
-              display: 'flex',
-              padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
-              alignItems: 'center',
-              gap: 'var(--Gap-S, 24px)',
-              alignSelf: 'stretch',
-              borderRadius: 'var(--Radius-S, 8px)',
-              border: '1px solid rgba(0, 0, 0, 0.10)',
-              flex: '1 0 0',
-              color: 'var(--Raisin_Black, #211F20)',
-              fontFamily: 'Poppins',
-              fontSize: 'var(--Body-S-Med, 16px)',
-              fontStyle: 'normal',
-              fontWeight: '500',
-              lineHeight: 'normal',
-              background: 'transparent',
-              outline: 'none'
-            }}
-          />
+          {isEditing ? (
+            <select
+              name="gender"
+              value={formData.gender}
+              onChange={handleInputChange}
+              style={{
+                display: 'flex',
+                padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
+                alignItems: 'center',
+                gap: 'var(--Gap-S, 24px)',
+                alignSelf: 'stretch',
+                borderRadius: 'var(--Radius-S, 8px)',
+                border: '2px solid rgba(0, 0, 0, 0.15)',
+                flex: '1 0 0',
+                color: 'var(--Raisin_Black, #211F20)',
+                fontFamily: 'Poppins',
+                fontSize: 'var(--Body-S-Med, 16px)',
+                fontStyle: 'normal',
+                fontWeight: '500',
+                lineHeight: 'normal',
+                background: 'white',
+                outline: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: 'right 12px center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '16px',
+                paddingRight: '48px'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'rgba(0, 0, 0, 0.3)';
+                e.target.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'rgba(0, 0, 0, 0.15)';
+                e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+              }}
+            >
+              <option value="">Select your gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Non-binary">Non-binary</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          ) : (
+            <input
+              type="text"
+              name="gender"
+              value={formData.gender}
+              readOnly
+              style={{
+                display: 'flex',
+                padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
+                alignItems: 'center',
+                gap: 'var(--Gap-S, 24px)',
+                alignSelf: 'stretch',
+                borderRadius: 'var(--Radius-S, 8px)',
+                border: '1px solid rgba(0, 0, 0, 0.10)',
+                flex: '1 0 0',
+                color: 'var(--Raisin_Black, #211F20)',
+                fontFamily: 'Poppins',
+                fontSize: 'var(--Body-S-Med, 16px)',
+                fontStyle: 'normal',
+                fontWeight: '500',
+                lineHeight: 'normal',
+                background: 'transparent',
+                outline: 'none'
+              }}
+            />
+          )}
         </div>
 
         {/* Sexual Preference */}
@@ -708,30 +818,80 @@ const DashMyProfile = () => {
           }}>
             Sexual Preference
           </label>
-          <input
-            type="text"
-            name="sexualPreference"
-            value={formData.sexualPreference}
-            readOnly
-            style={{
-              display: 'flex',
-              padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
-              alignItems: 'center',
-              gap: 'var(--Gap-S, 24px)',
-              alignSelf: 'stretch',
-              borderRadius: 'var(--Radius-S, 8px)',
-              border: '1px solid rgba(0, 0, 0, 0.10)',
-              flex: '1 0 0',
-              color: 'var(--Raisin_Black, #211F20)',
-              fontFamily: 'Poppins',
-              fontSize: 'var(--Body-S-Med, 16px)',
-              fontStyle: 'normal',
-              fontWeight: '500',
-              lineHeight: 'normal',
-              background: 'transparent',
-              outline: 'none'
-            }}
-          />
+          {isEditing ? (
+            <select
+              name="sexualPreference"
+              value={formData.sexualPreference}
+              onChange={handleInputChange}
+              style={{
+                display: 'flex',
+                padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
+                alignItems: 'center',
+                gap: 'var(--Gap-S, 24px)',
+                alignSelf: 'stretch',
+                borderRadius: 'var(--Radius-S, 8px)',
+                border: '2px solid rgba(0, 0, 0, 0.15)',
+                flex: '1 0 0',
+                color: 'var(--Raisin_Black, #211F20)',
+                fontFamily: 'Poppins',
+                fontSize: 'var(--Body-S-Med, 16px)',
+                fontStyle: 'normal',
+                fontWeight: '500',
+                lineHeight: 'normal',
+                background: 'white',
+                outline: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: 'right 12px center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '16px',
+                paddingRight: '48px'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'rgba(0, 0, 0, 0.3)';
+                e.target.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'rgba(0, 0, 0, 0.15)';
+                e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+              }}
+            >
+              <option value="">Select your preference</option>
+              <option value="Men">Men</option>
+              <option value="Women">Women</option>
+              <option value="Both">Both</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          ) : (
+            <input
+              type="text"
+              name="sexualPreference"
+              value={formData.sexualPreference}
+              readOnly
+              style={{
+                display: 'flex',
+                padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
+                alignItems: 'center',
+                gap: 'var(--Gap-S, 24px)',
+                alignSelf: 'stretch',
+                borderRadius: 'var(--Radius-S, 8px)',
+                border: '1px solid rgba(0, 0, 0, 0.10)',
+                flex: '1 0 0',
+                color: 'var(--Raisin_Black, #211F20)',
+                fontFamily: 'Poppins',
+                fontSize: 'var(--Body-S-Med, 16px)',
+                fontStyle: 'normal',
+                fontWeight: '500',
+                lineHeight: 'normal',
+                background: 'transparent',
+                outline: 'none'
+              }}
+            />
+          )}
         </div>
 
         {/* Edit / Save Button */}
