@@ -89,25 +89,25 @@ const SearchBar = ({ cities, onSearch }) => {
             top: "46px",
             left: "0",
             width: "292px",
-            background: filteredResults.length > 0 ? "var(--Mindaro_Light, #FAFFE7)" : "transparent",
-            border: filteredResults.length > 0 ? "0.5px solid #000000" : "none", 
+            background: "var(--Mindaro_Light, #FAFFE7)",
+            border: "0.5px solid #000000",
             borderTop: "none",
             borderRadius: "0 0 8px 8px", 
             maxHeight: "250px", 
-            overflow: "hidden", 
             zIndex: 1000,
-            alignItems: "center"
           }}
         >
-          {filteredResults.length > 0 && (
-            <div
-              style={{
-                flex: "1", 
-                overflowY: "auto", 
-                width: "100%"
-              }}
-            >
-              {[...new Set(filteredResults.map((city) => city.state))].map((state) => (
+          {/* Scrollable cities section */}
+          <div
+            style={{
+              flex: "1",
+              overflowY: "auto",
+              maxHeight: filteredResults.length > 0 ? "200px" : "0px",
+              paddingBottom: filteredResults.length > 0 ? "8px" : "0px"
+            }}
+          >
+            {filteredResults.length > 0 && (
+              [...new Set(filteredResults.map((city) => city.state))].map((state) => (
                 <div
                   key={state}
                   style={{
@@ -131,29 +131,36 @@ const SearchBar = ({ cities, onSearch }) => {
                     .filter((city) => city.state === state)
                     .map((city) => (
                       <div
-                        key={city.name}
-                        onClick={() => handleCitySelect(city.name)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px", 
-                          padding: "8px 16px",
-                          cursor: "pointer",
-                          fontFamily: '"Bricolage Grotesque", sans-serif',
-                          fontSize: "14px"
-                        }}
+                      key={city.name}
+                      onMouseDown={() => handleCitySelect(city.name)}
+                      style={{ 
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 16px",
+                        cursor: "pointer",
+                        fontFamily: '"Bricolage Grotesque", sans-serif',
+                        fontSize: "14px"
+                      }}
                       >
-                        <FaMapMarkerAlt size={14} color="#211F20" /> 
-                        {city.name}
+                      <FaMapMarkerAlt size={14} color="#211F20" />
+                      {city.name}
                       </div>
                     ))}
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
+
+          {/* Button section - always visible at bottom */}
           <button
             onClick={handleCantFindCity}
             className={styles.cantFindCityButton}
+            style={{
+              position: "relative",
+              bottom: "auto",
+              borderTop: filteredResults.length > 0 ? "1px solid #000" : "none"
+            }}
           >
             <span className={styles.cantFindCityText}>I can't find my city</span>
           </button>
