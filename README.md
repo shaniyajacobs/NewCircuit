@@ -1,6 +1,8 @@
-# NewCircuit - Modern React Application
+# NewCircuit - Modern React Application 
 
 A modern React application built with React 17, featuring a responsive design and interactive user interface.
+
+## Read Hand off document in repo for more information
 
 ## Technologies Used
 
@@ -57,17 +59,6 @@ npm run build
 ```
 
 The build files will be created in the `build` directory.
-
-## Project Structure
-
-```
-src/
-├── components/     # Reusable UI components
-├── pages/         # Page components
-├── assets/        # Static assets (images, fonts)
-├── styles/        # Global styles and Tailwind configuration
-└── utils/         # Utility functions and helpers
-```
 
 ## Development
 
