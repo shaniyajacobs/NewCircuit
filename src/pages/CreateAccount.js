@@ -224,7 +224,14 @@ const CreateAccount = () => {
             }) => (
               // write your building UI
               <div className="upload__image-wrapper">
-                <div style={{flex: 1, flexDirection: 'column', justifyItems: 'center'}}>
+                <div style={{
+                  flex: 1, 
+                  flexDirection: 'column', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px'
+                }}>
                   
                   { imageList.length < maxNumber ? 
                   <button
@@ -238,7 +245,7 @@ const CreateAccount = () => {
                 
                   {imageList.length ? 
                   imageList.map((image, index) => (
-                    <div key={index} className="image-item">
+                    <div key={index} className="image-item" style={{display: 'flex', justifyContent: 'center'}}>
                       {/* <img
                         src={image['data_url']}
                         alt=""
@@ -249,6 +256,7 @@ const CreateAccount = () => {
                   )) : 
                   <div
                     onClick={onImageUpload}
+                    style={{display: 'flex', justifyContent: 'center', cursor: 'pointer'}}
                   >
                     <IoPersonCircle style={{width: '100px', height: '100px'}}/>
                   </div>
