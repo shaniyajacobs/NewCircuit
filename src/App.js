@@ -44,7 +44,7 @@ import AllDates from './components/Dashboard/DashboardPages/AllDates';
 import { db } from './firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 
-const stripePromise = loadStripe("pk_test_51RHbstPpnLZEC8ZQlHoFbnmUGkkKT52aCLMYlMN6fgzmWnVFEPVv8mulHh1PJJaQJRN5yghwIJTfTgumFXt0H3Y400P8jrINGs");
+const stripePromise = loadStripe("pk_live_51REM95LgZqiosvkbaTHHl20wxFjRNEVJ1xs3T3htfGH3AmUekBLp1PyyjHhdSxEiMqOCjjmxSqH8PMohpHVUBZln003ObBv1Eh");
 
 // Preload function
 const preloadImages = () => {
