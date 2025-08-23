@@ -327,26 +327,6 @@ const Sidebar = () => {
                       {cartCount}
                     </span>
                   )}
-                  {/* Cart indicator for Shop */}
-                  {item.title === "Shop" && cartCount > 0 && (
-                    <span
-                      style={{
-                        minWidth: '20px',
-                        height: '20px',
-                        borderRadius: '10px',
-                        background: '#0043F1',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        marginLeft: '8px',
-                      }}
-                    >
-                      {cartCount}
-                    </span>
-                  )}
                 </div>
               </Link>
             ))}
