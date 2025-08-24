@@ -35,11 +35,11 @@ const DatePlan = ({ title, time, price, venue, onBuyNow }) => {
   const getFeatures = () => {
     switch (title) {
       case "Brunch":
-        return ["Brunch Speed Date", "12:30pm - 2:00 pm", "Advanced Matching Algorithm"];
+        return ["Virtual Brunch Speed Date", "12:30pm - 2:00 pm", "Advanced Matching Algorithm"];
       case "Happy Hour":
-        return ["Happy Hour Speed Date", "3:00pm - 4:30pm", "Advanced Matching Algorithm"];
+        return ["Virtual Happy Hour Speed Date", "3:00pm - 4:30pm", "Advanced Matching Algorithm"];
       case "Dinner":
-        return ["Dinner Speed Date", "6:00pm - 7:30pm", "Advanced Matching Algorithm"];
+        return ["Virtual Dinner Speed Date", "6:00pm - 7:30pm", "Advanced Matching Algorithm"];
       default:
         return ["Speed Date", "Advanced Matching Algorithm"];
     }
@@ -324,31 +324,74 @@ const DashDateCalendar = () => {
   const generateLocationBasedPlans = (userLocation) => {
     return {
       datePlans: [
-        { title: "Brunch", time: "12:30pm - 2:00pm", venue: userLocation, price: "$28" },
-        { title: "Happy Hour", time: "3:00pm - 4:30pm", venue: userLocation, price: "$28" },
-        { title: "Dinner", time: "6:00pm - 7:30pm", venue: userLocation, price: "$38" },
+        {
+          title: "Brunch",
+          time: "12:30pm - 2:00pm",
+          venue: userLocation,
+          price: "$28",
+          features: [
+            "Virtual Brunch Speed Date",
+            "12:30pm - 2:00 pm",
+            "Advanced Matching Algorithm"
+          ]
+        },
+        {
+          title: "Happy Hour",
+          time: "3:00pm - 4:30pm",
+          venue: userLocation,
+          price: "$28",
+          features: [
+            "Virtual Happy Hour Speed Date",
+            "3:00pm - 4:30pm",
+            "Advanced Matching Algorithm"
+          ]
+        },
+        {
+          title: "Dinner",
+          time: "6:00pm - 7:30pm",
+          venue: userLocation,
+          price: "$38",
+          features: [
+            "Virtual Dinner Speed Date",
+            "6:00pm - 7:30pm",
+            "Advanced Matching Algorithm"
+          ]
+        },
       ],
       bundlePlans: [
         {
           title: "The Adventure",
-          features: ["All eligible venues", "Advanced Matching Algorithm", "Boosted Visibility and Matching", "3 Dinners"],
+          features: [
+            "10 Virtual Speed Dates",
+            "Advanced Matching Algorithm",
+            "Includes up to 3 Virtual dinner speed dates"
+          ],
           dates: 10,
           venue: userLocation,
           price: "$220",
+          tag: "BEST DEAL 🔥"
         },
         {
           title: "The Connection",
-          features: ["All eligible venues", "Advanced Matching Algorithm", "2 Dinners"],
+          features: [
+            "6 Virtual Speed Dates",
+            "Advanced Matching Algorithm",
+            "Includes up to 2 Virtual dinner speed dates"
+          ],
           dates: 6,
           venue: userLocation,
-          price: "$144",
+          price: "$144"
         },
         {
           title: "The Introduction",
-          features: ["All eligible venues", "Advanced Matching Algorithm", "1 Dinner"],
+          features: [
+            "3 Virtual Speed Dates",
+            "Advanced Matching Algorithm",
+            "Includes up to 1 virtual dinner speed date"
+          ],
           dates: 3,
           venue: userLocation,
-          price: "$78",
+          price: "$78"
         },
       ]
     };
@@ -614,10 +657,22 @@ const DashDateCalendar = () => {
 
         {/* Success Message */}
         {showSuccessMessage && (
-          <div className="fixed top-6 right-6 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">✓</span>
-              <span>Added to cart successfully!</span>
+          <div className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex items-center gap-4 animate-fade-in-up border border-gray-200 max-w-[90vw] min-w-[320px] relative">
+              {/* X button */}
+              <button
+                onClick={() => setShowSuccessMessage(false)}
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none"
+                aria-label="Close success message"
+              >
+                &times;
+              </button>
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
+                <span className="text-2xl text-green-600 font-bold">✓</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[18px] md:text-[20px] font-semibold text-[#211F20] font-bricolage mb-1">Added to cart successfully!</span>
+              </div>
             </div>
           </div>
         )}
