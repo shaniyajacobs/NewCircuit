@@ -657,10 +657,14 @@ const DashDateCalendar = () => {
 
         {/* Success Message */}
         {showSuccessMessage && (
-          <div className="fixed top-6 right-6 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">✓</span>
-              <span>Added to cart successfully!</span>
+          <div className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex items-center gap-4 animate-fade-in-up border border-gray-200 max-w-[90vw] min-w-[320px]">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
+                <span className="text-2xl text-green-600 font-bold">✓</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[18px] md:text-[20px] font-semibold text-[#211F20] font-bricolage mb-1">Added to cart successfully!</span>
+              </div>
             </div>
           </div>
         )}
