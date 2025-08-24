@@ -1073,19 +1073,25 @@ useEffect(() => {
   // Show *all* events (regardless of date) that the user has not yet signed up for (sorted by date)
   const upcomingSignupEvents = useMemo(() => {
     const filtered = allEvents.filter(event => {
-      // First, exclude events the user has already signed up for
+      // Exclude events the user has already signed up for
       if (signedUpEventIds.has(event.firestoreID)) {
         return false;
       }
 
+      // Only show events in the user's city/location
+      if (!event.location || !userProfile?.location) return false;
+      if (event.location.trim().toLowerCase() !== userProfile.location.trim().toLowerCase()) {
+        return false;
+      }
+
       // Use isEventUpcoming for filtering
-      const isUpcoming = isEventUpcoming(event, userProfile?.location);
+      const isUpcoming = isEventUpcoming(event, userProfile.location);
       console.log('[upcomingSignupEvents] Event:', event.title, '| isUpcoming:', isUpcoming);
       if (!isUpcoming) {
         return false;
       }
 
-      // If we get here, the event is available for sign-up and upcoming
+      // If we get here, the event is available for sign-up, upcoming, and in the user's city
       return true;
     });
     // Ensure they remain sorted (should already be sorted from loadEvents)
