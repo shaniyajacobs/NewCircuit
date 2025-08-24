@@ -243,11 +243,11 @@ const SeeAllMatches = () => {
         {/* Header */}
         <div className="max-w-[1292px] mx-auto">
           <div className="mb-4 xl:mb-5 2xl:mb-6">
-            <h2 className="text-[#211F20] font-bricolage text-[32px] md:text-[40px] lg:text-[48px] font-semibold leading-[110%]">Select your Matches</h2>
+            <h2 className="text-[#211F20] font-bricolage text-[32px] md:text-[40px] lg:text-[48px] font-semibold leading-[110%]">Select Your Connections</h2>
           </div>
           <div className="mb-6 sm:mb-[50px] xl:mb-[75px] 2xl:mb-[100px]">
             <p className="text-[rgba(33,31,32,0.75)] font-bricolage text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] font-medium leading-[130%]">
-              Pick who you'd like to match with from your speed date on: {eventDate && <span>{eventDate}</span>}
+              Pick up to 3 people you'd like to connect with further from your speed date on: {eventDate && <span>{eventDate}</span>}
             </p>
           </div>
         </div>

@@ -55,8 +55,8 @@ const Pricing = () => {
                 price: isBundle ? "$22" : "$28",
 
                 features: isBundle
-                  ? ["10 Speed Dates", "Advanced Matching Algorithm", "Includes up to 3 dinner speed dates"]
-                  : ["Brunch Speed Date", "12:30pm - 2:00 pm", "Advanced Matching Algorithm"],
+                  ? ["10 Virtual Speed Dates", "Advanced Matching Algorithm", "Includes up to 3 Virtual dinner speed dates"]
+                  : ["Virtual Brunch Speed Date", "12:30pm - 2:00 pm", "Advanced Matching Algorithm"],
                 bill: isBundle ? "Billed at USD$220" : "",
                 tag: isBundle ? "BEST DEAL 🔥" : "", 
               },
@@ -67,8 +67,8 @@ const Pricing = () => {
                 oldPrice: isBundle ? "$38" : "", 
                 price: isBundle ? "$24" : "$28",
                 features: isBundle
-                  ? ["6 Speed Dates", "Advanced Matching Algorithm", "Includes up to 2 dinner speed dates"]
-                  : ["Happy Hour Speed Date", "3:00pm - 4:30pm", "Advanced Matching Algorithm"],
+                  ? ["6 Virtual Speed Dates", "Advanced Matching Algorithm", "Includes up to 2 Virtual dinner speed dates"]
+                  : ["Virtual Happy Hour Speed Date", "3:00pm - 4:30pm", "Advanced Matching Algorithm"],
                 bill: isBundle ? "Billed at USD$144" : "",
               },
               {
@@ -79,11 +79,11 @@ const Pricing = () => {
                 price: isBundle ? "$26" : "$38",
                 features: isBundle
                   ? [
-                      "3 Speed Dates",
+                      "3 Virtual Speed Dates",
                       "Advanced Matching Algorithm",
-                      "Includes up to 1 dinner speed dates",
+                      "Includes up to 1 virtual dinner speed date",
                     ]
-                  : ["Dinner Speed Date", "6:00pm - 7:30pm", "Advanced Matching Algorithm"],
+                  : ["Virtual Dinner Speed Date", "6:00pm - 7:30pm", "Advanced Matching Algorithm"],
                 bill: isBundle ? "Billed at USD$78" : "",
               },
             ].map((card, index) => (

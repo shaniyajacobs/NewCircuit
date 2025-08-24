@@ -343,9 +343,10 @@ const DashHome = () => {
             : Number(data.datesRemaining);
           setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
-          
-          // 48 hour banner filtering disabled; always show the 'Select my sparks' banner
-          setShowSelectSparksCard(true);
+
+          // Only show the 'Select my sparks' card if latest event was within 48 hours
+          const within48 = await isLatestEventWithin48Hours(user.uid);
+          setShowSelectSparksCard(within48);
         }
       }
     });
@@ -1138,7 +1139,7 @@ useEffect(() => {
                   "
                 >
                   <SmallFlashIcon className="w-6 h-6 mr-2" />
-                  You just went on a date! Select sparks to match with!
+                  You just went on a date! Choose up to 3 connections. We’ll let you know if the spark is mutual.
                 </span>
                 <button
                   onClick={handleMatchesClick}
@@ -1149,7 +1150,7 @@ useEffect(() => {
                       : 'hover:bg-[#d4f85a]'
                   }`}
                 >
-                  {selectingMatches ? 'Loading…' : 'Select my sparks'}
+                  {selectingMatches ? 'Loading…' : 'Select My Connections'}
                 </button>
 
               </div>
