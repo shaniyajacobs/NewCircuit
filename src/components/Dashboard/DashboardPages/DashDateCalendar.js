@@ -658,7 +658,15 @@ const DashDateCalendar = () => {
         {/* Success Message */}
         {showSuccessMessage && (
           <div className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-black bg-opacity-30">
-            <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex items-center gap-4 animate-fade-in-up border border-gray-200 max-w-[90vw] min-w-[320px]">
+            <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex items-center gap-4 animate-fade-in-up border border-gray-200 max-w-[90vw] min-w-[320px] relative">
+              {/* X button */}
+              <button
+                onClick={() => setShowSuccessMessage(false)}
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none"
+                aria-label="Close success message"
+              >
+                &times;
+              </button>
               <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
                 <span className="text-2xl text-green-600 font-bold">✓</span>
               </div>
