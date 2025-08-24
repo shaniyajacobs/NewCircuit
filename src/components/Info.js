@@ -35,7 +35,7 @@ const Info = () => {
                                 <span className="relative inline-block ml-[12px] mr-[12px]">
                                     {'plug'}
                                     <img 
-                                        src="/smaller_scribble.svg"
+                                        src="/Smaller_scribble.svg"
                                         alt="Scribble decoration"
                                         className="absolute bottom-[11px] pointer-events-none"
                                         style={{

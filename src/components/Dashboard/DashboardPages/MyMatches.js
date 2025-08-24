@@ -69,10 +69,10 @@ const MyMatches = () => {
       {/* Header */}
       <div className="max-w-[1292px] mx-auto">
         <div className="mb-4 xl:mb-5 2xl:mb-6 text-left">
-          <h2 className="text-[#211F20] font-bricolage text-[32px] md:text-[40px] lg:text-[48px] font-semibold leading-[110%]">Matched in Heaven</h2>
+          <h2 className="text-[#211F20] font-bricolage text-[32px] md:text-[40px] lg:text-[48px] font-semibold leading-[110%]">Connections We Think You'll Love</h2>
         </div>
         <div className="mb-6 sm:mb-[50px] xl:mb-[75px] 2xl:mb-[100px] text-left">
-          <p className="text-[rgba(33,31,32,0.75)] font-bricolage text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] font-medium leading-[130%]">Here are 3 AI-powered suggestions to match with</p>
+          <p className="text-[rgba(33,31,32,0.75)] font-bricolage text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] font-medium leading-[130%]">Here are 3 AI-powered suggestions based on your personality quiz results.</p>
         </div>
       </div>
 
