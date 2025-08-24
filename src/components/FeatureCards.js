@@ -62,37 +62,49 @@ const FeatureCards = () => {
       className="feature-cards-section"
       style={{
         background: '#FAFFE7',
-        paddingTop: 'var(--section-top)',
-        paddingBottom: 'var(--section-bottom)',
-        paddingLeft: 'var(--section-side)',
-        paddingRight: 'var(--section-side)',
+        paddingTop: 'var(--section-top, 48px)',
+        paddingBottom: 'var(--section-bottom, 48px)',
+        paddingLeft: 'var(--section-side, 16px)',
+        paddingRight: 'var(--section-side, 16px)',
         width: '100%',
-        minHeight: 'var(--section-minheight)',
+        minHeight: 'var(--section-minheight, 0)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
       }}
     >
-      {/* Cards Row/Column Responsive */}
+      {/* Responsive Cards Grid */}
       <div
-        className="relative flex flex-col md:flex-row items-stretch feature-cards-container"
+        className="feature-cards-container"
         style={{
-          display: 'flex',
-          justifyContent: 'stretch',
-          gap: 'var(--gap-m)',
-          alignSelf: 'stretch',
           width: '100%',
+          maxWidth: '1100px',
+          margin: '0 auto',
+          gap: '2rem',
+          display: 'grid',
+          gridTemplateColumns: '1fr',
+          // Responsive: 3 columns on desktop, 1 on mobile
         }}
       >
+        <style>{`
+          @media (min-width: 1024px) {
+            .feature-cards-container {
+              display: grid !important;
+              grid-template-columns: repeat(3, 1fr) !important;
+              gap: 2rem !important;
+            }
+          }
+        `}</style>
         {featureData.map((feature, index) => (
           <div
             key={index}
-            className="feature-card-wrapper"
+            className="feature-card-wrapper flex"
             style={{
-              flex: '1 1 0%',
-              minWidth: '0',
-              display: 'flex',
               flexDirection: 'column',
+              maxWidth: '350px',
+              minWidth: '220px',
+              width: '100%',
+              margin: '0 auto',
             }}
           >
             <FeatureCard
@@ -112,8 +124,8 @@ const FeatureCards = () => {
         <button className={styles.howitworksBtn}
           style={{
             padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
-            marginTop: 'var(--gap-xxl)',
-            marginBottom: 'var(--section-TopBottom-M, 100)',
+            marginTop: 'var(--gap-xxl, 48px)',
+            marginBottom: 'var(--section-TopBottom-M, 100px)',
             width: 'auto',
             minWidth: 'fit-content',
           }}

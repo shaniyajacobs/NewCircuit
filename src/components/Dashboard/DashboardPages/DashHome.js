@@ -343,9 +343,10 @@ const DashHome = () => {
             : Number(data.datesRemaining);
           setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
-          
-          // 48 hour banner filtering disabled; always show the 'Select my sparks' banner
-          setShowSelectSparksCard(true);
+
+          // Only show the 'Select my sparks' card if latest event was within 48 hours
+          const within48 = await isLatestEventWithin48Hours(user.uid);
+          setShowSelectSparksCard(within48);
         }
       }
     });
@@ -1072,19 +1073,25 @@ useEffect(() => {
   // Show *all* events (regardless of date) that the user has not yet signed up for (sorted by date)
   const upcomingSignupEvents = useMemo(() => {
     const filtered = allEvents.filter(event => {
-      // First, exclude events the user has already signed up for
+      // Exclude events the user has already signed up for
       if (signedUpEventIds.has(event.firestoreID)) {
         return false;
       }
 
+      // Only show events in the user's city/location
+      if (!event.location || !userProfile?.location) return false;
+      if (event.location.trim().toLowerCase() !== userProfile.location.trim().toLowerCase()) {
+        return false;
+      }
+
       // Use isEventUpcoming for filtering
-      const isUpcoming = isEventUpcoming(event, userProfile?.location);
+      const isUpcoming = isEventUpcoming(event, userProfile.location);
       console.log('[upcomingSignupEvents] Event:', event.title, '| isUpcoming:', isUpcoming);
       if (!isUpcoming) {
         return false;
       }
 
-      // If we get here, the event is available for sign-up and upcoming
+      // If we get here, the event is available for sign-up, upcoming, and in the user's city
       return true;
     });
     // Ensure they remain sorted (should already be sorted from loadEvents)
@@ -1138,7 +1145,7 @@ useEffect(() => {
                   "
                 >
                   <SmallFlashIcon className="w-6 h-6 mr-2" />
-                  You just went on a date! Select sparks to match with!
+                  You just went on a date! Choose up to 3 connections. We’ll let you know if the spark is mutual.
                 </span>
                 <button
                   onClick={handleMatchesClick}
@@ -1149,7 +1156,7 @@ useEffect(() => {
                       : 'hover:bg-[#d4f85a]'
                   }`}
                 >
-                  {selectingMatches ? 'Loading…' : 'Select my sparks'}
+                  {selectingMatches ? 'Loading…' : 'Select My Connections'}
                 </button>
 
               </div>

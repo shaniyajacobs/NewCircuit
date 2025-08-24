@@ -565,7 +565,7 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
               "
             >
               <SmallFlashIcon className="w-6 h-6 mr-2" />
-              You just went on a date! Select sparks to match with!
+                You just went on a date! Choose up to 3 connections. We’ll let you know if the spark is mutual.
             </span>
             <div className="flex gap-2">
               <button
@@ -578,7 +578,7 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
                     : 'hover:bg-[#d4f85a]'
                 }`}
               >
-                {selectingMatches ? 'Loading…' : 'Select my sparks'}
+                {selectingMatches ? 'Loading…' : 'Select My Connections'}
               </button>
 
             </div>
