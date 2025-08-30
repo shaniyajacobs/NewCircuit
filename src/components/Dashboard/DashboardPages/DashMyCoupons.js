@@ -39,6 +39,8 @@ export default function DashMyCoupons() {
   const [showRejectedCouponsModal, setShowRejectedCouponsModal] = useState(false);
   const [rejectedCoupons, setRejectedCoupons] = useState([]);
   const [loadingRejectedCoupons, setLoadingRejectedCoupons] = useState(false);
+  const [pendingCoupons, setPendingCoupons] = useState([]);
+  const [loadingPendingCoupons, setLoadingPendingCoupons] = useState(false);
 
   // Function to fetch coupons from Firebase
   const fetchCoupons = async () => {
@@ -176,6 +178,55 @@ export default function DashMyCoupons() {
       console.error('Error fetching rejected coupons:', error);
     } finally {
       setLoadingRejectedCoupons(false);
+    }
+  };
+
+  // Function to fetch pending coupon requests for the current user
+  const fetchPendingCoupons = async () => {
+    setLoadingPendingCoupons(true);
+    try {
+      const pendingCouponsList = [];
+      const couponsRef = collection(db, 'coupons');
+      const couponsSnapshot = await getDocs(couponsRef);
+      
+      for (const couponDoc of couponsSnapshot.docs) {
+        const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
+        const redemptionsQuery = query(redemptionsRef, where('status', '==', 'redeemed'));
+        const redemptionsSnapshot = await getDocs(redemptionsQuery);
+        
+        for (const redemptionDoc of redemptionsSnapshot.docs) {
+          const redemptionData = redemptionDoc.data();
+          const couponData = couponDoc.data();
+          
+          // Check if current user is either the requester or the date partner
+          const isRequester = redemptionData.redeemedBy === me;
+          const isDatePartner = redemptionData.date1?.partnerId === me || redemptionData.date2?.partnerId === me;
+          
+          if (isRequester || isDatePartner) {
+            // Get the requester's name
+            const requesterName = usersMap[String(redemptionData.redeemedBy)] || redemptionData.redeemedBy;
+            
+            pendingCouponsList.push({
+              id: couponDoc.id,
+              ...couponData,
+              businessName: couponData.legalBusinessName || 'Unknown Business',
+              redeemedAt: redemptionData.redeemedAt,
+              date1: redemptionData.date1,
+              date2: redemptionData.date2,
+              redeemedBy: redemptionData.redeemedBy,
+              requesterName: requesterName,
+              isRequester: isRequester
+            });
+            break; // No need to check other redemptions for this coupon
+          }
+        }
+      }
+      
+      setPendingCoupons(pendingCouponsList);
+    } catch (error) {
+      console.error('Error fetching pending coupons:', error);
+    } finally {
+      setLoadingPendingCoupons(false);
     }
   };
 
@@ -428,6 +479,13 @@ export default function DashMyCoupons() {
       }
     }
   }, [sel2, acceptedDates, me, isResubmitting2, currentlyUploadingSlot]);
+
+  // Fetch pending coupons when component loads
+  useEffect(() => {
+    if (me && Object.keys(usersMap).length > 0) {
+      fetchPendingCoupons();
+    }
+  }, [me, usersMap]);
 
   const onFile = (slot, e) => {
     setError('');
@@ -857,6 +915,32 @@ export default function DashMyCoupons() {
           >
             🎫 View Available Coupons
           </button>
+        </div>
+      )}
+
+      {/* Pending Coupon Requests */}
+      {pendingCoupons.length > 0 && (
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            {pendingCoupons.map((coupon, index) => (
+              <div key={coupon.id} className="mb-4 last:mb-0">
+                <div className="text-yellow-800 font-medium mb-2">
+                  {coupon.isRequester 
+                    ? "Third Date On Us coupon request submitted and pending approval"
+                    : `Third Date On Us coupon request submitted by ${coupon.requesterName} and pending approval`
+                  }
+                </div>
+                <div className="text-yellow-700 text-sm">
+                  Coupon: {coupon.title} - {coupon.discount} at {coupon.businessName}
+                </div>
+                <div className="text-yellow-600 text-xs mt-1">
+                  Requested on: {coupon.redeemedAt?.toDate?.() ? 
+                    coupon.redeemedAt.toDate().toLocaleString() : 
+                    new Date(coupon.redeemedAt).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
