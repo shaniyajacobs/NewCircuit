@@ -825,6 +825,11 @@ export default function DashMyCoupons() {
       {/* View Coupons button - only show when selected dates are with same person and both have photos */}
       {canAccessCoupons() && (
         <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 text-sm leading-relaxed">
+              You're eligible for a Third Date On Us coupon. Chat with your spark to come to an agreement, and select your preferred coupon below.
+            </p>
+          </div>
           <button
             className="self-start px-4 py-2 text-white rounded-lg font-medium text-sm bg-black hover:bg-gray-800"
             onClick={async () => {
