@@ -209,9 +209,8 @@ export function DashMessages({ connection }) {
         </div>
       </div>
 
-      {/* Unified Chat Frame - Takes remaining space */}
-      <div className="flex flex-col px-[50px] flex-1 gap-[30px] self-stretch rounded-[24px] overflow-hidden">
-        {/* Chat Messages - Scrollable area */}
+      {/* Chat Messages - Scrollable area with bottom padding for input */}
+      <div className="flex flex-col px-[50px] flex-1 gap-[30px] self-stretch rounded-[24px] overflow-hidden pb-4">
         <div className="flex flex-col flex-1 overflow-y-auto">
           {messageArray.map((msg, idx) => (
             <div key={idx} className="mb-4">
@@ -275,23 +274,25 @@ export function DashMessages({ connection }) {
         </div>
       </div>
 
-      {/* Message Input - Fixed at bottom */}
-      <div className="flex py-3 px-6 items-center gap-6 self-stretch rounded-lg border border-[rgba(0,0,0,0.10)]">
-        <input
-          type="text"
-          value={newMessageText}
-          onChange={e => setNewMessageText(e.target.value)}
-          onKeyDown={handleOnKeyDown}
-          placeholder="Type a message"
-          className="flex-grow text-[#211F20] font-poppins text-base font-medium leading-normal opacity-50 outline-none bg-transparent"
-        />
-        <button
-          onClick={submitNewMessage}
-          disabled={!newMessageText.trim()}
-          className={`${!newMessageText.trim() ? "opacity-50 cursor-not-allowed" : ""}`}
-        >
-          <FaPaperPlane className="text-[#1C50D8] text-2xl cursor-pointer hover:text-[#1a45c0]" />
-        </button>
+      {/* Message Input - Sticky at bottom */}
+      <div className="sticky bottom-0 bg-white border-t border-[rgba(0,0,0,0.10)] px-[50px] py-4">
+        <div className="flex py-3 px-6 items-center gap-6 self-stretch rounded-lg border border-[rgba(0,0,0,0.10)] bg-white">
+          <input
+            type="text"
+            value={newMessageText}
+            onChange={e => setNewMessageText(e.target.value)}
+            onKeyDown={handleOnKeyDown}
+            placeholder="Type a message"
+            className="flex-grow text-[#211F20] font-poppins text-base font-medium leading-normal opacity-50 outline-none bg-transparent"
+          />
+          <button
+            onClick={submitNewMessage}
+            disabled={!newMessageText.trim()}
+            className={`${!newMessageText.trim() ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <FaPaperPlane className="text-[#1C50D8] text-2xl cursor-pointer hover:text-[#1a45c0]" />
+          </button>
+        </div>
       </div>
 
       {/* Invite Modal */}
