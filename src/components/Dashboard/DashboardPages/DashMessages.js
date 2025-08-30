@@ -377,23 +377,29 @@ export function DashMessages({ connection }) {
               className="bg-yellow-100 p-4 mb-2 rounded flex justify-between items-center"
             >
               <span>
-                {connection.name} invited you on{" "}
+                {inv.invitedBy === me ? (
+                  `You invited ${connection.name} on `
+                ) : (
+                  `${connection.name} invited you on `
+                )}
                 {new Date(inv.timestamp.toDate()).toLocaleString()} @ {inv.location}
               </span>
-              <div className="space-x-2">
-                <button
-                  onClick={() => handleRespond(inv.id, true)}
-                  className="px-3 py-1 bg-green-500 text-white rounded"
-                >
-                  Accept
-                </button>
-                <button
-                  onClick={() => handleRespond(inv.id, false)}
-                  className="px-3 py-1 bg-red-500 text-white rounded"
-                >
-                  Decline
-                </button>
-              </div>
+              {inv.invitedBy !== me && (
+                <div className="space-x-2">
+                  <button
+                    onClick={() => handleRespond(inv.id, true)}
+                    className="px-3 py-1 bg-green-500 text-white rounded"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleRespond(inv.id, false)}
+                    className="px-3 py-1 bg-red-500 text-white rounded"
+                  >
+                    Decline
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
