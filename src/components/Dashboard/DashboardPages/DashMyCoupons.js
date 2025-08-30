@@ -102,21 +102,28 @@ export default function DashMyCoupons() {
       
       for (const couponDoc of couponsSnapshot.docs) {
         const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
-        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', me), where('status', '==', 'approved'));
+        const redemptionsQuery = query(redemptionsRef, where('status', '==', 'approved'));
         const redemptionsSnapshot = await getDocs(redemptionsQuery);
         
-        if (!redemptionsSnapshot.empty) {
-          const redemptionData = redemptionsSnapshot.docs[0].data();
+        for (const redemptionDoc of redemptionsSnapshot.docs) {
+          const redemptionData = redemptionDoc.data();
           const couponData = couponDoc.data();
           
-          approvedCouponsList.push({
-            id: couponDoc.id,
-            ...couponData,
-            businessName: couponData.legalBusinessName || 'Unknown Business',
-            approvedAt: redemptionData.approvedAt,
-            date1: redemptionData.date1,
-            date2: redemptionData.date2
-          });
+          // Check if current user is either the requester or the date partner
+          const isRequester = redemptionData.redeemedBy === me;
+          const isDatePartner = redemptionData.date1?.partnerId === me || redemptionData.date2?.partnerId === me;
+          
+          if (isRequester || isDatePartner) {
+            approvedCouponsList.push({
+              id: couponDoc.id,
+              ...couponData,
+              businessName: couponData.legalBusinessName || 'Unknown Business',
+              approvedAt: redemptionData.approvedAt,
+              date1: redemptionData.date1,
+              date2: redemptionData.date2
+            });
+            break; // No need to check other redemptions for this coupon
+          }
         }
       }
       
@@ -138,22 +145,29 @@ export default function DashMyCoupons() {
       
       for (const couponDoc of couponsSnapshot.docs) {
         const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
-        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', me), where('status', '==', 'rejected'));
+        const redemptionsQuery = query(redemptionsRef, where('status', '==', 'rejected'));
         const redemptionsSnapshot = await getDocs(redemptionsQuery);
         
-        if (!redemptionsSnapshot.empty) {
-          const redemptionData = redemptionsSnapshot.docs[0].data();
+        for (const redemptionDoc of redemptionsSnapshot.docs) {
+          const redemptionData = redemptionDoc.data();
           const couponData = couponDoc.data();
           
-          rejectedCouponsList.push({
-            id: couponDoc.id,
-            ...couponData,
-            businessName: couponData.legalBusinessName || 'Unknown Business',
-            rejectedAt: redemptionData.rejectedAt,
-            rejectionReason: redemptionData.rejectionReason,
-            date1: redemptionData.date1,
-            date2: redemptionData.date2
-          });
+          // Check if current user is either the requester or the date partner
+          const isRequester = redemptionData.redeemedBy === me;
+          const isDatePartner = redemptionData.date1?.partnerId === me || redemptionData.date2?.partnerId === me;
+          
+          if (isRequester || isDatePartner) {
+            rejectedCouponsList.push({
+              id: couponDoc.id,
+              ...couponData,
+              businessName: couponData.legalBusinessName || 'Unknown Business',
+              rejectedAt: redemptionData.rejectedAt,
+              rejectionReason: redemptionData.rejectionReason,
+              date1: redemptionData.date1,
+              date2: redemptionData.date2
+            });
+            break; // No need to check other redemptions for this coupon
+          }
         }
       }
       
