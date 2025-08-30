@@ -7,6 +7,7 @@ import AdminUserManagement from "../components/Admin/AdminPages/AdminUserManagem
 import AdminBusinessManagement from "../components/Admin/AdminPages/AdminBusinessManagement";
 import AdminAnalytics from "../components/Admin/AdminPages/AdminAnalytics";
 import AdminEvents from "../components/Admin/AdminPages/AdminEvents";
+import AdminDirectMatching from "../components/Admin/AdminPages/AdminDirectMatching";
 import AdminSettings from "../components/Admin/AdminPages/AdminSettings";
 import AdminChangePassword from "../components/Admin/AdminPages/AdminChangePassword";
 import AdminDeactivateAccount from "../components/Admin/AdminPages/AdminDeactivateAccount";
@@ -57,6 +58,7 @@ const AdminDashboard = () => {
         <Routes>
           <Route path="/coupons/*" element={<AdminCoupons />} />
           <Route path="/users/*" element={<AdminUserManagement />} />
+          <Route path="/matching" element={<AdminDirectMatching />} />
           <Route path="/businesses/*" element={<AdminBusinessManagement />} />
           <Route path="/events/*" element={<AdminEvents />} />
           <Route path="/analytics/*" element={<AdminAnalytics />} />

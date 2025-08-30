@@ -56,6 +56,12 @@ const AdminSidebar = () => {
       cName: "nav-text",
     },
     {
+      title: "Matching Directly",
+      path: "/admin-dashboard/matching",
+      icon: <FaIcons.FaHeart className="w-5 h-5" />,
+      cName: "nav-text",
+    },
+    {
       title: "Coupons",
       path: "/admin-dashboard/coupons",
       icon: <RiIcons.RiCoupon3Line className="w-5 h-5" />,
