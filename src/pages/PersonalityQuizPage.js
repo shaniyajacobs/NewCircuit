@@ -59,11 +59,10 @@ const PersonalityQuizPage = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   useEffect(() => {
-    if (currentStep === 1) {
-      setProgress(0);
-    } else {
-      setProgress(((currentStep)/ TOTAL_STEPS) * 100);
-    }
+    // Calculate progress based on current step
+    const progressPercentage = ((currentStep - 1) / (TOTAL_STEPS - 1)) * 100;
+    setProgress(progressPercentage);
+    
     setSelected(answers[`Question ${currentStep}`] || null);
     if (currentStep === 17 && answers[`Question 17`]) {
       setRankList(answers[`Question 17`]);
