@@ -497,10 +497,10 @@ export default function DashMyCoupons() {
 
       {/* Coupon Modal/Panel */}
       {showCouponModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white border-2 border-indigo-400 rounded-lg p-6 max-w-lg w-full relative shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="bg-white border-2 border-indigo-400 rounded-lg p-6 max-w-lg w-full max-h-[90vh] flex flex-col shadow-xl relative">
             <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none z-10"
               onClick={() => {
                 setShowCouponModal(false);
                 setError('');
@@ -521,51 +521,53 @@ export default function DashMyCoupons() {
                 {successMessage}
               </div>
             )}
-                        {canAccessCoupons() ? (
+            {canAccessCoupons() ? (
               <>
                 <div className="font-semibold text-lg mb-4">Request Your Coupon</div>
-                {loadingCoupons ? (
-                  <div className="text-center py-8">
-                    <div className="text-gray-500">Loading available coupons...</div>
-                  </div>
-                ) : coupons.length > 0 ? (
-                  <div className="space-y-4">
-                    {coupons.map(coupon => (
-                      <label key={coupon.id} className={`block border rounded p-4 cursor-pointer transition ${selectedCoupon === coupon.id ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 bg-white'}`}>
-                        <input
-                          type="radio"
-                          name="coupon"
-                          value={coupon.id}
-                          checked={selectedCoupon === coupon.id}
-                          onChange={() => setSelectedCoupon(coupon.id)}
-                          className="mr-3"
-                        />
-                        <div className="flex-1">
-                          <div className="font-semibold text-lg">{coupon.title}</div>
-                          <div className="text-gray-600 text-sm mt-1">{coupon.description}</div>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-indigo-600 font-semibold">{coupon.discount}</span>
-                            <span className="text-gray-500 text-xs">{coupon.businessName}</span>
+                <div className="flex-1 overflow-y-auto">
+                  {loadingCoupons ? (
+                    <div className="text-center py-8">
+                      <div className="text-gray-500">Loading available coupons...</div>
+                    </div>
+                  ) : coupons.length > 0 ? (
+                    <div className="space-y-4">
+                      {coupons.map(coupon => (
+                        <label key={coupon.id} className={`block border rounded p-4 cursor-pointer transition ${selectedCoupon === coupon.id ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 bg-white'}`}>
+                          <input
+                            type="radio"
+                            name="coupon"
+                            value={coupon.id}
+                            checked={selectedCoupon === coupon.id}
+                            onChange={() => setSelectedCoupon(coupon.id)}
+                            className="mr-3"
+                          />
+                          <div className="flex-1">
+                            <div className="font-semibold text-lg">{coupon.title}</div>
+                            <div className="text-gray-600 text-sm mt-1">{coupon.description}</div>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-indigo-600 font-semibold">{coupon.discount}</span>
+                              <span className="text-gray-500 text-xs">{coupon.businessName}</span>
+                            </div>
+                            {coupon.validUntil && (
+                              <div className="text-gray-500 text-xs mt-1">
+                                Valid until: {new Date(coupon.validUntil).toLocaleDateString()}
+                              </div>
+                            )}
+                            {coupon.terms && coupon.terms !== "None" && coupon.terms !== "none" && (
+                              <div className="text-gray-500 text-xs mt-1">
+                                Terms: {coupon.terms}
+                              </div>
+                            )}
                           </div>
-                          {coupon.validUntil && (
-                            <div className="text-gray-500 text-xs mt-1">
-                              Valid until: {new Date(coupon.validUntil).toLocaleDateString()}
-                            </div>
-                          )}
-                          {coupon.terms && coupon.terms !== "None" && coupon.terms !== "none" && (
-                            <div className="text-gray-500 text-xs mt-1">
-                              Terms: {coupon.terms}
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="text-gray-500">No coupons available at the moment.</div>
-                  </div>
-                )}
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-gray-500">No coupons available at the moment.</div>
+                    </div>
+                  )}
+                </div>
                 {coupons.length > 0 && (
                   <button
                     className={`mt-6 w-full py-2 rounded text-white ${selectedCoupon && !redeeming ? 'bg-indigo-600 hover:bg-indigo-800' : 'bg-gray-400 cursor-not-allowed'}`}
