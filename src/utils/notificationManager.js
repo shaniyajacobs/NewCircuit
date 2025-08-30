@@ -18,31 +18,38 @@ export const markSparkAsRead = async (sparkUserId) => {
       return false;
     }
 
-    // Create or update the notification tracking document
-    const notificationRef = doc(db, 'users', user.uid, 'notifications', 'sparks');
-    const notificationDoc = await getDoc(notificationRef);
+    // Get current timestamp
+    const currentTime = Date.now();
 
-    if (notificationDoc.exists()) {
-      // Update existing notifications
-      const currentData = notificationDoc.data();
-      const readSparks = currentData.readSparks || [];
+    // Update the conversation to mark messages as read
+    const convoId = user.uid < sparkUserId ? `${user.uid}${sparkUserId}` : `${sparkUserId}${user.uid}`;
+    const convoRef = doc(db, "conversations", convoId);
+    const convoDoc = await getDoc(convoRef);
+
+    if (convoDoc.exists()) {
+      const messages = convoDoc.data().messages || [];
       
-      if (!readSparks.includes(sparkUserId)) {
-        readSparks.push(sparkUserId);
-        await updateDoc(notificationRef, {
-          readSparks: readSparks,
-          lastUpdated: new Date()
-        });
-      }
-    } else {
-      // Create new notification tracking
-      await setDoc(notificationRef, {
-        readSparks: [sparkUserId],
-        lastUpdated: new Date()
+      // Mark all messages from the other person as read by adding a readBy field
+      const updatedMessages = messages.map(msg => {
+        if (msg.senderId === sparkUserId && !msg.readBy?.includes(user.uid)) {
+          return {
+            ...msg,
+            readBy: [...(msg.readBy || []), user.uid]
+          };
+        }
+        return msg;
+      });
+
+      await updateDoc(convoRef, {
+        messages: updatedMessages,
+        lastReadBy: {
+          ...convoDoc.data().lastReadBy,
+          [user.uid]: currentTime
+        }
       });
     }
 
-    console.log(`✅ Marked spark ${sparkUserId} as read`);
+    console.log(`✅ Marked spark ${sparkUserId} as read at ${currentTime}`);
     return true;
   } catch (error) {
     console.error('Error marking spark as read:', error);
@@ -127,8 +134,8 @@ export const markAllSparksAsRead = async () => {
 };
 
 /**
- * Check if a spark is new (has red dot notification)
- * Returns true if the spark should show a red dot
+ * Check if a spark has unread messages (should show red dot)
+ * Returns true if there are unread messages from this spark
  */
 export const isSparkNew = async (sparkUserId) => {
   try {
@@ -137,38 +144,35 @@ export const isSparkNew = async (sparkUserId) => {
       return false;
     }
 
-    // First, check if this spark has been marked as read/viewed
-    const notificationRef = doc(db, 'users', user.uid, 'notifications', 'sparks');
-    const notificationDoc = await getDoc(notificationRef);
-    
-    if (notificationDoc.exists()) {
-      const readSparks = notificationDoc.data().readSparks || [];
-      if (readSparks.includes(sparkUserId)) {
-        // User has already viewed/acknowledged this spark - no red dot
-        return false;
-      }
-    }
-
-    // If not marked as read, check if user has sent any messages to this spark
+    // Check if there's a conversation with this spark
     const convoId = user.uid < sparkUserId ? `${user.uid}${sparkUserId}` : `${sparkUserId}${user.uid}`;
     const convoDoc = await getDoc(doc(db, "conversations", convoId));
     
     if (!convoDoc.exists()) {
-      // No conversation exists - this is a new spark that hasn't been viewed
+      // No conversation exists - this is a new spark
       return true;
     }
 
     const messages = convoDoc.data().messages || [];
-    const hasMessaged = messages.some(msg => msg.senderId === user.uid);
-    
-    if (!hasMessaged) {
-      // Conversation exists but user hasn't sent any messages - this is a new spark that hasn't been viewed
+    if (messages.length === 0) {
+      // Empty conversation - this is a new spark
       return true;
     }
 
-    // User has sent messages - automatically mark as read and return false
-    await markSparkAsRead(sparkUserId);
-    return false;
+    // Check if user has sent any messages
+    const hasMessaged = messages.some(msg => msg.senderId === user.uid);
+    if (!hasMessaged) {
+      // User hasn't sent any messages yet - this is a new spark
+      return true;
+    }
+
+    // Check if there are unread messages from the other person
+    const unreadMessages = messages.filter(msg => 
+      msg.senderId === sparkUserId && 
+      !msg.readBy?.includes(user.uid)
+    );
+
+    return unreadMessages.length > 0;
   } catch (error) {
     console.error('Error checking if spark is new:', error);
     return false;
@@ -247,6 +251,8 @@ export const hasNewSparks = async () => {
     return false;
   }
 }; 
+
+
 
 /**
  * Force refresh the sidebar notification state

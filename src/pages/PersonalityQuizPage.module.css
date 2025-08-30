@@ -12,9 +12,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   min-height: 40vh;
-  margin-top: -450px;
+  margin-top: 0;
 }
 
 .topBar {
@@ -48,11 +48,10 @@
 .progressBarMarginLayout {
   display: flex;
   width: 100%;
-  padding: var(--TopBottom-S, 50px) 0;
+  padding: 20px 0;
   flex-direction: column;
   align-items: center;
-  gap: var(--Gap-L, 50px);
-  flex: 1 0 0;
+  gap: 20px;
   align-self: stretch;
 }
 
@@ -211,15 +210,15 @@
 }
 
 .dashboardBtn {
-  display: flex;
+  display: flex !important;
   min-width: 450px;
   padding: 12px 24px;
   justify-content: center;
   align-items: center;
   gap: 12px;
   border-radius: 8px;
-  background: var(--Sea_Salt, #F3F3F3);
-  color: #211F20;
+  background: #FFFFFF !important;
+  color: #211F20 !important;
   font-family: 'Poppins', sans-serif;
   font-size: 16px;
   font-style: normal;
@@ -233,7 +232,7 @@
 }
 
 .dashboardBtn:hover {
-  background: #e6e6e6;
+  background: #f5f5f5 !important;
 }
 
 /* Modal Styles */
@@ -482,4 +481,76 @@
     margin-left: 16px;
     margin-right: 16px;
   }
-} 
+}
+
+/* Final Quiz Page Styles */
+.finalMessage {
+  color: var(--Sea_Salt, #F3F3F3);
+  text-align: center;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 48px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 110%;
+  margin-bottom: 32px;
+}
+
+.dashboardBtn {
+  display: flex;
+  width: 450px;
+  padding: 12px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  border-radius: 8px;
+  background: #E2FF65;
+  color: #211F20;
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.dashboardBtn:hover {
+  background: #d4f055;
+}
+
+@media (max-width: 1280px) {
+  .finalMessage {
+    font-size: 40px;
+  }
+  .dashboardBtn {
+    width: 350px;
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 744px) {
+  .finalMessage {
+    font-size: 32px;
+  }
+  .dashboardBtn {
+    width: 300px;
+    padding: 8px 20px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .finalMessage {
+    font-size: 28px;
+  }
+  .dashboardBtn {
+    width: 280px;
+    padding: 8px 20px;
+    font-size: 12px;
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}

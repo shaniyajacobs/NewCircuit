@@ -39,6 +39,8 @@ export default function DashMyCoupons() {
   const [showRejectedCouponsModal, setShowRejectedCouponsModal] = useState(false);
   const [rejectedCoupons, setRejectedCoupons] = useState([]);
   const [loadingRejectedCoupons, setLoadingRejectedCoupons] = useState(false);
+  const [pendingCoupons, setPendingCoupons] = useState([]);
+  const [loadingPendingCoupons, setLoadingPendingCoupons] = useState(false);
 
   // Function to fetch coupons from Firebase
   const fetchCoupons = async () => {
@@ -102,21 +104,28 @@ export default function DashMyCoupons() {
       
       for (const couponDoc of couponsSnapshot.docs) {
         const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
-        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', me), where('status', '==', 'approved'));
+        const redemptionsQuery = query(redemptionsRef, where('status', '==', 'approved'));
         const redemptionsSnapshot = await getDocs(redemptionsQuery);
         
-        if (!redemptionsSnapshot.empty) {
-          const redemptionData = redemptionsSnapshot.docs[0].data();
+        for (const redemptionDoc of redemptionsSnapshot.docs) {
+          const redemptionData = redemptionDoc.data();
           const couponData = couponDoc.data();
           
-          approvedCouponsList.push({
-            id: couponDoc.id,
-            ...couponData,
-            businessName: couponData.legalBusinessName || 'Unknown Business',
-            approvedAt: redemptionData.approvedAt,
-            date1: redemptionData.date1,
-            date2: redemptionData.date2
-          });
+          // Check if current user is either the requester or the date partner
+          const isRequester = redemptionData.redeemedBy === me;
+          const isDatePartner = redemptionData.date1?.partnerId === me || redemptionData.date2?.partnerId === me;
+          
+          if (isRequester || isDatePartner) {
+            approvedCouponsList.push({
+              id: couponDoc.id,
+              ...couponData,
+              businessName: couponData.legalBusinessName || 'Unknown Business',
+              approvedAt: redemptionData.approvedAt,
+              date1: redemptionData.date1,
+              date2: redemptionData.date2
+            });
+            break; // No need to check other redemptions for this coupon
+          }
         }
       }
       
@@ -138,22 +147,29 @@ export default function DashMyCoupons() {
       
       for (const couponDoc of couponsSnapshot.docs) {
         const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
-        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', me), where('status', '==', 'rejected'));
+        const redemptionsQuery = query(redemptionsRef, where('status', '==', 'rejected'));
         const redemptionsSnapshot = await getDocs(redemptionsQuery);
         
-        if (!redemptionsSnapshot.empty) {
-          const redemptionData = redemptionsSnapshot.docs[0].data();
+        for (const redemptionDoc of redemptionsSnapshot.docs) {
+          const redemptionData = redemptionDoc.data();
           const couponData = couponDoc.data();
           
-          rejectedCouponsList.push({
-            id: couponDoc.id,
-            ...couponData,
-            businessName: couponData.legalBusinessName || 'Unknown Business',
-            rejectedAt: redemptionData.rejectedAt,
-            rejectionReason: redemptionData.rejectionReason,
-            date1: redemptionData.date1,
-            date2: redemptionData.date2
-          });
+          // Check if current user is either the requester or the date partner
+          const isRequester = redemptionData.redeemedBy === me;
+          const isDatePartner = redemptionData.date1?.partnerId === me || redemptionData.date2?.partnerId === me;
+          
+          if (isRequester || isDatePartner) {
+            rejectedCouponsList.push({
+              id: couponDoc.id,
+              ...couponData,
+              businessName: couponData.legalBusinessName || 'Unknown Business',
+              rejectedAt: redemptionData.rejectedAt,
+              rejectionReason: redemptionData.rejectionReason,
+              date1: redemptionData.date1,
+              date2: redemptionData.date2
+            });
+            break; // No need to check other redemptions for this coupon
+          }
         }
       }
       
@@ -162,6 +178,55 @@ export default function DashMyCoupons() {
       console.error('Error fetching rejected coupons:', error);
     } finally {
       setLoadingRejectedCoupons(false);
+    }
+  };
+
+  // Function to fetch pending coupon requests for the current user
+  const fetchPendingCoupons = async () => {
+    setLoadingPendingCoupons(true);
+    try {
+      const pendingCouponsList = [];
+      const couponsRef = collection(db, 'coupons');
+      const couponsSnapshot = await getDocs(couponsRef);
+      
+      for (const couponDoc of couponsSnapshot.docs) {
+        const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
+        const redemptionsQuery = query(redemptionsRef, where('status', '==', 'redeemed'));
+        const redemptionsSnapshot = await getDocs(redemptionsQuery);
+        
+        for (const redemptionDoc of redemptionsSnapshot.docs) {
+          const redemptionData = redemptionDoc.data();
+          const couponData = couponDoc.data();
+          
+          // Check if current user is either the requester or the date partner
+          const isRequester = redemptionData.redeemedBy === me;
+          const isDatePartner = redemptionData.date1?.partnerId === me || redemptionData.date2?.partnerId === me;
+          
+          if (isRequester || isDatePartner) {
+            // Get the requester's name
+            const requesterName = usersMap[String(redemptionData.redeemedBy)] || redemptionData.redeemedBy;
+            
+            pendingCouponsList.push({
+              id: couponDoc.id,
+              ...couponData,
+              businessName: couponData.legalBusinessName || 'Unknown Business',
+              redeemedAt: redemptionData.redeemedAt,
+              date1: redemptionData.date1,
+              date2: redemptionData.date2,
+              redeemedBy: redemptionData.redeemedBy,
+              requesterName: requesterName,
+              isRequester: isRequester
+            });
+            break; // No need to check other redemptions for this coupon
+          }
+        }
+      }
+      
+      setPendingCoupons(pendingCouponsList);
+    } catch (error) {
+      console.error('Error fetching pending coupons:', error);
+    } finally {
+      setLoadingPendingCoupons(false);
     }
   };
 
@@ -415,6 +480,13 @@ export default function DashMyCoupons() {
     }
   }, [sel2, acceptedDates, me, isResubmitting2, currentlyUploadingSlot]);
 
+  // Fetch pending coupons when component loads
+  useEffect(() => {
+    if (me && Object.keys(usersMap).length > 0) {
+      fetchPendingCoupons();
+    }
+  }, [me, usersMap]);
+
   const onFile = (slot, e) => {
     setError('');
     const file = e.target.files[0];
@@ -497,10 +569,10 @@ export default function DashMyCoupons() {
 
       {/* Coupon Modal/Panel */}
       {showCouponModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white border-2 border-indigo-400 rounded-lg p-6 max-w-lg w-full relative shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="bg-white border-2 border-indigo-400 rounded-lg p-6 max-w-lg w-full max-h-[90vh] flex flex-col shadow-xl relative">
             <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none"
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none z-10"
               onClick={() => {
                 setShowCouponModal(false);
                 setError('');
@@ -521,51 +593,53 @@ export default function DashMyCoupons() {
                 {successMessage}
               </div>
             )}
-                        {canAccessCoupons() ? (
+            {canAccessCoupons() ? (
               <>
                 <div className="font-semibold text-lg mb-4">Request Your Coupon</div>
-                {loadingCoupons ? (
-                  <div className="text-center py-8">
-                    <div className="text-gray-500">Loading available coupons...</div>
-                  </div>
-                ) : coupons.length > 0 ? (
-                  <div className="space-y-4">
-                    {coupons.map(coupon => (
-                      <label key={coupon.id} className={`block border rounded p-4 cursor-pointer transition ${selectedCoupon === coupon.id ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 bg-white'}`}>
-                        <input
-                          type="radio"
-                          name="coupon"
-                          value={coupon.id}
-                          checked={selectedCoupon === coupon.id}
-                          onChange={() => setSelectedCoupon(coupon.id)}
-                          className="mr-3"
-                        />
-                        <div className="flex-1">
-                          <div className="font-semibold text-lg">{coupon.title}</div>
-                          <div className="text-gray-600 text-sm mt-1">{coupon.description}</div>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-indigo-600 font-semibold">{coupon.discount}</span>
-                            <span className="text-gray-500 text-xs">{coupon.businessName}</span>
+                <div className="flex-1 overflow-y-auto">
+                  {loadingCoupons ? (
+                    <div className="text-center py-8">
+                      <div className="text-gray-500">Loading available coupons...</div>
+                    </div>
+                  ) : coupons.length > 0 ? (
+                    <div className="space-y-4">
+                      {coupons.map(coupon => (
+                        <label key={coupon.id} className={`block border rounded p-4 cursor-pointer transition ${selectedCoupon === coupon.id ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 bg-white'}`}>
+                          <input
+                            type="radio"
+                            name="coupon"
+                            value={coupon.id}
+                            checked={selectedCoupon === coupon.id}
+                            onChange={() => setSelectedCoupon(coupon.id)}
+                            className="mr-3"
+                          />
+                          <div className="flex-1">
+                            <div className="font-semibold text-lg">{coupon.title}</div>
+                            <div className="text-gray-600 text-sm mt-1">{coupon.description}</div>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-indigo-600 font-semibold">{coupon.discount}</span>
+                              <span className="text-gray-500 text-xs">{coupon.businessName}</span>
+                            </div>
+                            {coupon.validUntil && (
+                              <div className="text-gray-500 text-xs mt-1">
+                                Valid until: {new Date(coupon.validUntil).toLocaleDateString()}
+                              </div>
+                            )}
+                            {coupon.terms && coupon.terms !== "None" && coupon.terms !== "none" && (
+                              <div className="text-gray-500 text-xs mt-1">
+                                Terms: {coupon.terms}
+                              </div>
+                            )}
                           </div>
-                          {coupon.validUntil && (
-                            <div className="text-gray-500 text-xs mt-1">
-                              Valid until: {new Date(coupon.validUntil).toLocaleDateString()}
-                            </div>
-                          )}
-                          {coupon.terms && coupon.terms !== "None" && coupon.terms !== "none" && (
-                            <div className="text-gray-500 text-xs mt-1">
-                              Terms: {coupon.terms}
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="text-gray-500">No coupons available at the moment.</div>
-                  </div>
-                )}
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-gray-500">No coupons available at the moment.</div>
+                    </div>
+                  )}
+                </div>
                 {coupons.length > 0 && (
                   <button
                     className={`mt-6 w-full py-2 rounded text-white ${selectedCoupon && !redeeming ? 'bg-indigo-600 hover:bg-indigo-800' : 'bg-gray-400 cursor-not-allowed'}`}
@@ -825,6 +899,11 @@ export default function DashMyCoupons() {
       {/* View Coupons button - only show when selected dates are with same person and both have photos */}
       {canAccessCoupons() && (
         <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 text-sm leading-relaxed">
+              You're eligible for a Third Date On Us coupon. Chat with your spark to come to an agreement, and select your preferred coupon below.
+            </p>
+          </div>
           <button
             className="self-start px-4 py-2 text-white rounded-lg font-medium text-sm bg-black hover:bg-gray-800"
             onClick={async () => {
@@ -836,6 +915,32 @@ export default function DashMyCoupons() {
           >
             🎫 View Available Coupons
           </button>
+        </div>
+      )}
+
+      {/* Pending Coupon Requests */}
+      {pendingCoupons.length > 0 && (
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            {pendingCoupons.map((coupon, index) => (
+              <div key={coupon.id} className="mb-4 last:mb-0">
+                <div className="text-yellow-800 font-medium mb-2">
+                  {coupon.isRequester 
+                    ? "Third Date On Us coupon request submitted and pending approval"
+                    : `Third Date On Us coupon request submitted by ${coupon.requesterName} and pending approval`
+                  }
+                </div>
+                <div className="text-yellow-700 text-sm">
+                  Coupon: {coupon.title} - {coupon.discount} at {coupon.businessName}
+                </div>
+                <div className="text-yellow-600 text-xs mt-1">
+                  Requested on: {coupon.redeemedAt?.toDate?.() ? 
+                    coupon.redeemedAt.toDate().toLocaleString() : 
+                    new Date(coupon.redeemedAt).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
