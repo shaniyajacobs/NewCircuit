@@ -64,6 +64,8 @@
     align-self: stretch;
     overflow: visible; 
     position: relative;
+    flex-shrink: 0; /* Prevent shrinking */
+    flex-grow: 0; /* Prevent growing */
 }
 .upperContent {
     display: flex;
@@ -387,7 +389,7 @@
     --Pricing-Image-Height: 75px;
     --toggle-background-width: 40px;
     --toggle-background-height: 24px;
-    --Card-Width: 696px;
+    --Card-Width: 320px;
   }
   .bundleCard {
     --Card-Height: 445px;
@@ -409,6 +411,8 @@
   }
   .cardsContainer {
     max-width: 100%;
+    justify-content: center;
+    align-items: center;
   }
 }
 @media (max-width: 744px) {
