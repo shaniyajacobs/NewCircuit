@@ -421,24 +421,26 @@ const DashHome = () => {
       
       let hasUpdate = false;
       
-      // Check each coupon for redemption requests by this user
+      // Check each coupon for redemption requests involving this user (as requester or date partner)
       for (const couponDoc of couponsSnapshot.docs) {
         const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
-        const redemptionsQuery = query(redemptionsRef, where('redeemedBy', '==', user.uid));
+        const redemptionsQuery = query(redemptionsRef, where('status', 'in', ['approved', 'rejected']));
         const redemptionsSnapshot = await getDocs(redemptionsQuery);
         
-        if (!redemptionsSnapshot.empty) {
-          // Check if any request has been approved or rejected (status changed from 'redeemed')
-          const hasStatusUpdate = redemptionsSnapshot.docs.some(doc => {
-            const data = doc.data();
-            return data.status === 'approved' || data.status === 'rejected';
-          });
+        for (const redemptionDoc of redemptionsSnapshot.docs) {
+          const redemptionData = redemptionDoc.data();
           
-          if (hasStatusUpdate) {
+          // Check if current user is either the requester or the date partner
+          const isRequester = redemptionData.redeemedBy === user.uid;
+          const isDatePartner = redemptionData.date1?.partnerId === user.uid || redemptionData.date2?.partnerId === user.uid;
+          
+          if (isRequester || isDatePartner) {
             hasUpdate = true;
             break;
           }
         }
+        
+        if (hasUpdate) break;
       }
       
       setHasCouponRequestUpdate(hasUpdate);
