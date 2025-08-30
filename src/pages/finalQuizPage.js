@@ -4,6 +4,8 @@ import cirCrossPBlack from '../images/cir_cross_Black.svg';
 import cirHeartPBlack from '../images/cir_heart_Black.svg';
 import cirMinusPBlack from '../images/cir_minus_Black.svg';
 import styled from 'styled-components';
+import styles from './PersonalityQuizPage.module.css';
+import { IoChevronBack } from 'react-icons/io5';
 
 function seededRandom(seed) {
     const x = Math.sin(seed++) * 10000;
@@ -102,26 +104,34 @@ const FooterShapesBlack = () => {
 
 const FinalQuizPage = () => {
     const navigate = useNavigate();
+    
+    const handleBackClick = () => {
+        navigate('/personalityquizpage/17');
+    };
+    
     return (
-        <div className="quiz-bg">
+        <div className={styles.quizBg}>
             {/* Top Bar */}
-            <div className="top-bar">
-                <span className="location-text">PERSONALITY TEST</span>
+            <div className={styles.topBar}>
+                <button className={styles.backBtn} onClick={handleBackClick}>
+                    <IoChevronBack className={styles.backIcon} />
+                </button>
+                <span className={styles.locationText}>PERSONALITY TEST</span>
             </div>
             {/* Progress Bar */}
-            <div className="progress-bar-margin-layout">
-                <div className="progress-bar-bg">
-                    <div className="progress-bar-fill" style={{ width: '100%' }} />
+            <div className={styles.progressBarMarginLayout}>
+                <div className={styles.progressBarBg}>
+                    <div className={styles.progressBarFill} style={{ width: '100%' }} />
                 </div>
             </div>
             {/* Main Content */}
-            <div className="main-content">
-                <div className="final-message">
+            <div className={styles.mainContent}>
+                <div className={styles.finalMessage}>
                     What a winning personality!
                 </div>
                 <button 
                     onClick={() => navigate('/dashboard')}
-                    className="dashboard-btn"
+                    className={styles.dashboardBtn}
                 >
                     Navigate to Dashboard
                 </button>
