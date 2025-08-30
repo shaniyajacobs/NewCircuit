@@ -84,8 +84,8 @@ const ContactPage = () => {
         >
           <div className={styles.contactInfoMobile}>
             <div className={styles.getInTouch}>GET IN TOUCH</div>
-            <div className={styles.email}>hello@circuit.com</div>
-            <div className={styles.phone}>+514.514.5144</div>
+            <div className={styles.email}>contact@circuitspeeddating.com</div>
+            <div className={styles.phone}>+510.903.7210</div>
           </div>
         </div>
       </div>
