@@ -347,10 +347,22 @@ const DashHome = () => {
           // Only show the 'Select my sparks' card if latest event was within 48 hours
           const within48 = await isLatestEventWithin48Hours(user.uid);
           setShowSelectSparksCard(within48);
+
+          // Start polling every 60s to auto-hide banner after 48h passes
+          const interval = setInterval(async () => {
+            const stillWithin48 = await isLatestEventWithin48Hours(user.uid);
+            setShowSelectSparksCard(stillWithin48);
+          }, 60000);
+          // store interval on window to clear on unmount or auth change
+          window.__selectSparksPoller && clearInterval(window.__selectSparksPoller);
+          window.__selectSparksPoller = interval;
         }
       }
     });
-    return () => unsubscribe();
+    return () => {
+      if (window.__selectSparksPoller) clearInterval(window.__selectSparksPoller);
+      unsubscribe();
+    };
   }, []);
 
   const fetchConnections = async () => {
