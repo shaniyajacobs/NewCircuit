@@ -309,6 +309,8 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
 
   // Check if user should see the "Select my sparks" card
   useEffect(() => {
+    let intervalId;
+    let isUnmounted = false;
     const checkSelectSparksCard = async () => {
       const user = auth.currentUser;
       if (!user) return;
@@ -331,14 +333,20 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
         
         const shouldShow = within48Hours && !hasMaxSelections;
         console.log('[SELECTSPARKS] Final decision - show banner:', shouldShow, { within48Hours, hasMaxSelections });
-        setShowSelectSparksCard(shouldShow);
+        if (!isUnmounted) setShowSelectSparksCard(shouldShow);
       } catch (error) {
         console.error('Error checking select sparks card:', error);
-        setShowSelectSparksCard(false);
+        if (!isUnmounted) setShowSelectSparksCard(false);
       }
     };
 
+    // Initial check and then poll every 60s so the banner auto-hides after 48h
     checkSelectSparksCard();
+    intervalId = setInterval(checkSelectSparksCard, 60000);
+    return () => {
+      isUnmounted = true;
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   useEffect(() => {
