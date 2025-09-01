@@ -595,15 +595,15 @@ const DashDateCalendar = () => {
         </div>
 
         {/* Bundle Dates */}
-        <div className="grid grid-cols-3 gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] max-lg:grid-cols-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] justify-items-center">
           {locationBasedPlans.bundlePlans.length > 0 ? (
             locationBasedPlans.bundlePlans.map((plan, index) => (
-              <div key={index} className="w-full">
+              <div key={index} className="w-full max-w-[425px] flex-shrink-0 flex-grow-0">
                 <BundlePlan {...plan} onBuyNow={handleBuyNow} />
               </div>
             ))
           ) : (
-            <div className="col-span-3 flex items-center justify-center py-8">
+            <div className="col-span-full flex items-center justify-center py-8">
               <div className="text-gray-500">Loading location-based plans...</div>
             </div>
           )}
@@ -616,15 +616,15 @@ const DashDateCalendar = () => {
         </div>
 
         {/* Individual Dates */}
-        <div className="grid grid-cols-3 gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] max-lg:grid-cols-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] justify-items-center">
           {locationBasedPlans.datePlans.length > 0 ? (
             locationBasedPlans.datePlans.map((plan, index) => (
-              <div key={index} className="w-full">
+              <div key={index} className="w-full max-w-[425px] flex-shrink-0 flex-grow-0">
                 <DatePlan {...plan} onBuyNow={handleBuyNow} />
               </div>
             ))
           ) : (
-            <div className="col-span-3 flex items-center justify-center py-8">
+            <div className="col-span-full flex items-center justify-center py-8">
               <div className="text-gray-500">Loading location-based plans...</div>
             </div>
           )}
