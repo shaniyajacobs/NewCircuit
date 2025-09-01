@@ -292,6 +292,9 @@ export default function DashMyCoupons() {
       // Add to the coupon's redemptions subcollection
       await addDoc(collection(db, 'coupons', selectedCoupon, 'redemptions'), redemptionRequestData);
 
+      // Refresh pending coupons list to include the new request
+      await fetchPendingCoupons();
+
       // Show success message and close modal after a delay
       setSuccessMessage('Coupon redemption requested successfully! 🎉');
       setSelectedCoupon(null);
@@ -328,6 +331,26 @@ export default function DashMyCoupons() {
     
     return photos1[me]?.uploaded && photos1[date1.partnerId]?.uploaded &&
            photos2[me]?.uploaded && photos2[date2.partnerId]?.uploaded;
+  };
+
+  // Function to check if the currently selected dates already have a pending coupon request
+  const hasPendingRequestForSelectedDates = () => {
+    if (!sel1 || !sel2) return false;
+    
+    const date1 = acceptedDates.find(d => d.id === sel1);
+    const date2 = acceptedDates.find(d => d.id === sel2);
+    
+    if (!date1 || !date2) return false;
+    
+    // Check if any pending coupon request uses these exact same dates
+    return pendingCoupons.some(pendingCoupon => {
+      const pendingDate1Id = pendingCoupon.date1?.id;
+      const pendingDate2Id = pendingCoupon.date2?.id;
+      
+      // Check if the pending request uses the same two dates (order doesn't matter)
+      return (pendingDate1Id === sel1 && pendingDate2Id === sel2) || 
+             (pendingDate1Id === sel2 && pendingDate2Id === sel1);
+    });
   };
 
   // Function to check if user has enough available dates for coupons
@@ -486,6 +509,13 @@ export default function DashMyCoupons() {
       fetchPendingCoupons();
     }
   }, [me, usersMap]);
+
+  // Refresh pending coupons when selected dates change
+  useEffect(() => {
+    if (me && sel1 && sel2 && Object.keys(usersMap).length > 0) {
+      fetchPendingCoupons();
+    }
+  }, [me, sel1, sel2, usersMap]);
 
   const onFile = (slot, e) => {
     setError('');
@@ -687,7 +717,7 @@ export default function DashMyCoupons() {
                 <div>
                   <div className="font-semibold text-lg mb-1">Date: {d.timestamp && d.timestamp.toDate ? d.timestamp.toDate().toLocaleString() : ''}</div>
                   <div className="text-gray-600 mb-1">Location: {d.location || 'N/A'}</div>
-                  <div className="text-gray-600 mb-1">Partner: {partner || d.partnerId || 'N/A'}</div>
+                  <div className="text-gray-600 mb-1">Spark: {partner || d.partnerId || 'N/A'}</div>
                   <div className="font-semibold text-red-600 mb-1">Status: Rejected</div>
                   {d.rejectionReason && (
                     <div className="text-red-700 bg-red-100 border border-red-300 rounded p-2 mt-2">
@@ -864,7 +894,7 @@ export default function DashMyCoupons() {
                     <div className="text-center">
                       <div className="text-xl mb-1">🔒</div>
                       <div className="text-xs">Upload your photo first</div>
-                      <div className="text-xs text-gray-500">to unlock partner's upload</div>
+                      <div className="text-xs text-gray-500">to unlock spark's upload</div>
                     </div>
                   )}
                 </div>
@@ -905,16 +935,32 @@ export default function DashMyCoupons() {
             </p>
           </div>
           <button
-            className="self-start px-4 py-2 text-white rounded-lg font-medium text-sm bg-black hover:bg-gray-800"
+            className={`self-start px-4 py-2 text-white rounded-lg font-medium text-sm ${
+              hasPendingRequestForSelectedDates() 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-black hover:bg-gray-800'
+            }`}
             onClick={async () => {
+              if (hasPendingRequestForSelectedDates()) return;
               setError('');
               setSuccessMessage('');
               await fetchCoupons();
               setShowCouponModal(true);
             }}
+            disabled={hasPendingRequestForSelectedDates()}
           >
-            🎫 View Available Coupons
+            {hasPendingRequestForSelectedDates() 
+              ? '🎫 Coupon Request Pending' 
+              : '🎫 View Available Coupons'
+            }
           </button>
+          {hasPendingRequestForSelectedDates() && (
+            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-yellow-800 text-sm">
+                You already have a coupon request pending for these dates. Please wait for admin approval before submitting another request.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
