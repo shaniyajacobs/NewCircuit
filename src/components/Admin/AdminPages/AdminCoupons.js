@@ -441,7 +441,7 @@ const AdminCoupons = () => {
       {/* Add Coupon Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-semibold mb-6">Add New Coupon</h2>
             <form onSubmit={handleAddCoupon} className="space-y-4">
               <div>
@@ -534,7 +534,7 @@ const AdminCoupons = () => {
       {/* Edit Coupon Modal */}
       {showEditModal && selectedCoupon && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-semibold mb-6">Edit Coupon</h2>
             <form onSubmit={handleEditCoupon} className="space-y-4">
               <div>
