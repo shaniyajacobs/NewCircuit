@@ -7,8 +7,69 @@ import { DateTime } from 'luxon';
 import PopUp from '../DashboardHelperComponents/PopUp';
 import { formatUserName } from '../../../utils/nameFormatter';
 import { IoPersonCircle } from 'react-icons/io5';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const MAX_SELECTIONS = 3; // maximum matches a user can choose
+
+// Helper: check if latest event was within 48 hours
+async function isLatestEventWithin48Hours(userId) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const latestEventId = userDoc.data()?.latestEventId;
+    
+    if (!latestEventId) {
+      console.log('[48HOURS] No latestEventId found for user:', userId);
+      return false;
+    }
+    
+    // Use getEventData Cloud Function to get event data from Remo
+    const functionsInst = getFunctions();
+    const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
+    const res = await getEventDataCF({ eventId: latestEventId });
+    
+    if (!res.data?.event) {
+      console.log('[48HOURS] No event data returned from getEventData:', latestEventId);
+      return false;
+    }
+    
+    const eventData = res.data.event;
+    console.log('[48HOURS] Event data from getEventData:', { eventID: eventData.id, endTime: eventData.endTime, startTime: eventData.startTime });
+    
+    // Check if event ended within the last 48 hours
+    const now = DateTime.now();
+    let eventEndDateTime;
+    
+    if (eventData.endTime) {
+      eventEndDateTime = DateTime.fromMillis(Number(eventData.endTime));
+      console.log('[48HOURS] Using endTime:', eventEndDateTime.toISO());
+    } else if (eventData.startTime) {
+      const eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
+      eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+      console.log('[48HOURS] Using startTime + 90min:', eventEndDateTime.toISO());
+    } else {
+      console.log('[48HOURS] No valid time data in event');
+      return false;
+    }
+    
+    if (!eventEndDateTime || !eventEndDateTime.isValid) {
+      console.log('[48HOURS] Failed to calculate event end time');
+      return false;
+    }
+    
+    const hoursSinceEvent = now.diff(eventEndDateTime, 'hours').hours;
+    
+    console.log('[48HOURS] Time calculation:', {
+      eventEnd: eventEndDateTime.toISO(), 
+      now: now.toISO(), 
+      hoursSinceEvent: Math.round(hoursSinceEvent * 100) / 100 
+    });
+    
+    return hoursSinceEvent <= 48;
+  } catch (error) {
+    console.error('[48HOURS] Error checking event time:', error);
+    return false;
+  }
+}
 
 // Function to format date as "Wed, 10th of June"
 const formatEventDate = (dateString, startTime) => {
@@ -54,6 +115,8 @@ const SeeAllMatches = () => {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]); // up to 3
   const [showMaxModal, setShowMaxModal] = useState(false); // controls the "max reached" modal visibility
+  const [selectionsSubmitted, setSelectionsSubmitted] = useState(false); // tracks if selections have been submitted
+  const [within48Hours, setWithin48Hours] = useState(false); // tracks if within 48 hours of event
 
   // Helper to persist per-event selections
   async function persistEventSelections(updatedMatches) {
@@ -99,19 +162,29 @@ const SeeAllMatches = () => {
           }
         }
 
-        // 1. Try to load per-event selections
+        // 1. Check if selections have been submitted and if within 48 hours
         let eventSelectedIds = [];
+        let hasSubmittedSelections = false;
         if (latestEventId) {
           const eventSelDoc = await getDoc(doc(db, 'users', user.uid, 'eventSelections', latestEventId));
           if (eventSelDoc.exists()) {
-            eventSelectedIds = eventSelDoc.data().selectedMatches || [];
+            const eventSelData = eventSelDoc.data();
+            eventSelectedIds = eventSelData.selectedMatches || [];
+            hasSubmittedSelections = eventSelData.submittedAt ? true : false;
           } else {
             // Fallback: migrate from old connections for this event only (one-time)
             const prevConnSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
             const prevSelectedIds = prevConnSnap.docs.map(d => d.id);
             eventSelectedIds = prevSelectedIds;
+            // If there are existing connections, consider selections as submitted
+            hasSubmittedSelections = prevSelectedIds.length > 0;
           }
         }
+
+        // Check if within 48 hours of the event
+        const within48 = await isLatestEventWithin48Hours(user.uid);
+        setWithin48Hours(within48);
+        setSelectionsSubmitted(hasSubmittedSelections);
 
         const results = (matchesDoc.data().results || []).sort((a,b) => b.score - a.score);
         const profiles = await Promise.all(
@@ -162,12 +235,30 @@ const SeeAllMatches = () => {
   // Helper to persist per-event selections
 
 
-  // Handle the card click while respecting the max-selection rule
+  // Handle the card click while respecting the business rules
   const handleCardClick = (match) => {
+    // Rule 1: If selections have been submitted, prevent any changes
+    if (selectionsSubmitted) {
+      return;
+    }
+
+    // Rule 2: If not within 48 hours, prevent any changes
+    if (!within48Hours) {
+      return;
+    }
+
+    // Rule 3: If trying to select more than MAX_SELECTIONS, show warning
     if (!match.selected && selectedIds.length >= MAX_SELECTIONS) {
       setShowMaxModal(true);
       return;
     }
+
+    // Rule 4: If trying to deselect and already have 3 selections, prevent deselection
+    // (This allows users to add more selections if they have less than 3)
+    if (match.selected && selectedIds.length >= MAX_SELECTIONS) {
+      return;
+    }
+
     toggleSelect(match.id);
   };
 
@@ -177,6 +268,10 @@ const SeeAllMatches = () => {
     if (!user) return;
 
     try {
+      // Get the latest event ID
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const latestEventId = userDoc.data()?.latestEventId;
+
       // 1️⃣ Delete any previous selections that the user has now deselected
       const existingSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
       const deletions = existingSnap.docs
@@ -216,6 +311,13 @@ const SeeAllMatches = () => {
 
       await Promise.all(deletions);
       
+      // Mark selections as submitted
+      if (latestEventId) {
+        await setDoc(doc(db, 'users', user.uid, 'eventSelections', latestEventId), {
+          submittedAt: serverTimestamp()
+        }, { merge: true });
+      }
+      
       // Check if user has reached max selections for this event
       if (selectedIds.length >= MAX_SELECTIONS) {
         // Store flag in localStorage to show congratulations modal on dashboard
@@ -247,7 +349,12 @@ const SeeAllMatches = () => {
           </div>
           <div className="mb-6 sm:mb-[50px] xl:mb-[75px] 2xl:mb-[100px]">
             <p className="text-[rgba(33,31,32,0.75)] font-bricolage text-[14px] sm:text-[16px] md:text-[20px] lg:text-[24px] font-medium leading-[130%]">
-              Pick up to 3 people you'd like to connect with further from your speed date on: {eventDate && <span>{eventDate}</span>}
+              {selectionsSubmitted 
+                ? `Your selections have been submitted for the speed date on ${eventDate}. You cannot change your selections.`
+                : !within48Hours
+                ? `The 48-hour selection window has expired for the speed date on ${eventDate}. You can no longer make selections.`
+                : `Pick up to 3 people you'd like to connect with further from your speed date on: ${eventDate}`
+              }
             </p>
           </div>
         </div>
@@ -255,11 +362,14 @@ const SeeAllMatches = () => {
         <div className="max-w-[1292px] mx-auto flex flex-col gap-4">
   {matches.map((match, index) => {
     const isDisabled = !match.selected && selectedIds.length >= MAX_SELECTIONS;
+    const isLocked = selectionsSubmitted || !within48Hours;
+    const canInteract = !isLocked && !isDisabled;
+    
     return (
       <div
         key={match.id}
         onClick={() => handleCardClick(match)}
-        className={`relative flex flex-col md:flex-row items-start md:items-center gap-y-3 md:gap-y-0 md:gap-x-0 w-full bg-white rounded-2xl border border-gray-200 p-[24px] xl:p-[20px] md:p-[16px] sm:p-[12px] shadow-sm transition-all duration-500 cursor-pointer ${match.selected ? 'ring-2 ring-[#211F20]' : ''} ${isDisabled ? 'opacity-50 pointer-events-none' : ''}`}
+        className={`relative flex flex-col md:flex-row items-start md:items-center gap-y-3 md:gap-y-0 md:gap-x-0 w-full bg-white rounded-2xl border border-gray-200 p-[24px] xl:p-[20px] md:p-[16px] sm:p-[12px] shadow-sm transition-all duration-500 ${canInteract ? 'cursor-pointer' : 'cursor-not-allowed'} ${match.selected ? 'ring-2 ring-[#211F20]' : ''} ${!canInteract ? 'opacity-50' : ''}`}
       >
         {/* 1. Rank Number */}
         {/* 2. Profile picture + name/age */}
@@ -326,7 +436,17 @@ const SeeAllMatches = () => {
         <div className="max-w-[1292px] mx-auto mt-8">
           <div className="flex gap-6 sm:gap-5 md:gap-4 lg:gap-4 py-3 sm:py-2.5 md:py-2 lg:py-2 w-full">  
             <button onClick={() => navigate(-1)} className="flex-1 bg-white text-[#211F20] px-4 sm:px-4 xl:px-5 2xl:px-6 py-3 sm:py-2.5 md:py-2 lg:py-2 rounded-lg font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-medium leading-normal border border-[#211F20] hover:bg-gray-50 transition-colors">Back</button>
-            <button onClick={handleConfirm} disabled={selectedIds.length === 0} className={`flex-1 px-4 sm:px-4 xl:px-5 2xl:px-6 py-3 sm:py-2.5 md:py-2 lg:py-2 rounded-lg font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-medium leading-normal transition-colors ${selectedIds.length ? 'bg-[#211F20] text-white hover:bg-[#333]' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>Select</button>
+            <button 
+              onClick={handleConfirm} 
+              disabled={selectedIds.length === 0 || selectionsSubmitted || !within48Hours} 
+              className={`flex-1 px-4 sm:px-4 xl:px-5 2xl:px-6 py-3 sm:py-2.5 md:py-2 lg:py-2 rounded-lg font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-medium leading-normal transition-colors ${
+                selectedIds.length && !selectionsSubmitted && within48Hours 
+                  ? 'bg-[#211F20] text-white hover:bg-[#333]' 
+                  : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+              }`}
+            >
+              {selectionsSubmitted ? 'Selections Submitted' : !within48Hours ? 'Time Expired' : 'Select'}
+            </button>
           </div>
         </div>
       </div>
