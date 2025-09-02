@@ -122,7 +122,9 @@ export default function DashMyCoupons() {
               businessName: couponData.legalBusinessName || 'Unknown Business',
               approvedAt: redemptionData.approvedAt,
               date1: redemptionData.date1,
-              date2: redemptionData.date2
+              date2: redemptionData.date2,
+              redeemedBy: redemptionData.redeemedBy,
+              requesterName: usersMap[String(redemptionData.redeemedBy)] || redemptionData.redeemedBy
             });
             break; // No need to check other redemptions for this coupon
           }
@@ -166,7 +168,9 @@ export default function DashMyCoupons() {
               rejectedAt: redemptionData.rejectedAt,
               rejectionReason: redemptionData.rejectionReason,
               date1: redemptionData.date1,
-              date2: redemptionData.date2
+              date2: redemptionData.date2,
+              redeemedBy: redemptionData.redeemedBy,
+              requesterName: usersMap[String(redemptionData.redeemedBy)] || redemptionData.redeemedBy
             });
             break; // No need to check other redemptions for this coupon
           }
@@ -292,6 +296,9 @@ export default function DashMyCoupons() {
       // Add to the coupon's redemptions subcollection
       await addDoc(collection(db, 'coupons', selectedCoupon, 'redemptions'), redemptionRequestData);
 
+      // Refresh pending coupons list to include the new request
+      await fetchPendingCoupons();
+
       // Show success message and close modal after a delay
       setSuccessMessage('Coupon redemption requested successfully! 🎉');
       setSelectedCoupon(null);
@@ -330,6 +337,26 @@ export default function DashMyCoupons() {
            photos2[me]?.uploaded && photos2[date2.partnerId]?.uploaded;
   };
 
+  // Function to check if the currently selected dates already have a pending coupon request
+  const hasPendingRequestForSelectedDates = () => {
+    if (!sel1 || !sel2) return false;
+    
+    const date1 = acceptedDates.find(d => d.id === sel1);
+    const date2 = acceptedDates.find(d => d.id === sel2);
+    
+    if (!date1 || !date2) return false;
+    
+    // Check if any pending coupon request uses these exact same dates
+    return pendingCoupons.some(pendingCoupon => {
+      const pendingDate1Id = pendingCoupon.date1?.id;
+      const pendingDate2Id = pendingCoupon.date2?.id;
+      
+      // Check if the pending request uses the same two dates (order doesn't matter)
+      return (pendingDate1Id === sel1 && pendingDate2Id === sel2) || 
+             (pendingDate1Id === sel2 && pendingDate2Id === sel1);
+    });
+  };
+
   // Function to check if user has enough available dates for coupons
   const hasAvailableDatesForCoupons = () => {
     // Group dates by partner
@@ -350,6 +377,18 @@ export default function DashMyCoupons() {
       });
       return datesWithPhotos.length >= 2;
     });
+  };
+
+  // Decide which name to show to the current viewer for a coupon's date
+  const getDisplayPartnerNameForViewer = (dateData, couponItem) => {
+    if (!dateData || !couponItem) return 'N/A';
+    const submitterId = couponItem.redeemedBy;
+    const submitterName = couponItem.requesterName || usersMap[String(submitterId)] || submitterId;
+    // If I'm the submitter, show the partner on that date; otherwise show the submitter
+    if (me === submitterId) {
+      return dateData.partnerName || usersMap[String(dateData.partnerId)] || dateData.partnerId || 'N/A';
+    }
+    return submitterName;
   };
 
   // local preview + persisted URL
@@ -486,6 +525,13 @@ export default function DashMyCoupons() {
       fetchPendingCoupons();
     }
   }, [me, usersMap]);
+
+  // Refresh pending coupons when selected dates change
+  useEffect(() => {
+    if (me && sel1 && sel2 && Object.keys(usersMap).length > 0) {
+      fetchPendingCoupons();
+    }
+  }, [me, sel1, sel2, usersMap]);
 
   const onFile = (slot, e) => {
     setError('');
@@ -687,7 +733,7 @@ export default function DashMyCoupons() {
                 <div>
                   <div className="font-semibold text-lg mb-1">Date: {d.timestamp && d.timestamp.toDate ? d.timestamp.toDate().toLocaleString() : ''}</div>
                   <div className="text-gray-600 mb-1">Location: {d.location || 'N/A'}</div>
-                  <div className="text-gray-600 mb-1">Partner: {partner || d.partnerId || 'N/A'}</div>
+                  <div className="text-gray-600 mb-1">Spark: {partner || d.partnerId || 'N/A'}</div>
                   <div className="font-semibold text-red-600 mb-1">Status: Rejected</div>
                   {d.rejectionReason && (
                     <div className="text-red-700 bg-red-100 border border-red-300 rounded p-2 mt-2">
@@ -864,7 +910,7 @@ export default function DashMyCoupons() {
                     <div className="text-center">
                       <div className="text-xl mb-1">🔒</div>
                       <div className="text-xs">Upload your photo first</div>
-                      <div className="text-xs text-gray-500">to unlock partner's upload</div>
+                      <div className="text-xs text-gray-500">to unlock spark's upload</div>
                     </div>
                   )}
                 </div>
@@ -905,15 +951,24 @@ export default function DashMyCoupons() {
             </p>
           </div>
           <button
-            className="self-start px-4 py-2 text-white rounded-lg font-medium text-sm bg-black hover:bg-gray-800"
+            className={`self-start px-4 py-2 text-white rounded-lg font-medium text-sm ${
+              hasPendingRequestForSelectedDates() 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-black hover:bg-gray-800'
+            }`}
             onClick={async () => {
+              if (hasPendingRequestForSelectedDates()) return;
               setError('');
               setSuccessMessage('');
               await fetchCoupons();
               setShowCouponModal(true);
             }}
+            disabled={hasPendingRequestForSelectedDates()}
           >
-            🎫 View Available Coupons
+            {hasPendingRequestForSelectedDates() 
+              ? '🎫 Coupon Request Pending' 
+              : '🎫 View Available Coupons'
+            }
           </button>
         </div>
       )}
@@ -1015,7 +1070,7 @@ export default function DashMyCoupons() {
                             coupon.date1.timestamp.toDate().toLocaleString() : 
                             new Date(coupon.date1?.timestamp).toLocaleString()}</p>
                           <p><strong>Location:</strong> {coupon.date1?.location}</p>
-                          <p><strong>Partner:</strong> {coupon.date1?.partnerName}</p>
+                          <p><strong>Partner:</strong> {getDisplayPartnerNameForViewer(coupon.date1, coupon)}</p>
                         </div>
                       </div>
 
@@ -1027,7 +1082,7 @@ export default function DashMyCoupons() {
                             coupon.date2.timestamp.toDate().toLocaleString() : 
                             new Date(coupon.date2?.timestamp).toLocaleString()}</p>
                           <p><strong>Location:</strong> {coupon.date2?.location}</p>
-                          <p><strong>Partner:</strong> {coupon.date2?.partnerName}</p>
+                          <p><strong>Partner:</strong> {getDisplayPartnerNameForViewer(coupon.date2, coupon)}</p>
                         </div>
                       </div>
                     </div>
@@ -1118,7 +1173,7 @@ export default function DashMyCoupons() {
                             coupon.date1.timestamp.toDate().toLocaleString() : 
                             new Date(coupon.date1?.timestamp).toLocaleString()}</p>
                           <p><strong>Location:</strong> {coupon.date1?.location}</p>
-                          <p><strong>Partner:</strong> {coupon.date1?.partnerName}</p>
+                          <p><strong>Partner:</strong> {getDisplayPartnerNameForViewer(coupon.date1, coupon)}</p>
                         </div>
                       </div>
 
@@ -1130,7 +1185,7 @@ export default function DashMyCoupons() {
                             coupon.date2.timestamp.toDate().toLocaleString() : 
                             new Date(coupon.date2?.timestamp).toLocaleString()}</p>
                           <p><strong>Location:</strong> {coupon.date2?.location}</p>
-                          <p><strong>Partner:</strong> {coupon.date2?.partnerName}</p>
+                          <p><strong>Partner:</strong> {getDisplayPartnerNameForViewer(coupon.date2, coupon)}</p>
                         </div>
                       </div>
                     </div>
