@@ -81,6 +81,8 @@ function MockNavbar() {
   );
 }
 
+
+// mock footer
 function MockFooter() {
   return (
     <footer className="mt-16 border-t">
