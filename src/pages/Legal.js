@@ -60,6 +60,7 @@
 
 import React, { useEffect } from "react";
 
+// this is the mockNavBar
 function MockNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/70 backdrop-blur">
@@ -81,6 +82,8 @@ function MockNavbar() {
   );
 }
 
+
+// mock footer
 function MockFooter() {
   return (
     <footer className="mt-16 border-t">
