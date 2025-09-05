@@ -138,14 +138,6 @@ The following secrets are already configured in Firebase Functions:
 - `EMAIL_USER` - Email service username
 - `EMAIL_PASS` - Email service password
 
-### Local Development Environment
-Create a `.env.local` file in the root directory:
-```env
-REACT_APP_FIREBASE_API_KEY=your_api_key
-REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain
-REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-REACT_APP_STRIPE_PUBLISHABLE_KEY=your_stripe_key
-```
 
 ## 🚀 Deployment
 
