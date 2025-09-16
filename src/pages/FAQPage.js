@@ -104,8 +104,7 @@ const FAQBox = ({ gradient, title, questions, answers }) => {
               aria-expanded={openIndex === i}
               aria-controls={`faq-answer-${title}-${i}`}
             >
-              <span className={styles.faqQ}>Q</span>
-              <span className={styles.faqQuestionText || ''}>{q}</span>
+              <span className={styles.faqQ}>{q}</span>
               <span className={styles.faqPlusMinus}>{openIndex === i ? <MinusIcon /> : <PlusIcon />}</span>
             </button>
             <div
@@ -120,9 +119,6 @@ const FAQBox = ({ gradient, title, questions, answers }) => {
             </div>
           </div>
         ))}
-      </div>
-      <div className={styles.faqBoxFooter}>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse sed magna eget nibh in turpis.
       </div>
     </section>
   );
