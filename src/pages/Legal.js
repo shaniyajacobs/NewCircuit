@@ -159,28 +159,17 @@ const sections = [
   /** Updated per your wording */
   {
     id: "fees",
-    title: "6. Fees And Payments",
+    title: "6. Fees and Payments",
     content: (
-      <ol className="list-decimal space-y-2 pl-5">
-        <li>
-          Certain features of the Platform, including but not limited to participation in virtual speed
-          dating events, may require payment of fees or charges. All fees are payable in advance and are
-          non-refundable, except as expressly provided herein or as required by applicable law.
-        </li>
-        <li>
-          Circuit virtual speed dating events rely on strong participant turnout. While Circuit endeavors
-          to accommodate scheduling changes and encourages Users to be considerate of one another, Users
-          are required to provide as much advance notice as possible in the event of a cancellation or
-          rescheduling request. Providing such notice enables Circuit to fill the vacated position and
-          preserve the quality of the event experience for all participants.
-        </li>
-        <li>
-          In the event that a scheduled virtual speed dating event must be rescheduled or cancelled due to
-          last-minute User cancellations, unforeseen circumstances, or inclement weather conditions,
-          affected participants shall be entitled to a full refund of any fees paid for such event.
-        </li>
-        <li>Circuit reserves the right to modify pricing and available features at any time, with or without notice.</li>
-      </ol>
+      <div className="space-y-2">
+        <p>All fees for Circuit events are due in advance.</p>
+        <p>Payments are generally non-refundable, except as otherwise required by law.</p>
+        <p>Circuit may modify pricing or features at any time, with or without notice.</p>
+        <p>
+          Strong participant turnout is essential for quality events. Customers should provide as much notice as
+          possible if they need to cancel or reschedule to help maintain the event experience.
+        </p>
+      </div>
     ),
   },
 
@@ -190,10 +179,24 @@ const sections = [
     title: "7. Refund Policy",
     content: (
       <div className="space-y-2">
-        <p><strong>Event Rescheduling:</strong> If an event does not meet the minimum threshold (fewer than six quality speed dates per participant), the event is rescheduled. Customers may choose to keep their ticket for the rescheduled date.</p>
-        <p><strong>Cancellations by Customer:</strong> Customers who cancel with at least 48 hours’ notice before the event are eligible to receive a credit for a future event.</p>
-        <p><strong>Late Cancellations / No-Shows:</strong> Tickets are non-refundable if canceled less than 48 hours before the event or if the customer does not attend.</p>
-        <p><strong>Technical Issues:</strong> If a verified technical issue on Circuit’s end prevents participation, customers are offered either a reschedule or a refund.</p>
+        <p>
+          <strong>Event Rescheduling:</strong> If an event does not meet the minimum threshold (fewer than six quality speed dates per participant),
+          the event is rescheduled. Customers may choose to keep their ticket for the rescheduled date. If the rescheduled event also does not
+          meet the minimum threshold, customers will be offered a full refund or may apply their ticket as a credit toward a different upcoming
+          event of their choice.
+        </p>
+        <p>
+          <strong>Cancellations by Customer:</strong> Customers who cancel their attendance with at least 48 hours’ notice before the event are
+          eligible to receive a credit for a future event.
+        </p>
+        <p>
+          <strong>Late Cancellations / No-Shows:</strong> Tickets are not transferable to a future event if a customer cancels less than 48 hours
+          before the event or if the customer does not attend.
+        </p>
+        <p>
+          <strong>Technical Issues:</strong> If a verified technical issue on Circuit’s end prevents participation, customers are offered either a
+          reschedule or a refund.
+        </p>
       </div>
     ),
   },
@@ -302,8 +305,8 @@ const sections = [
           By opting into SMS from a web form, account creation, or other medium, you agree to receive SMS messages from Circuit,
           including event reminders, updates, account notifications, customer care, and promotional messages. Message frequency
           varies. Message &amp; data rates may apply. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for help. View our {" "}
-          <a href="/terms-of-service#intro" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
-          <a href="/terms-of-service#privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
+          <a href="#intro" className="underline">Terms &amp; Conditions</a> and {" "}
+          <a href="#privacy" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
         </p>
       </div>
     ),
@@ -353,8 +356,8 @@ const sections = [
           By opting into SMS from a web form, account creation, or other medium, you agree to receive SMS messages from Circuit,
           including event reminders, updates, account notifications, customer care, and promotional messages. Message frequency
           varies. Message &amp; data rates may apply. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for help. View our {" "}
-          <a href="/terms-of-service#intro" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
-          <a href="/terms-of-service#privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
+          <a href="#intro" className="underline">Terms &amp; Conditions</a> and {" "}
+          <a href="#privacy" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
         </p>
 
         <h3 className="font-semibold">5. Cookies and Tracking</h3>
