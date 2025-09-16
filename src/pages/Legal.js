@@ -384,8 +384,7 @@ const sections = [
 
         <h3 id="contact" className="font-semibold">12. Contact</h3>
         <ul className="list-disc pl-5">
-          <li>Email: <span className="font-mono">privacy@circuit.example</span></li>
-          <li>Mailing Address: [Insert Business Address]</li>
+          <li>Email: <span className="font-mono">contact@circuitspeeddating.com</span></li>
         </ul>
       </div>
     ),
@@ -446,8 +445,7 @@ const sections = [
 
         <h3 className="font-semibold">7. Contact</h3>
         <ul className="list-disc pl-5">
-          <li>Email: <span className="font-mono">privacy@circuit.example</span></li>
-          <li>Mailing Address: [Insert Business Address]</li>
+          <li>Email: <span className="font-mono">contact@circuitspeeddating.com</span></li>
         </ul>
       </div>
     ),
@@ -513,7 +511,7 @@ export default function LegalMockup() {
             </div>
             <div className="hidden md:block rounded-xl border bg-white p-4 text-sm text-gray-700 shadow-sm">
               <p className="font-medium">Need help?</p>
-              <p>Contact support@circuit.example</p>
+              <p>Contact contact@circuitspeeddating.com</p>
             </div>
           </div>
         </div>
