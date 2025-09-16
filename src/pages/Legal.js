@@ -1,4 +1,7 @@
 import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import NavBar from "../components/Navbar/NavBar";
+import Footer from "../components/Footer";
 
 /** Inject Inter font into document <head> (works in CRA/Vite/Next) */
 function useInterFont() {
@@ -49,45 +52,7 @@ function validateSections(sections) {
   }
 }
 
-function MockNavbar() {
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-[#f7f8e8]/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          {/* Placeholder logo square. Replace with your <img src={...} /> when ready. */}
-          <div className="h-8 w-8 rounded-lg bg-black" />
-          <span className="text-lg font-semibold tracking-tight">Circuit</span>
-        </div>
-        <nav className="hidden gap-6 md:flex text-sm text-gray-700">
-          <a href="#" className="hover:text-black">Home</a>
-          <a href="#" className="hover:text-black">Events</a>
-          <a href="#pricing" className="hover:text-black">Pricing</a>
-          <a href="#legal" className="text-black font-medium">Legal</a>
-          <a href="#privacy" className="hover:text-black">Privacy</a>
-          <a href="#cookies" className="hover:text-black">Cookies</a>
-        </nav>
-      </div>
-    </header>
-  );
-}
-
-function MockFooter() {
-  return (
-    <footer className="mt-16 border-t">
-      <div className="mx-auto max-w-6xl px-4 py-10 text-sm text-gray-600">
-        <div className="flex flex-col items-center justify-between gap-3 md:flex-row">
-          <p>© {new Date().getFullYear()} Circuit. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <a href="#privacy" className="hover:text-black">Privacy</a>
-            <a href="#cookies" className="hover:text-black">Cookies</a>
-            <a href="#legal" className="hover:text-black">Terms</a>
-            <a href="#contact" className="hover:text-black">Contact</a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
+// Replaced mock header/footer with the real site components
 
 const sections = [
   // ————— TERMS & CONDITIONS —————
@@ -337,8 +302,8 @@ const sections = [
           By opting into SMS from a web form, account creation, or other medium, you agree to receive SMS messages from Circuit,
           including event reminders, updates, account notifications, customer care, and promotional messages. Message frequency
           varies. Message &amp; data rates may apply. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for help. View our {" "}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
+          <a href="/terms-of-service#intro" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
+          <a href="/terms-of-service#privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
         </p>
       </div>
     ),
@@ -388,8 +353,8 @@ const sections = [
           By opting into SMS from a web form, account creation, or other medium, you agree to receive SMS messages from Circuit,
           including event reminders, updates, account notifications, customer care, and promotional messages. Message frequency
           varies. Message &amp; data rates may apply. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for help. View our {" "}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
+          <a href="/terms-of-service#intro" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
+          <a href="/terms-of-service#privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
         </p>
 
         <h3 className="font-semibold">5. Cookies and Tracking</h3>
@@ -419,8 +384,7 @@ const sections = [
 
         <h3 id="contact" className="font-semibold">12. Contact</h3>
         <ul className="list-disc pl-5">
-          <li>Email: <span className="font-mono">privacy@circuit.example</span></li>
-          <li>Mailing Address: [Insert Business Address]</li>
+          <li>Email: <span className="font-mono">contact@circuitspeeddating.com</span></li>
         </ul>
       </div>
     ),
@@ -481,8 +445,7 @@ const sections = [
 
         <h3 className="font-semibold">7. Contact</h3>
         <ul className="list-disc pl-5">
-          <li>Email: <span className="font-mono">privacy@circuit.example</span></li>
-          <li>Mailing Address: [Insert Business Address]</li>
+          <li>Email: <span className="font-mono">contact@circuitspeeddating.com</span></li>
         </ul>
       </div>
     ),
@@ -491,6 +454,8 @@ const sections = [
 
 export default function LegalMockup() {
   useInterFont();
+  const location = useLocation();
+  const HEADER_OFFSET_PX = 160; // ensure content clears fixed header
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -503,13 +468,37 @@ export default function LegalMockup() {
     validateSections(sections);
   }, []);
 
+  // Smooth scrolling for in-page anchors and footer links with hash
+  useEffect(() => {
+    const previous = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = "smooth";
+
+    const scrollToHash = () => {
+      const hash = location.hash?.replace('#', '');
+      if (!hash) return;
+      // slight delay to ensure sections are rendered
+      requestAnimationFrame(() => {
+        const el = document.getElementById(hash);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+        }
+      });
+    };
+
+    scrollToHash();
+
+    return () => {
+      document.documentElement.style.scrollBehavior = previous;
+    };
+  }, [location]);
+
   return (
     <div
       className="min-h-screen text-gray-900"
-      style={{ backgroundColor: "#f7f8e8", fontFamily: "Inter, sans-serif" }}
+      style={{ backgroundColor: "#FAFFE7", fontFamily: "Inter, sans-serif" }}
       id="legal"
     >
-      <MockNavbar />
+      <NavBar />
 
       <section className="border-b">
         <div className="mx-auto max-w-6xl px-4 py-12">
@@ -522,15 +511,15 @@ export default function LegalMockup() {
             </div>
             <div className="hidden md:block rounded-xl border bg-white p-4 text-sm text-gray-700 shadow-sm">
               <p className="font-medium">Need help?</p>
-              <p>Contact support@circuit.example</p>
+              <p>Contact contact@circuitspeeddating.com</p>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-10 md:grid-cols-[240px,1fr]">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-10 md:grid-cols-[240px,1fr] pb-20">
         <aside className="hidden md:block">
-          <div className="sticky top-20 space-y-2">
+          <div className="sticky space-y-2" style={{ top: HEADER_OFFSET_PX, maxHeight: `calc(100vh - ${HEADER_OFFSET_PX + 40}px)`, overflowY: 'auto', paddingBottom: 16 }}>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
               On this page
             </p>
@@ -554,6 +543,7 @@ export default function LegalMockup() {
               key={s.id}
               id={s.id}
               className="scroll-mt-24 rounded-2xl border bg:white p-6 shadow-sm bg-white"
+              style={{ scrollMarginTop: HEADER_OFFSET_PX }}
             >
               <h2 className="mb-3 text-xl font-semibold tracking-tight">{s.title}</h2>
               <div className="prose prose-sm max-w-none text-gray-800">
@@ -564,7 +554,7 @@ export default function LegalMockup() {
         </article>
       </div>
 
-      <MockFooter />
+      <Footer />
     </div>
   );
 }
