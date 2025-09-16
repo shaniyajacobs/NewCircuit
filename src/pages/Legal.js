@@ -1,4 +1,6 @@
 import React, { useEffect } from "react";
+import NavBar from "../components/Navbar/NavBar";
+import Footer from "../components/Footer";
 
 /** Inject Inter font into document <head> (works in CRA/Vite/Next) */
 function useInterFont() {
@@ -49,45 +51,7 @@ function validateSections(sections) {
   }
 }
 
-function MockNavbar() {
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-[#f7f8e8]/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          {/* Placeholder logo square. Replace with your <img src={...} /> when ready. */}
-          <div className="h-8 w-8 rounded-lg bg-black" />
-          <span className="text-lg font-semibold tracking-tight">Circuit</span>
-        </div>
-        <nav className="hidden gap-6 md:flex text-sm text-gray-700">
-          <a href="#" className="hover:text-black">Home</a>
-          <a href="#" className="hover:text-black">Events</a>
-          <a href="#pricing" className="hover:text-black">Pricing</a>
-          <a href="#legal" className="text-black font-medium">Legal</a>
-          <a href="#privacy" className="hover:text-black">Privacy</a>
-          <a href="#cookies" className="hover:text-black">Cookies</a>
-        </nav>
-      </div>
-    </header>
-  );
-}
-
-function MockFooter() {
-  return (
-    <footer className="mt-16 border-t">
-      <div className="mx-auto max-w-6xl px-4 py-10 text-sm text-gray-600">
-        <div className="flex flex-col items-center justify-between gap-3 md:flex-row">
-          <p>© {new Date().getFullYear()} Circuit. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <a href="#privacy" className="hover:text-black">Privacy</a>
-            <a href="#cookies" className="hover:text-black">Cookies</a>
-            <a href="#legal" className="hover:text-black">Terms</a>
-            <a href="#contact" className="hover:text-black">Contact</a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
+// Replaced mock header/footer with the real site components
 
 const sections = [
   // ————— TERMS & CONDITIONS —————
@@ -337,8 +301,8 @@ const sections = [
           By opting into SMS from a web form, account creation, or other medium, you agree to receive SMS messages from Circuit,
           including event reminders, updates, account notifications, customer care, and promotional messages. Message frequency
           varies. Message &amp; data rates may apply. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for help. View our {" "}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
+          <a href="/terms-of-service#intro" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
+          <a href="/terms-of-service#privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
         </p>
       </div>
     ),
@@ -388,8 +352,8 @@ const sections = [
           By opting into SMS from a web form, account creation, or other medium, you agree to receive SMS messages from Circuit,
           including event reminders, updates, account notifications, customer care, and promotional messages. Message frequency
           varies. Message &amp; data rates may apply. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for help. View our {" "}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
+          <a href="/terms-of-service#intro" target="_blank" rel="noopener noreferrer" className="underline">Terms &amp; Conditions</a> and {" "}
+          <a href="/terms-of-service#privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
         </p>
 
         <h3 className="font-semibold">5. Cookies and Tracking</h3>
@@ -509,7 +473,7 @@ export default function LegalMockup() {
       style={{ backgroundColor: "#f7f8e8", fontFamily: "Inter, sans-serif" }}
       id="legal"
     >
-      <MockNavbar />
+      <NavBar />
 
       <section className="border-b">
         <div className="mx-auto max-w-6xl px-4 py-12">
@@ -564,7 +528,7 @@ export default function LegalMockup() {
         </article>
       </div>
 
-      <MockFooter />
+      <Footer />
     </div>
   );
 }
