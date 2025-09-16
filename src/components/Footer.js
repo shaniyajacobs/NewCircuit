@@ -23,9 +23,9 @@ const Footer = () => {
         <div>
           <h5 className="text-xs font-semibold uppercase mb-4">Legal</h5>
           <ul className="space-y-2 text-sm">
-            <li><Link to="/privacy-policy" onClick={() => window.scrollTo(0, 0)}>Privacy policy</Link></li>
-            <li><Link to="/cookie-policy" onClick={() => window.scrollTo(0, 0)}>Cookie policy</Link></li>
-            <li><Link to="/terms-of-service" onClick={() => window.scrollTo(0, 0)}>Terms of service</Link></li>
+            <li><Link to="/terms-of-service#privacy" onClick={() => window.scrollTo(0, 0)}>Privacy policy</Link></li>
+            <li><Link to="/terms-of-service#cookies" onClick={() => window.scrollTo(0, 0)}>Cookie policy</Link></li>
+            <li><Link to="/terms-of-service#intro" onClick={() => window.scrollTo(0, 0)}>Terms of service</Link></li>
           </ul>
         </div>
 

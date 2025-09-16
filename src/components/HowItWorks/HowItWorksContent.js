@@ -7,6 +7,7 @@ import NewFeatureCard from '../NewFeatureCard';
 import FeatureCards from '../FeatureCards';
 import RestaurantPartnerships from '../RestaurantPartnerships';
 import styles from '../Hero.module.css';
+import { testimonials } from '../testimonialsData';
 
 const HowItWorksContent = () => {
     return (
@@ -24,33 +25,21 @@ const HowItWorksContent = () => {
                     <h2 className={styles['testimonials-heading']}>Join Thousands Already Feeling the Spark</h2>
                     <div className={styles['testimonials-list-marquee']}>
                       <div className={styles['marquee-track']}>
-                        {[...Array(6)].map((_, i) => (
-                          <div className={styles['testimonial-card']} key={i}>
-                            <div className={styles['testimonial-message']}>
-                              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
-                            </div>
-                            <div className={styles['testimonial-profile']}>
-                              <img className={styles['testimonial-avatar']} src="https://randomuser.me/api/portraits/women/44.jpg" alt="Audrey M." />
-                              <div className={styles['testimonial-info']}>
-                                <div className={styles['testimonial-name']}>Audrey M.</div>
-                                <div className={styles['testimonial-location']}>Chicago, 20</div>
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <React.Fragment key={i}>
+                            {testimonials.map((t, idx) => (
+                              <div className={styles['testimonial-card']} key={`${i}-${idx}`}>
+                                <div className={styles['testimonial-message']}>{t.message}</div>
+                                <div className={styles['testimonial-profile']}>
+                                  {/* Avatar removed */}
+                                  <div className={styles['testimonial-info']}>
+                                    <div className={styles['testimonial-name']}>{t.name}</div>
+                                    <div className={styles['testimonial-location']}>{t.city}, {t.age}</div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        ))}
-                        {[...Array(6)].map((_, i) => (
-                          <div className={styles['testimonial-card']} key={`dup-${i}`}>
-                            <div className={styles['testimonial-message']}>
-                              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
-                            </div>
-                            <div className={styles['testimonial-profile']}>
-                              <img className={styles['testimonial-avatar']} src="https://randomuser.me/api/portraits/women/44.jpg" alt="Audrey M." />
-                              <div className={styles['testimonial-info']}>
-                                <div className={styles['testimonial-name']}>Audrey M.</div>
-                                <div className={styles['testimonial-location']}>Chicago, 20</div>
-                              </div>
-                            </div>
-                          </div>
+                            ))}
+                          </React.Fragment>
                         ))}
                       </div>
                     </div>
