@@ -54,9 +54,19 @@ const Footer = () => {
           © 2025 Circuit Dating. All rights reserved.
         </p>
         <div className="flex gap-4 text-xl">
-          <button className="hover:text-gray-600 transition-colors" aria-label="Follow us on Instagram">
-            <FaInstagram />
-          </button>
+          <a
+            className="hover:opacity-70 transition-opacity"
+            aria-label="Follow us on Instagram"
+            href="https://www.instagram.com/circuitdating/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png"
+              alt="Instagram"
+              style={{ width: 28, height: 28 }}
+            />
+          </a>
           <button className="hover:text-gray-600 transition-colors" aria-label="Follow us on TikTok">
             <FaTiktok />
           </button>
