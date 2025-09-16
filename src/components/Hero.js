@@ -4,6 +4,7 @@ import styles from './Hero.module.css';
 import SlidingBar from './SlidingBar';
 import Info from './Info';
 import {HowItWorks} from './CircuitHowItWorks';
+import { testimonials } from './testimonialsData';
 
 const LightningIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="22" viewBox="0 0 12 22" fill="none" className="inline-block mr-2 align-middle">
@@ -16,17 +17,14 @@ const Hero = () => {
   const marqueeContentRef = useRef(null);
   const [repeatCount, setRepeatCount] = useState(2);
 
-  // Testimonial card JSX
-  const testimonialCard = (
+  const renderCard = (t) => (
     <div className={styles['testimonial-card']}>
-      <div className={styles['testimonial-message']}>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
-      </div>
+      <div className={styles['testimonial-message']}>{t.message}</div>
       <div className={styles['testimonial-profile']}>
-        <img className={styles['testimonial-avatar']} src="https://randomuser.me/api/portraits/women/44.jpg" alt="Audrey M." />
+        {/* Avatar removed per request */}
         <div className={styles['testimonial-info']}>
-          <div className={styles['testimonial-name']}>Audrey M.</div>
-          <div className={styles['testimonial-location']}>Chicago, 20</div>
+          <div className={styles['testimonial-name']}>{t.name}</div>
+          <div className={styles['testimonial-location']}>{t.city}, {t.age}</div>
         </div>
       </div>
     </div>
@@ -139,11 +137,15 @@ const Hero = () => {
                     <div className={styles['testimonials-list-marquee']} ref={marqueeContainerRef}>
                       {/* Hidden for measurement only */}
                       <div style={{ display: 'inline-block', visibility: 'hidden', position: 'absolute', left: 0, top: 0 }} ref={marqueeContentRef}>
-                        {testimonialCard}
+                        {renderCard(testimonials[0])}
                       </div>
                       <div className={styles['marquee-track']}>
                         {Array.from({ length: repeatCount }).map((_, i) => (
-                          <React.Fragment key={i}>{testimonialCard}</React.Fragment>
+                          <React.Fragment key={i}>
+                            {testimonials.map((t, idx) => (
+                              <React.Fragment key={`${i}-${idx}`}>{renderCard(t)}</React.Fragment>
+                            ))}
+                          </React.Fragment>
                         ))}
                       </div>
                     </div>
