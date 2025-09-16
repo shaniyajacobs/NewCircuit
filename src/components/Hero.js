@@ -89,7 +89,7 @@ const Hero = () => {
                 alignSelf: 'stretch',
               }}
             >
-              We bring singles together for face-to-face first impressions and genuine connection.
+              We bring singles together for face-to-face first impressions and genuine connections.
 
             </p>
             <Link to="/create-account" className="inline-block">
