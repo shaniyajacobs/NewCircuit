@@ -457,6 +457,7 @@ const sections = [
 export default function LegalMockup() {
   useInterFont();
   const location = useLocation();
+  const HEADER_OFFSET_PX = 160; // ensure content clears fixed header
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -520,7 +521,7 @@ export default function LegalMockup() {
 
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-10 md:grid-cols-[240px,1fr] pb-20">
         <aside className="hidden md:block">
-          <div className="sticky top-20 space-y-2" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', paddingBottom: 16 }}>
+          <div className="sticky space-y-2" style={{ top: HEADER_OFFSET_PX, maxHeight: `calc(100vh - ${HEADER_OFFSET_PX + 40}px)`, overflowY: 'auto', paddingBottom: 16 }}>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
               On this page
             </p>
@@ -544,6 +545,7 @@ export default function LegalMockup() {
               key={s.id}
               id={s.id}
               className="scroll-mt-24 rounded-2xl border bg:white p-6 shadow-sm bg-white"
+              style={{ scrollMarginTop: HEADER_OFFSET_PX }}
             >
               <h2 className="mb-3 text-xl font-semibold tracking-tight">{s.title}</h2>
               <div className="prose prose-sm max-w-none text-gray-800">
