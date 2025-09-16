@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import NavBar from "../components/Navbar/NavBar";
 import Footer from "../components/Footer";
 
@@ -455,6 +456,7 @@ const sections = [
 
 export default function LegalMockup() {
   useInterFont();
+  const location = useLocation();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -467,10 +469,34 @@ export default function LegalMockup() {
     validateSections(sections);
   }, []);
 
+  // Smooth scrolling for in-page anchors and footer links with hash
+  useEffect(() => {
+    const previous = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = "smooth";
+
+    const scrollToHash = () => {
+      const hash = location.hash?.replace('#', '');
+      if (!hash) return;
+      // slight delay to ensure sections are rendered
+      requestAnimationFrame(() => {
+        const el = document.getElementById(hash);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+        }
+      });
+    };
+
+    scrollToHash();
+
+    return () => {
+      document.documentElement.style.scrollBehavior = previous;
+    };
+  }, [location]);
+
   return (
     <div
       className="min-h-screen text-gray-900"
-      style={{ backgroundColor: "#f7f8e8", fontFamily: "Inter, sans-serif" }}
+      style={{ backgroundColor: "#FAFFE7", fontFamily: "Inter, sans-serif" }}
       id="legal"
     >
       <NavBar />
@@ -492,9 +518,9 @@ export default function LegalMockup() {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-10 md:grid-cols-[240px,1fr]">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-10 md:grid-cols-[240px,1fr] pb-20">
         <aside className="hidden md:block">
-          <div className="sticky top-20 space-y-2">
+          <div className="sticky top-20 space-y-2" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', paddingBottom: 16 }}>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
               On this page
             </p>
