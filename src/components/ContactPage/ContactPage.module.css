@@ -132,11 +132,115 @@
   background: #333;
 }
 
+.sendButton:disabled,
+.sendButtonDisabled {
+  background: #ccc !important;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.sendButton:disabled:hover,
+.sendButtonDisabled:hover {
+  background: #ccc !important;
+}
+
 .sendButtonText {
   color: var(--Mindaro_Light, #FAFFE7);
   font-family: Poppins, sans-serif;
   font-size: var(--Body-S-Med, 16px);
   font-weight: 500;
+}
+
+.checkboxContainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.complianceCheckbox {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #000;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.24);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--Raisin_Black, #211F20);
+}
+
+.complianceCheckbox:checked {
+  background: var(--Raisin_Black, #211F20);
+}
+
+.checkboxLabel {
+  color: var(--Raisin_Black, #211F20);
+  font-family: Poppins, sans-serif;
+  font-size: var(--Body-S-Reg, 16px);
+  font-weight: 400;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+}
+
+.legalLink {
+  color: var(--Raisin_Black, #211F20);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s ease;
+}
+
+.legalLink:hover {
+  color: #333;
+  text-decoration-thickness: 2px;
+}
+
+.smsDisclosure {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.4;
+  margin-top: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid var(--Raisin_Black, #211F20);
+  overflow: hidden;
+}
+
+.smsDisclosureHeader {
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.smsDisclosureHeader:hover {
+  background-color: #f0f1f2;
+}
+
+.smsDisclosureToggle {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--Raisin_Black, #211F20);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.smsDisclosureContent {
+  padding: 0 12px 12px 12px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #ffffff;
+}
+
+.smsDisclosureContent p {
+  margin-bottom: 8px;
+}
+
+.smsDisclosureContent p:last-child {
+  margin-bottom: 0;
 }
 
 .imageContainer {
@@ -277,6 +381,20 @@
     margin-top: 8px;
   }
   .sendButtonText {
+    font-size: 14px;
+  }
+  .sendButton:disabled,
+  .sendButtonDisabled {
+    opacity: 0.5;
+  }
+  .checkboxLabel {
+    font-size: 14px;
+  }
+  .complianceCheckbox {
+    width: 16px;
+    height: 16px;
+  }
+  .legalLink {
     font-size: 14px;
   }
   .imageContainer {
