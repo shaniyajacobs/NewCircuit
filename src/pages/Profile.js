@@ -22,7 +22,8 @@ const Profile = () => {
     birthDate: '',
     phoneNumber: '',
     image: image, // Set initial image from location.state
-    location: ''
+    location: '',
+    compliance: false
   });
 
   useEffect(() => {
@@ -53,6 +54,7 @@ const Profile = () => {
             phoneNumber: userData.phoneNumber || '',
             image: userData.image || null,
             location: userData.location || '',
+            compliance: false
           });
         }
         setLoading(false);
@@ -66,6 +68,11 @@ const Profile = () => {
       fetchUserData();
     }
   }, []);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -126,8 +133,9 @@ const Profile = () => {
             <Label>First Name</Label>
             <Input
               type="text"
+              name="firstName"
               value={formData.firstName}
-              onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+              onChange={handleChange}
               placeholder="Enter your first name"
               required
             />
@@ -137,8 +145,9 @@ const Profile = () => {
             <Label>Last Name</Label>
             <Input
               type="text"
+              name="lastName"
               value={formData.lastName}
-              onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+              onChange={handleChange}
               placeholder="Enter your last name"
               required
             />
@@ -148,8 +157,9 @@ const Profile = () => {
             <Label>Date of Birth</Label>
             <Input
               type="date"
+              name="birthDate"
               value={formData.birthDate}
-              onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+              onChange={handleChange}
               required
             />
           </InputGroup>
@@ -158,14 +168,36 @@ const Profile = () => {
             <Label>Phone Number</Label>
             <Input
               type="tel"
+              name="phoneNumber"
               value={formData.phoneNumber}
-              onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+              onChange={handleChange}
               placeholder="Enter your phone number"
               required
             />
           </InputGroup>
 
-          <Button type="submit" disabled={loading}>
+          <CheckboxContainer>
+            <CheckboxInput
+              type="checkbox"
+              name="compliance"
+              id="compliance"
+              checked={formData.compliance}
+              onChange={handleChange}
+              required
+            />
+            <CheckboxLabel htmlFor="compliance">
+              I agree to the{' '}
+              <LegalLink href="/terms-of-service#intro" target="_blank" rel="noopener noreferrer">
+                terms of service
+              </LegalLink>
+              {' '}and{' '}
+              <LegalLink href="/terms-of-service#privacy" target="_blank" rel="noopener noreferrer">
+                privacy policy
+              </LegalLink>
+            </CheckboxLabel>
+          </CheckboxContainer>
+
+          <Button type="submit" disabled={loading || !formData.compliance}>
             {loading ? "Saving..." : "Continue to Email Verification"}
           </Button>
         </LoginForm>
@@ -257,6 +289,50 @@ const ContentWrapper = styled.div`
   justify-content: center;
   padding: 40px 20px;
   margin-top: -40px;
+`;
+
+const CheckboxContainer = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+`;
+
+const CheckboxInput = styled.input`
+  width: 18px;
+  height: 18px;
+  border: 1px solid #000;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.24);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: #211f20;
+
+  &:checked {
+    background: #211f20;
+  }
+`;
+
+const CheckboxLabel = styled.label`
+  color: #000;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+`;
+
+const LegalLink = styled.a`
+  color: #211f20;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #333;
+    text-decoration-thickness: 2px;
+  }
 `;
 
 export default Profile;
