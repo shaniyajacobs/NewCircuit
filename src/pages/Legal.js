@@ -300,14 +300,33 @@ const sections = [
     id: "sms",
     title: "16. SMS Terms of Service",
     content: (
-      <div className="space-y-2">
-        <p>
-          By opting into SMS from a web form, account creation, or other medium, you agree to receive SMS messages from Circuit,
-          including event reminders, updates, account notifications, customer care, and promotional messages. Message frequency
-          varies. Message &amp; data rates may apply. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for help. View our {" "}
-          <a href="#intro" className="underline">Terms &amp; Conditions</a> and {" "}
-          <a href="#privacy" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
-        </p>
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-semibold mb-2">Consent for SMS Communication</h3>
+          <p>
+            Information obtained as part of the SMS consent process will not be shared with third parties.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Types of SMS Communications</h3>
+          <p className="mb-2">
+            If you have consented to receive text messages from Circuit LLC, you may receive text messages related to event reminders, updates, account notifications, customer care, and marketing messages.
+          </p>
+          <p className="mb-2">Below are examples:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Customers and Guests:</strong> Updates regarding event reminders, connection selections, coupon notices, or other relevant information.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Standard Messaging Disclosures</h3>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Message and data rates may apply.</li>
+            <li>You can opt-out at any time by texting "STOP."</li>
+            <li>For assistance, text "HELP" or visit our <a href="#privacy" className="underline">Privacy Policy</a> <a href="https://www.circuitspeeddating.com/terms-of-service#privacy" className="underline" target="_blank" rel="noopener noreferrer">https://www.circuitspeeddating.com/terms-of-service#privacy</a> and <a href="#intro" className="underline">Terms of Service</a> <a href="https://www.circuitspeeddating.com/terms-of-service#intro" className="underline" target="_blank" rel="noopener noreferrer">https://www.circuitspeeddating.com/terms-of-service#intro</a>.</li>
+          </ul>
+        </div>
       </div>
     ),
   },
