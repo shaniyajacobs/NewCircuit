@@ -84,7 +84,11 @@ const ContactPage = () => {
               <label htmlFor="compliance" className={styles.checkboxLabel}>
                 I agree to the{' '}
                 <a href="/terms-of-service#intro" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
-                  terms of service
+                  conditions of use
+                </a>
+                {' '}, {' '}
+                <a href="/terms-of-service#sms" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                  SMS terms of service
                 </a>
                 {' '}and{' '}
                 <a href="/terms-of-service#privacy" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
