@@ -188,7 +188,11 @@ const Profile = () => {
             <CheckboxLabel htmlFor="compliance">
               I agree to the{' '}
               <LegalLink href="/terms-of-service#intro" target="_blank" rel="noopener noreferrer">
-                terms of service
+                conditions of use
+              </LegalLink>
+              {' '}, {' '}
+              <LegalLink href="/terms-of-service#sms" target="_blank" rel="noopener noreferrer">
+                SMS terms of service
               </LegalLink>
               {' '}and{' '}
               <LegalLink href="/terms-of-service#privacy" target="_blank" rel="noopener noreferrer">
