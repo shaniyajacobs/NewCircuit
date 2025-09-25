@@ -11,6 +11,7 @@ import { auth } from "./firebaseConfig"; // Import Firebase auth
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from "./firebaseConfig"; // Import Firestore
 
+// First commit
 
 const shapeOptions = [
   { src: cirCrossPBlue, alt: 'Cross' },
