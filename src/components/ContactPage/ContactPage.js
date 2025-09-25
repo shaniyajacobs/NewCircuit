@@ -4,11 +4,12 @@ import { functions } from '../../firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
 
 const ContactPage = () => {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '', compliance: false });
   const [modal, setModal] = useState({ open: false, success: true });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   };
 
   const handleSubmit = async (e) => {
@@ -17,7 +18,7 @@ const ContactPage = () => {
     try {
       const sendContactEmail = httpsCallable(functions, 'sendContactEmail');
       await sendContactEmail(form);
-      setForm({ name: '', email: '', phone: '', message: '' });
+      setForm({ name: '', email: '', phone: '', message: '', compliance: false });
       setModal({ open: true, success: true });
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -70,7 +71,32 @@ const ContactPage = () => {
               rows={6}
               required
             />
-            <button className={styles.sendButton} type="submit">
+            <div className={styles.checkboxContainer}>
+              <input
+                className={styles.complianceCheckbox}
+                type="checkbox"
+                name="compliance"
+                id="compliance"
+                checked={form.compliance}
+                onChange={handleChange}
+                required
+              />
+              <label htmlFor="compliance" className={styles.checkboxLabel}>
+                I agree to the{' '}
+                <a href="/terms-of-service#intro" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                  terms of service
+                </a>
+                {' '}and{' '}
+                <a href="/terms-of-service#privacy" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                  privacy policy
+                </a>
+              </label>
+            </div>
+            <button 
+              className={`${styles.sendButton} ${!form.compliance ? styles.sendButtonDisabled : ''}`} 
+              type="submit"
+              disabled={!form.compliance}
+            >
               <span className={styles.sendButtonText}>Send</span>
             </button>
           </div>
