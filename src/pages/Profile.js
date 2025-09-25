@@ -14,6 +14,7 @@ const Profile = () => {
   const { email, password, image } = location.state || {};
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [smsExpanded, setSMSExpanded] = useState(false);
   
   // Initialize formData with the image from location.state
   const [formData, setFormData] = useState({
@@ -201,6 +202,21 @@ const Profile = () => {
             </CheckboxLabel>
           </CheckboxContainer>
 
+          <SMSDisclosure>
+            <SMSDisclosureHeader onClick={() => setSMSExpanded(!smsExpanded)}>
+              <span>By checking this box you agree to receive SMS messages from Circuit LLC, including event reminders, updates, account notifications, customer care, and marketing messages. Message frequency varies. Message & data rates may apply. Reply STOP to any message to opt out. Message HELP for help. View our <LegalLink href="https://www.circuitspeeddating.com/terms-of-service#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</LegalLink> and our <LegalLink href="https://www.circuitspeeddating.com/terms-of-service#intro" target="_blank" rel="noopener noreferrer">Terms and Conditions</LegalLink>. Circuit LLC does not share mobile numbers or opt-in data with third parties.</span>
+              <SMSDisclosureToggle>{smsExpanded ? '−' : '+'}</SMSDisclosureToggle>
+            </SMSDisclosureHeader>
+            {smsExpanded && (
+              <SMSDisclosureContent>
+                <p><strong>Consent for SMS Communication:</strong> Information obtained as part of the SMS consent process will not be shared with third parties.</p>
+                <p><strong>Types of SMS Communications:</strong> If you have consented to receive text messages from Circuit LLC, you may receive text messages related to event reminders, updates, account notifications, customer care, and marketing messages.</p>
+                <p><strong>Examples:</strong> Customers and Guests: Updates regarding event reminders, connection selections, coupon notices, or other relevant information.</p>
+                <p><strong>Standard Messaging Disclosures:</strong> Message and data rates may apply. You can opt-out at any time by texting "STOP." For assistance, text "HELP" or visit our <LegalLink href="https://www.circuitspeeddating.com/terms-of-service#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</LegalLink> and <LegalLink href="https://www.circuitspeeddating.com/terms-of-service#intro" target="_blank" rel="noopener noreferrer">Terms of Service</LegalLink>.</p>
+              </SMSDisclosureContent>
+            )}
+          </SMSDisclosure>
+
           <Button type="submit" disabled={loading || !formData.compliance}>
             {loading ? "Saving..." : "Continue to Email Verification"}
           </Button>
@@ -336,6 +352,53 @@ const LegalLink = styled.a`
   &:hover {
     color: #333;
     text-decoration-thickness: 2px;
+  }
+`;
+
+const SMSDisclosure = styled.div`
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #211f20;
+  overflow: hidden;
+`;
+
+const SMSDisclosureHeader = styled.div`
+  padding: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f0f1f2;
+  }
+`;
+
+const SMSDisclosureToggle = styled.span`
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #211f20;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+`;
+
+const SMSDisclosureContent = styled.div`
+  padding: 0 0.75rem 0.75rem 0.75rem;
+  border-top: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  
+  p {
+    margin-bottom: 0.5rem;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 `;
 
