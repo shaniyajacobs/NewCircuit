@@ -6,6 +6,7 @@ import { httpsCallable } from 'firebase/functions';
 const ContactPage = () => {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '', compliance: false });
   const [modal, setModal] = useState({ open: false, success: true });
+  const [smsExpanded, setSMSExpanded] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -95,6 +96,20 @@ const ContactPage = () => {
                   privacy policy
                 </a>
               </label>
+            </div>
+            <div className={styles.smsDisclosure}>
+              <div className={styles.smsDisclosureHeader} onClick={() => setSMSExpanded(!smsExpanded)}>
+                <span>By checking this box you agree to receive SMS messages from Circuit LLC, including event reminders, updates, account notifications, customer care, and marketing messages. Message frequency varies. Message & data rates may apply. Reply STOP to any message to opt out. Message HELP for help. View our <a href="https://www.circuitspeeddating.com/terms-of-service#privacy" className={styles.legalLink} target="_blank" rel="noopener noreferrer">Privacy Policy</a> and our <a href="https://www.circuitspeeddating.com/terms-of-service#intro" className={styles.legalLink} target="_blank" rel="noopener noreferrer">Terms and Conditions</a>. Circuit LLC does not share mobile numbers or opt-in data with third parties.</span>
+                <span className={styles.smsDisclosureToggle}>{smsExpanded ? '−' : '+'}</span>
+              </div>
+              {smsExpanded && (
+                <div className={styles.smsDisclosureContent}>
+                  <p><strong>Consent for SMS Communication:</strong> Information obtained as part of the SMS consent process will not be shared with third parties.</p>
+                  <p><strong>Types of SMS Communications:</strong> If you have consented to receive text messages from Circuit LLC, you may receive text messages related to event reminders, updates, account notifications, customer care, and marketing messages.</p>
+                  <p><strong>Examples:</strong> Customers and Guests: Updates regarding event reminders, connection selections, coupon notices, or other relevant information.</p>
+                  <p><strong>Standard Messaging Disclosures:</strong> Message and data rates may apply. You can opt-out at any time by texting "STOP." For assistance, text "HELP" or visit our <a href="https://www.circuitspeeddating.com/terms-of-service#privacy" className={styles.legalLink} target="_blank" rel="noopener noreferrer">Privacy Policy</a> and <a href="https://www.circuitspeeddating.com/terms-of-service#intro" className={styles.legalLink} target="_blank" rel="noopener noreferrer">Terms of Service</a>.</p>
+                </div>
+              )}
             </div>
             <button 
               className={`${styles.sendButton} ${!form.compliance ? styles.sendButtonDisabled : ''}`} 

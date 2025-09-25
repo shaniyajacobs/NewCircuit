@@ -196,6 +196,53 @@
   text-decoration-thickness: 2px;
 }
 
+.smsDisclosure {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.4;
+  margin-top: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid var(--Raisin_Black, #211F20);
+  overflow: hidden;
+}
+
+.smsDisclosureHeader {
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.smsDisclosureHeader:hover {
+  background-color: #f0f1f2;
+}
+
+.smsDisclosureToggle {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--Raisin_Black, #211F20);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.smsDisclosureContent {
+  padding: 0 12px 12px 12px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #ffffff;
+}
+
+.smsDisclosureContent p {
+  margin-bottom: 8px;
+}
+
+.smsDisclosureContent p:last-child {
+  margin-bottom: 0;
+}
+
 .imageContainer {
   display: flex;
   min-height: var(--Min-Height-L, 800px);
