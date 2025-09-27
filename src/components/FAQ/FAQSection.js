@@ -89,10 +89,10 @@ export default function FAQSection() {
           }
         `}
       </style>
-      <section className="w-full flex flex-col md:flex-row items-center justify-center py-12 px-4 md:px-12 gap-0 mx-auto max-w-[1440px] overflow-visible">
-        {/* Left: Image Side */}
+      <section className="w-full flex flex-col md:flex-row items-center justify-center py-12 px-[16px] sm:px-[24px] md:px-[32px] lg:px-[50px] gap-0 mx-auto max-w-[1440px] overflow-visible">
+      {/* Left: Image Side */}
         <div
-          className="flex flex-col justify-end items-start gap-4 w-[358px] h-[350px] sm:w-[696px] sm:h-[450px] md:w-[608px] md:h-[650px] lg:w-[670px] lg:h-[800px] p-6 md:p-8 rounded-tl-[16px] md:rounded-l-[16px] rounded-tr-[16px] md:rounded-r-none rounded-bl-none md:rounded-bl-[16px] rounded-br-none md:rounded-br-none relative overflow-visible"
+          className="flex flex-col justify-end items-start gap-4 w-full md:w-1/2 lg:w-[670px] h-[350px] sm:h-[450px] md:h-[650px] lg:h-[800px] p-6 md:p-8 rounded-tl-[16px] md:rounded-l-[16px] rounded-tr-[16px] md:rounded-r-none rounded-bl-none md:rounded-bl-[16px] rounded-br-none md:rounded-br-none relative overflow-visible"
           style={{
             background: 'url(/faqcard.webp) center center / cover no-repeat',
           }}
@@ -130,7 +130,7 @@ export default function FAQSection() {
 
         {/* Right: FAQ Side */}
         <div
-          className="flex flex-col items-start w-[358px] h-[350px] sm:w-[696px] sm:h-[450px] md:w-[608px] md:h-[650px] lg:w-[670px] lg:h-[800px] p-6 md:p-8 rounded-tl-none md:rounded-l-none rounded-tr-none md:rounded-r-[16px] rounded-bl-[16px] md:rounded-bl-none rounded-br-[16px] md:rounded-br-[16px] relative overflow-hidden"
+          className="flex flex-col items-start w-full md:w-1/2 lg:w-[670px] h-[350px] sm:h-[450px] md:h-[650px] lg:h-[800px] p-6 md:p-8 rounded-tl-none md:rounded-l-none rounded-tr-none md:rounded-r-[16px] rounded-bl-[16px] md:rounded-bl-none rounded-br-[16px] md:rounded-br-[16px] relative overflow-hidden"
           style={{
             background: 'radial-gradient(50% 50% at 50% 50%, #B0EEFF 0%, #E7E9FF 100%)',
             paddingLeft: '0px',

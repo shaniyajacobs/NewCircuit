@@ -26,12 +26,12 @@ const Pricing = () => {
 
           <button 
             onClick={() => setIsBundle(!isBundle)}
-            className={`${styles.toggleBackground} ${!isBundle ? styles.toggleBackgroundInverted : ''}`}
+            className={`${styles.toggleBackground} `}
             aria-label={`Switch to ${isBundle ? "Individual" : "Bundles"} pricing`}
           >
 
             <div
-              className={`transition-transform duration-300 ${styles.toggleButton} ${!isBundle ? styles.toggleButtonInverted : ''} 
+              className={`transition-transform duration-300 ${styles.toggleButton}  
               ${isBundle ? "translate-x-0" : "translate-x-full"}`}
               style={{ transform: isBundle ? "translateX(0%)" : "translateX(100%)" }}
             />
@@ -55,8 +55,8 @@ const Pricing = () => {
                 price: isBundle ? "$22" : "$28",
 
                 features: isBundle
-                  ? ["All eligible venues", "Advanced Matching Algorithm", "Boosted Visability and Matching", "Up to 3x Dinners"]
-                  : ["12:30pm - 2:00 pm", "Advanced Matching Algorithm"],
+                  ? ["10 Virtual Speed Dates", "Advanced Matching Algorithm", "Includes up to 3 Virtual dinner speed dates"]
+                  : ["Virtual Brunch Speed Date", "12:30pm - 2:00 pm", "Advanced Matching Algorithm"],
                 bill: isBundle ? "Billed at USD$220" : "",
                 tag: isBundle ? "BEST DEAL 🔥" : "", 
               },
@@ -67,8 +67,8 @@ const Pricing = () => {
                 oldPrice: isBundle ? "$38" : "", 
                 price: isBundle ? "$24" : "$28",
                 features: isBundle
-                  ? ["All eligible venues", "Advanced Matching Algorithm", "Up to 2x Dinners"]
-                  : ["3:00pm - 4:30pm", "Advanced Matching Algorithm"],
+                  ? ["6 Virtual Speed Dates", "Advanced Matching Algorithm", "Includes up to 2 Virtual dinner speed dates"]
+                  : ["Virtual Happy Hour Speed Date", "3:00pm - 4:30pm", "Advanced Matching Algorithm"],
                 bill: isBundle ? "Billed at USD$144" : "",
               },
               {
@@ -79,11 +79,11 @@ const Pricing = () => {
                 price: isBundle ? "$26" : "$38",
                 features: isBundle
                   ? [
-                      "All eligible venues",
-                      "Basic Matching Algorithm",
-                      "Up to 1x Dinner",
+                      "3 Virtual Speed Dates",
+                      "Advanced Matching Algorithm",
+                      "Includes up to 1 virtual dinner speed date",
                     ]
-                  : ["6:00pm - 7:30pm", "Advanced Matching Algorithm"],
+                  : ["Virtual Dinner Speed Date", "6:00pm - 7:30pm", "Advanced Matching Algorithm"],
                 bill: isBundle ? "Billed at USD$78" : "",
               },
             ].map((card, index) => (

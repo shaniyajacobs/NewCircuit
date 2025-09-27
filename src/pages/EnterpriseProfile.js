@@ -3,9 +3,6 @@ import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState } from 'react';
 import { FooterShapes } from './Login';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { auth, db } from "./firebaseConfig";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
 
 const LoginContainer = styled.div`
   display: flex;
@@ -89,25 +86,6 @@ const ContentWrapper = styled.div`
   margin-top: -40px;
 `;
 
-const Select = styled.select`
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
-  min-height: 42px;
-`;
-
-const Textarea = styled.textarea`
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
-  min-height: 100px;
-  resize: vertical;
-`;
-
 const EnterpriseProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,18 +108,6 @@ const EnterpriseProfile = () => {
     zipCode: '',
     country: ''*/
   });
-
-  const businessTypes = [
-    'Sole Proprietorship',
-    'Partnership',
-    'LLC (Limited Liability Company)',
-    'Corporation (Inc., C-Corp, S-Corp)',
-    'Non-Profit',
-    'Government',
-    'Other'
-  ];
-
-  const countries = ['United States', 'Canada', 'United Kingdom', 'Singapore']; // Add more
 
   const handleSubmit = async (e) => {
     e.preventDefault();

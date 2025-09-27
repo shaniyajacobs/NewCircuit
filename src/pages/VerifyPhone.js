@@ -1,11 +1,10 @@
 import styled from 'styled-components';
-import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import { FooterShapes } from './Login';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth, db } from './firebaseConfig';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 
 
 const LoginContainer = styled.div`
@@ -192,15 +191,8 @@ const VerifyPhone = () => {
             const user = result.user;
 
             // Create user profile in Firestore with the auth UID
-            await setDoc(doc(db, "users", user.uid), {
-                userId: user.uid,  // Store the auth UID
-                email: userData.email,
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                birthDate: new Date(userData.birthDate),
-                phoneNumber: phoneNumber,
-                phoneVerified: true,
-                createdAt: new Date()
+            await updateDoc(doc(db, "users", user.uid), {
+                phoneVerified: true
             });
 
             // Navigate to locations screen

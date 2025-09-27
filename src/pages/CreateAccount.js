@@ -1,11 +1,10 @@
 import styled from 'styled-components';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { FooterShapes } from './Login';
-import { auth, db, storage } from './firebaseConfig';
-import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail } from 'firebase/auth';
+import { auth, storage } from './firebaseConfig';
+import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
 import ImageUploading from 'react-images-uploading';
 import { IoPersonCircle } from 'react-icons/io5';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -225,7 +224,14 @@ const CreateAccount = () => {
             }) => (
               // write your building UI
               <div className="upload__image-wrapper">
-                <div style={{flex: 1, flexDirection: 'column', justifyItems: 'center'}}>
+                <div style={{
+                  flex: 1, 
+                  flexDirection: 'column', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px'
+                }}>
                   
                   { imageList.length < maxNumber ? 
                   <button
@@ -239,7 +245,7 @@ const CreateAccount = () => {
                 
                   {imageList.length ? 
                   imageList.map((image, index) => (
-                    <div key={index} className="image-item">
+                    <div key={index} className="image-item" style={{display: 'flex', justifyContent: 'center'}}>
                       {/* <img
                         src={image['data_url']}
                         alt=""
@@ -250,6 +256,7 @@ const CreateAccount = () => {
                   )) : 
                   <div
                     onClick={onImageUpload}
+                    style={{display: 'flex', justifyContent: 'center', cursor: 'pointer'}}
                   >
                     <IoPersonCircle style={{width: '100px', height: '100px'}}/>
                   </div>

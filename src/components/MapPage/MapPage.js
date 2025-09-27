@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import SearchBar from "./SearchBar";
 import Map from "./Map";
 import styles from './MapPage.module.css';
 import MapHeroSection from "./MapHeroSection";
+import SlidingBar from '../SlidingBar';
 
 const cities = [
   { name: "Atlanta", state: "Georgia", position: [33.749, -84.388] },
@@ -13,7 +14,7 @@ const cities = [
   { name: "Miami", state: "Florida", position: [25.7617, -80.1918] },
   { name: "New York City", state: "New York", position: [40.7128, -74.006] },
   {
-    name: "San Francisco",
+    name: "San Francisco / Bay Area",
     state: "California",
     position: [37.7749, -122.4194],
   },
@@ -23,47 +24,61 @@ const cities = [
     state: "District of Columbia",
     position: [38.9072, -77.0369],
   },
+  { name: "Portland", state: "Oregon", position: [45.5152, -122.6784] },
+  { name: "Louisville", state: "Kentucky", position: [38.2527, -85.7585] },
 ];
 
 const MapPage = () => {
   const [filter, setFilter] = useState("");
+  const marqueeContainerRef = useRef(null);
+  const marqueeContentRef = useRef(null);
 
   const handleSearch = (query) => {
     setFilter(query);
   };
 
+  // Dynamically calculate how many times to repeat the content
+  useEffect(() => {
+    function updateRepeatCount() {
+      if (!marqueeContainerRef.current || !marqueeContentRef.current) return;
+      const containerWidth = marqueeContainerRef.current.offsetWidth;
+      const contentWidth = marqueeContentRef.current.offsetWidth;
+      if (contentWidth === 0) return;
+      // Ensure at least 2x container width for seamless looping
+      const minWidth = containerWidth * 2;
+      const count = Math.ceil(minWidth / contentWidth) + 1;
+      // Note: repeatCount is calculated but not used in current implementation
+    }
+    updateRepeatCount();
+    window.addEventListener('resize', updateRepeatCount);
+    return () => window.removeEventListener('resize', updateRepeatCount);
+  }, []);
+
+  // Render the phrase once for measurement, then repeat as needed
   return (
     <div className={styles.mapBackground}>
-      <MapHeroSection />
+      <SlidingBar 
+        phrase={
+          <span className={styles.mapBarText}>
+            Pick your city and get started <span role="img" aria-label="location pin">📍</span>
+          </span>
+        }
+        background="#1C50D8"
+        textColor="#FAFFE7"
+        heartColor="#FAFFE7"
+      />
       <div style={{ position: "relative", width: "100%" }}>
-        <div className={styles.mapBar}>
-          <div className={styles.marqueeContainer}>
-            <div className={styles.marqueeTrack}>
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-              {/* Duplicate for seamless loop */}
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-              <span className={styles.mapBarText}>Pick your city and get started <span role="img" aria-label="location pin">📍</span></span>
-            </div>
-          </div>
-        </div>
-        <Map cities={cities} filter={filter} />
-        <div
-          style={{
-            position: "absolute",
+      <Map cities={cities} filter={filter} />
+      <div
+        style={{
+          position: "absolute",
             top: "0px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1000,
-          }}
-        >
-          <SearchBar cities={cities} onSearch={handleSearch} />
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1000,
+        }}
+      >
+        <SearchBar cities={cities} onSearch={handleSearch} />
         </div>
       </div>
     </div>

@@ -1,12 +1,15 @@
 import styled from 'styled-components';
-import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import { FooterShapes } from './Login';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth, db } from './firebaseConfig';
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
+function toLocalDate(ymdString) {
+  const [y, m, d] = ymdString.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
 
 const VerifyEmail = () => {
     const navigate = useNavigate();
@@ -15,45 +18,66 @@ const VerifyEmail = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [emailSent, setEmailSent] = useState(false);
-    const auth = getAuth();
 
     useEffect(() => {
         if (!userData) {
             navigate('/profile');
             return;
         }
-    }, [userData]);
+
+        if (auth.currentUser && !auth.currentUser.emailVerified) {
+            setEmailSent(true);
+        }
+    }, [userData, navigate]);
 
     const createUserAndSendVerification = async () => {
         try {
             setLoading(true);
             setError('');
 
-            // Create user with email and password
-            const userCredential = await createUserWithEmailAndPassword(
-                auth,
-                userData.email,
-                userData.password
-            );
+            let userCredential;
 
-            // Send verification email
+            try {
+                userCredential = await createUserWithEmailAndPassword(
+                    auth,
+                    userData.email,
+                    userData.password
+                );
+
+                // Create user profile in Firestore only for new accounts
+                await setDoc(doc(db, "users", userCredential.user.uid), {
+                    userId: userCredential.user.uid,
+                    email: userData.email,
+                    firstName: userData.firstName,
+                    lastName: userData.lastName,
+                    birthDate: toLocalDate(userData.birthDate),
+                    phoneNumber: userData.phoneNumber,
+                    emailVerified: false,
+                    createdAt: new Date(),
+                    image: userData.image,
+                    isActive: true,
+                    location: userData.location,
+                    datesRemaining: 0, 
+                    profileComplete: true,
+                    preferencesComplete: false,
+                    locationSet: false,
+                    quizComplete: false
+                });
+
+            } catch (createErr) {
+                if (createErr.code === 'auth/email-already-in-use') {
+                    userCredential = await signInWithEmailAndPassword(
+                        auth,
+                        userData.email,
+                        userData.password
+                    );
+                } else {
+                    throw createErr;
+                }
+            }
+
+            // Send verification email (for new or existing account)
             await sendEmailVerification(userCredential.user);
-
-            // Create user profile in Firestore
-            console.log('Image URL in verify email:', userData.image);
-            await setDoc(doc(db, "users", userCredential.user.uid), {
-                userId: userCredential.user.uid,
-                email: userData.email,
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                birthDate: new Date(userData.birthDate),
-                phoneNumber: userData.phoneNumber,
-                emailVerified: false,
-                createdAt: new Date(),
-                image: userData.image,
-                isActive: true,
-                location: userData.location
-            });
 
             setEmailSent(true);
             console.log('Verification email sent');
@@ -93,12 +117,45 @@ const VerifyEmail = () => {
         }
     };
 
+    // Resend verification email if already signed in / or sign in first
+    const resendVerificationEmail = async () => {
+        try {
+            setLoading(true);
+            setError('');
+
+            if (!auth.currentUser) {
+                await signInWithEmailAndPassword(auth, userData.email, userData.password);
+            }
+
+            await sendEmailVerification(auth.currentUser);
+        } catch (err) {
+            if (err.code === 'auth/too-many-requests') {
+                setError('A verification e-mail was just sent. Please wait a minute before asking for a new one.');
+            } else {
+                setError(err.message || err.code);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <LoginContainer>
             <FooterShapes />
             <ContentWrapper>
                 <Title>Verify Your Email</Title>
                 <Subtitle>Please verify your email: {userData?.email}</Subtitle>
+
+                {error && (
+                    <div style={{ 
+                        color: 'red', 
+                        marginTop: '1rem',
+                        textAlign: 'center',
+                        maxWidth: '400px'
+                    }}>
+                        {error}
+                    </div>
+                )}
 
                 {!emailSent ? (
                     <Button 
@@ -115,16 +172,6 @@ const VerifyEmail = () => {
                             Please check your inbox and click the verification link.
                         </p>
 
-                        {error && (
-                            <div style={{ 
-                                color: 'red', 
-                                marginTop: '1rem',
-                                textAlign: 'center' 
-                            }}>
-                                {error}
-                            </div>
-                        )}
-
                         <Button 
                             onClick={checkVerification}
                             disabled={loading}
@@ -138,7 +185,7 @@ const VerifyEmail = () => {
                                 Didn't receive the email?
                             </p>
                             <ResendLink 
-                                onClick={createUserAndSendVerification}
+                                onClick={resendVerificationEmail}
                                 disabled={loading}
                             >
                                 Send again
@@ -191,13 +238,15 @@ const Subtitle = styled.p`
 const Button = styled.button`
   width: 100%;
   padding: 0.75rem;
-  background-color: ${props => props.secondary ? 'white' : '#211f20'};
+  background-color: ${props => props.secondary ? 'white' : '#007bff'};
   color: ${props => props.secondary ? '#000' : 'white'};
   border: ${props => props.secondary ? '1px solid #000' : 'none'};
-  border-radius: 6px;
+  border-radius: 12px;
   font-size: 1rem;
   cursor: pointer;
   margin-bottom: 1rem;
+  min-height: 42px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
   &:hover {
     opacity: 0.9;
@@ -205,16 +254,27 @@ const Button = styled.button`
 `;
 
 const ResendLink = styled.button`
-  background: none;
-  border: none;
+  background-color: #6c757d;
   color: white;
+  border: none;
+  border-radius: 12px;
   font-size: 1rem;
   cursor: pointer;
-  text-decoration: underline;
+  padding: 0.75rem 1.5rem;
   margin-top: 16px;
+  min-height: 42px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 
   &:hover {
-    opacity: 0.8;
+    background-color: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
