@@ -53,7 +53,7 @@ const DashCheckout = () => {
     "client-id": paymentClientId,
     "enable-funding": "venmo",
     "disable-funding": "",
-    "buyer-country": "US",
+    // "buyer-country": "US",
     currency: "USD",
     "data-page-type": "product-details",
     components: "buttons,card-fields",
