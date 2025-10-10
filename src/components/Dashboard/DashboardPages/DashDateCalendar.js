@@ -239,7 +239,7 @@ const DashDateCalendar = () => {
       packageType: plan.packageType,
       price: plan.price,
       type: 'date-package',
-      numDates: plan.dates || 1 // Include the number of dates for bundles
+      numDates: plan.numDates || 1 // Include the number of dates for bundles
     };
     
     addToCart(item);
