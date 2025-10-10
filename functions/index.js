@@ -18,12 +18,14 @@ const payPalClientSecret = defineSecret('PAYPAL_SECRET');
 
 admin.initializeApp();
 
-const client = new paypal.core.PayPalHttpClient(
-  new paypal.core.SandboxEnvironment(
-    payPalClientId, 
-    payPalClientSecret
-  )
-);
+// Helper function to create PayPal client
+function getPayPalClient() {
+  const environment = new paypal.core.LiveEnvironment(
+    payPalClientId.value(),
+    payPalClientSecret.value()
+  );
+  return new paypal.core.PayPalHttpClient(environment);
+}
 
 exports.createPaymentIntent = onCall(
   {
@@ -526,12 +528,16 @@ exports.createPayPalOrder = onCall(
   {
     region: "us-central1",
     runtime: 'nodejs18',
+    secrets: [payPalClientId, payPalClientSecret],
   },
   async (data, context) => {   
     const amount = Number(data?.data?.amount);
     if (!amount) {
       return data?.data.status(400).json({ error: "Missing amount" });
     }
+
+    const client = getPayPalClient();
+
     const request = new paypal.orders.OrdersCreateRequest();
     request.prefer("return=representation");
     request.requestBody({
@@ -548,6 +554,7 @@ exports.capturePayPalOrder = onCall(
   {
     region: "us-central1",
     runtime: 'nodejs18',
+    secrets: [payPalClientId, payPalClientSecret],
   },
   async (data, context) => {
     try{
@@ -556,6 +563,8 @@ exports.capturePayPalOrder = onCall(
         return { error: "Missing orderId" };
       }
 
+      const client = getPayPalClient();
+      
       const request = new paypal.orders.OrdersCaptureRequest(orderId);
       request.requestBody({});
 
