@@ -531,23 +531,31 @@ exports.createPayPalOrder = onCall(
     secrets: [payPalClientId, payPalClientSecret],
   },
   async (data, context) => {   
-    const amount = Number(data?.data?.amount);
-    if (!amount) {
-      return data?.data.status(400).json({ error: "Missing amount" });
+    try {
+      const amount = Number(data?.data?.amount);
+      if (!amount) {
+        throw new functions.https.HttpsError('internal', 'Missing amount');
+      }
+
+      const client = getPayPalClient();
+
+      const request = new paypal.orders.OrdersCreateRequest();
+      request.prefer("return=representation");
+      request.requestBody({
+        intent: "CAPTURE",
+        purchase_units: [{ amount: { currency_code: "USD", value: amount } }],
+      });
+
+      const order = await client.execute(request);
+
+      if (order.result.status !== "APPROVED") {
+        throw new functions.https.HttpsError('internal', 'Order not approved yet');
+      }
+
+      return { id: order.result.id };
+    }catch(error){
+      throw new functions.https.HttpsError('internal', 'Some issue in payment initialization');
     }
-
-    const client = getPayPalClient();
-
-    const request = new paypal.orders.OrdersCreateRequest();
-    request.prefer("return=representation");
-    request.requestBody({
-      intent: "CAPTURE",
-      purchase_units: [{ amount: { currency_code: "USD", value: amount } }],
-    });
-
-    const order = await client.execute(request);
-
-    return { id: order.result.id };
   });
    
 exports.capturePayPalOrder = onCall(
@@ -560,7 +568,7 @@ exports.capturePayPalOrder = onCall(
     try{
       const orderId = data?.data.orderId;
       if (!orderId) {
-        return { error: "Missing orderId" };
+        throw new functions.https.HttpsError('internal', 'Missing orderId');
       }
 
       const client = getPayPalClient();
@@ -569,10 +577,14 @@ exports.capturePayPalOrder = onCall(
       request.requestBody({});
 
       const capture = await client.execute(request);
+
+      if (capture?.result?.purchase_units?.[0]?.payments?.captures?.[0]?.status !== "COMPLETED") {
+        throw new functions.https.HttpsError('internal', 'Payment was declined or failed.');
+      }
+
       return capture.result;
     }catch(error){
-      console.error("❌ capturePayPalOrder error:", error);
-      return { error: "Failed to capture order" };
+      throw new functions.https.HttpsError('internal', 'Failed to capture order');
     }
   });   
 
