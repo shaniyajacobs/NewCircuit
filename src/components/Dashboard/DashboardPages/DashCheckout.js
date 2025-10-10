@@ -184,6 +184,7 @@ const DashCheckout = () => {
 
   const onSaveDB = async (result) => {
     try {
+
       if (result.status === "COMPLETED") {
         //store in firebase
         const user = auth.currentUser;
@@ -290,15 +291,13 @@ const DashCheckout = () => {
       } else {
         const errorDetail = orderData?.details?.[0];
         const errorMessage = errorDetail
-          ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
+          ? `${errorDetail?.issue} ${errorDetail?.description} (${orderData?.debug_id})`
           : JSON.stringify(orderData);
 
-        console.error(errorMessage);
         alert(errorMessage);
         setIsProcessing(false);
       }
     } catch (error) {
-      console.error(error);
       alert(`Could not initiate PayPal Checkout...${error}`);
       setIsProcessing(false);
     }
