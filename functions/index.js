@@ -20,7 +20,7 @@ admin.initializeApp();
 
 // Helper function to create PayPal client
 function getPayPalClient() {
-  const environment = new paypal.core.LiveEnvironment(
+  const environment = new paypal.core.SandboxEnvironment(
     payPalClientId.value(),
     payPalClientSecret.value()
   );
