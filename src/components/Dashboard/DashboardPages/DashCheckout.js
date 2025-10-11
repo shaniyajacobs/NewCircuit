@@ -11,6 +11,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import {
+  PayPalButtons,
   PayPalCardFieldsProvider,
   PayPalCVVField,
   PayPalExpiryField,
@@ -184,7 +185,6 @@ const DashCheckout = () => {
 
   const onSaveDB = async (result) => {
     try {
-
       if (result.status === "COMPLETED") {
         //store in firebase
         const user = auth.currentUser;
@@ -382,7 +382,7 @@ const DashCheckout = () => {
       {/* Responsive layout */}
       <div className="flex flex-col lg:flex-row w-full max-w-full min-h-[600px] gap-8 md:gap-16 lg:gap-20 xl:gap-28">
         {/* Left Side - Payment Form */}
-        <div className="w-full lg:w-2/3 h-full">
+        <div className="w-full lg:w-2/3 h-full" hidden>
           {paymentSuccess ? (
             <div className="flex flex-col justify-start w-full">
               <p className="text-[22px] md:text-[26px] font-light text-black mt-10 md:mt-20 ml-0 md:ml-20">
@@ -469,104 +469,137 @@ const DashCheckout = () => {
 
         {/* Right Side - Summary Box */}
         <div className="w-full lg:w-2/5 bg-[#F8FAFF] p-5 md:p-8 rounded-2xl shadow-md min-h-[400px] flex flex-col justify-between border border-gray-100">
-          <div>
-            <p className="text-[16px] md:text-[20px] font-medium text-gray-600 mb-2">
-              {paymentSuccess ? "You bought:" : "You're paying,"}
-            </p>
-            <p className="text-[36px] md:text-[48px] lg:text-[60px] font-bold text-[#0043F1]">
-              ${totalPrice.toFixed(2)}
-            </p>
-
-            <div className="mt-4">
-              {cartItems.map((plan, index) => (
-                <div
-                  key={index}
-                  className="relative group flex justify-between items-start pb-2 mb-2"
-                >
-                  <div className="flex flex-col">
-                    <p className="font-bold text-[18px] md:text-[22px] lg:text-[26px] leading-tight text-[#211F20]">
-                      {`${plan.quantity * (plan.numDates || 1)} x ${
-                        plan.packageType === "Bundle" ? "Bundle Date" : "Date"
-                      }${plan.quantity * (plan.numDates || 1) > 1 ? "s" : ""}`}
-                    </p>
-                    <p className="text-gray-600 text-[15px] md:text-[18px] lg:text-[20px] font-poppins">
-                      {plan.venue}
-                    </p>
-                  </div>
-
-                  {/* Right column: price and trash icon */}
-                  <div className="w-[90px] md:w-[120px] lg:w-[160px] flex justify-end items-center gap-3 pt-1">
-                    <p className="text-[16px] md:text-[20px] lg:text-[24px] font-semibold text-[#0043F1]">
-                      ${parseFloat(plan.price.replace("$", "")).toFixed(2)}
-                    </p>
-                    {!paymentSuccess && (
-                      <button
-                        onClick={() =>
-                          handleRemoveItem(
-                            plan.title,
-                            plan.venue,
-                            plan.packageType
-                          )
-                        }
-                        className="text-red-600 hover:text-red-800 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      >
-                        <FaTrash size={18} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+          {paymentSuccess ? (
+            <div className="flex flex-col justify-start w-full">
+              <p className="text-[22px] md:text-[26px] font-light text-black mt-10 md:mt-20 ml-0 md:ml-20">
+                Congrats! You just bought this.
+              </p>
             </div>
+          ) : (
+            <div>
+              <p className="text-[16px] md:text-[20px] font-medium text-gray-600 mb-2">
+                {paymentSuccess ? "You bought:" : "You're paying,"}
+              </p>
+              <p className="text-[36px] md:text-[48px] lg:text-[60px] font-bold text-[#0043F1]">
+                ${totalPrice.toFixed(2)}
+              </p>
 
-            {appliedDiscount && (
-              <div className="flex justify-between items-center mt-5">
-                <div className="flex flex-col text-green-700 text-[15px] md:text-[18px] lg:text-[20px]">
-                  <div className="inline-flex items-center bg-gray-300 text-gray-800 px-3 py-1.5 rounded-md text-[13px] md:text-[15px] lg:text-[16px] font-semibold w-fit">
-                    <FaTag className="mr-2 text-gray-600" />
-                    {discountCode.toUpperCase()}
+              <div className="mt-4">
+                {cartItems.map((plan, index) => (
+                  <div
+                    key={index}
+                    className="relative group flex justify-between items-start pb-2 mb-2"
+                  >
+                    <div className="flex flex-col">
+                      <p className="font-bold text-[18px] md:text-[22px] lg:text-[26px] leading-tight text-[#211F20]">
+                        {`${plan.quantity * (plan.numDates || 1)} x ${
+                          plan.packageType === "Bundle" ? "Bundle Date" : "Date"
+                        }${
+                          plan.quantity * (plan.numDates || 1) > 1 ? "s" : ""
+                        }`}
+                      </p>
+                      <p className="text-gray-600 text-[15px] md:text-[18px] lg:text-[20px] font-poppins">
+                        {plan.venue}
+                      </p>
+                    </div>
+
+                    {/* Right column: price and trash icon */}
+                    <div className="w-[90px] md:w-[120px] lg:w-[160px] flex justify-end items-center gap-3 pt-1">
+                      <p className="text-[16px] md:text-[20px] lg:text-[24px] font-semibold text-[#0043F1]">
+                        ${parseFloat(plan.price.replace("$", "")).toFixed(2)}
+                      </p>
+                      {!paymentSuccess && (
+                        <button
+                          onClick={() =>
+                            handleRemoveItem(
+                              plan.title,
+                              plan.venue,
+                              plan.packageType
+                            )
+                          }
+                          className="text-red-600 hover:text-red-800 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        >
+                          <FaTrash size={18} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-1 text-gray-500 text-[13px] md:text-[15px] lg:text-[16px]">
-                    {appliedDiscount.percentOff
-                      ? `${appliedDiscount.percentOff}% off`
-                      : `$${appliedDiscount.amountOff.toFixed(2)} off`}
+                ))}
+              </div>
+
+              {appliedDiscount && (
+                <div className="flex justify-between items-center mt-5">
+                  <div className="flex flex-col text-green-700 text-[15px] md:text-[18px] lg:text-[20px]">
+                    <div className="inline-flex items-center bg-gray-300 text-gray-800 px-3 py-1.5 rounded-md text-[13px] md:text-[15px] lg:text-[16px] font-semibold w-fit">
+                      <FaTag className="mr-2 text-gray-600" />
+                      {discountCode.toUpperCase()}
+                    </div>
+                    <div className="mt-1 text-gray-500 text-[13px] md:text-[15px] lg:text-[16px]">
+                      {appliedDiscount.percentOff
+                        ? `${appliedDiscount.percentOff}% off`
+                        : `$${appliedDiscount.amountOff.toFixed(2)} off`}
+                    </div>
+                  </div>
+
+                  <div className="w-[90px] md:w-[120px] lg:w-[160px] flex justify-end items-center gap-3">
+                    <p className="text-[16px] md:text-[20px] lg:text-[24px] text-gray-500">
+                      -${(baseTotal - totalPrice).toFixed(2)}
+                    </p>
+                    <div className="w-[18px]" />
                   </div>
                 </div>
+              )}
 
+              <hr className="my-3 border-gray-300" />
+
+              <div className="mt-5 flex justify-between items-center">
+                <div className="text-[18px] md:text-[22px] lg:text-[26px] font-semibold">
+                  Tax
+                </div>
                 <div className="w-[90px] md:w-[120px] lg:w-[160px] flex justify-end items-center gap-3">
-                  <p className="text-[16px] md:text-[20px] lg:text-[24px] text-gray-500">
-                    -${(baseTotal - totalPrice).toFixed(2)}
+                  <p className="text-[16px] md:text-[20px] lg:text-[24px] text-gray-700 font-medium">
+                    $0.00
                   </p>
                   <div className="w-[18px]" />
                 </div>
               </div>
-            )}
 
-            <hr className="my-3 border-gray-300" />
-
-            <div className="mt-5 flex justify-between items-center">
-              <div className="text-[18px] md:text-[22px] lg:text-[26px] font-semibold">
-                Tax
-              </div>
-              <div className="w-[90px] md:w-[120px] lg:w-[160px] flex justify-end items-center gap-3">
-                <p className="text-[16px] md:text-[20px] lg:text-[24px] text-gray-700 font-medium">
-                  $0.00
-                </p>
-                <div className="w-[18px]" />
+              <div className="mt-8 flex justify-between items-center">
+                <div className="text-[18px] md:text-[22px] lg:text-[26px] font-semibold">
+                  Total
+                </div>
+                <div className="w-[90px] md:w-[120px] lg:w-[160px] flex justify-end items-center gap-3">
+                  <p className="text-[16px] md:text-[20px] lg:text-[24px] font-bold text-[#0043F1]">
+                    ${totalPrice.toFixed(2)}
+                  </p>
+                  <div className="w-[18px]" />
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="mt-8 flex justify-between items-center">
-              <div className="text-[18px] md:text-[22px] lg:text-[26px] font-semibold">
-                Total
-              </div>
-              <div className="w-[90px] md:w-[120px] lg:w-[160px] flex justify-end items-center gap-3">
-                <p className="text-[16px] md:text-[20px] lg:text-[24px] font-bold text-[#0043F1]">
-                  ${totalPrice.toFixed(2)}
-                </p>
-                <div className="w-[18px]" />
-              </div>
+          {!paymentSuccess && paymentClientId && (
+            <div className="mt-8">
+              <PayPalScriptProvider options={initialOptions}>
+                <PayPalButtons
+                  style={{ layout: "vertical" }}
+                  createOrder={(data, actions) => {
+                    return actions.order.create({
+                      purchase_units: [{ amount: { value: totalPrice } }],
+                    });
+                  }}
+                  onApprove={(data, actions) => {
+                    return actions.order.capture().then((details) => {
+                      console.log("Details", details);
+                      setIsProcessing(true);
+                      onSaveDB(details);
+                      // alert(`Transaction completed by ${details.payer.name.given_name}`);
+                    });
+                  }}
+                />
+              </PayPalScriptProvider>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
