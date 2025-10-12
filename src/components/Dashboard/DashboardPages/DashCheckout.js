@@ -578,7 +578,7 @@ const DashCheckout = () => {
             </div>
           )}
 
-          {!paymentSuccess && (
+          {!paymentSuccess && paymentClientId && (
             <div className="mt-8">
               <PayPalScriptProvider options={initialOptions}>
                 <PayPalButtons

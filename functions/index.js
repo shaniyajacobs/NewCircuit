@@ -13,7 +13,7 @@ const remoSecret = defineSecret('REMO_API_KEY');
 const remoCompanyIdSecret = defineSecret('REMO_COMPANY_ID');
 const emailUser = defineSecret('EMAIL_USER');
 const emailPass = defineSecret('EMAIL_PASS');
-const payPalClientId = defineSecret('PAYPAL_CLIENT_ID');
+const payPalClientId = defineSecret('PAYPAL_CLIENT_ID_SANDBOX');
 const payPalClientSecret = defineSecret('PAYPAL_SECRET');
 
 admin.initializeApp();
