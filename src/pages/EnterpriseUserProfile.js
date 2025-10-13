@@ -3,10 +3,6 @@ import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 import React, { useState } from 'react';
 import { FooterShapes } from './Login';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { auth, db, storage } from "./firebaseConfig";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Reuse styled components
 const LoginContainer = styled.div`
@@ -60,22 +56,6 @@ const Input = styled.input`
   border-radius: 6px;
   font-size: 1rem;
   min-height: 42px;
-`;
-
-const FileInput = styled.input`
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
-  &::-webkit-file-upload-button {
-    background: #211f20;
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
 `;
 
 const Button = styled.button`

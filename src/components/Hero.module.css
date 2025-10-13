@@ -61,6 +61,7 @@
   font-style: normal;
   font-weight: 400;
   line-height: 130%; /* 26px */
+  min-height: 120px; /* normalize card height across varying copy */
 }
 
 .testimonial-profile {
@@ -74,6 +75,7 @@
   border-bottom: 1px solid var(--Raisin_Black, #211F20);
   border-left: 1px solid var(--Raisin_Black, #211F20);
   background: var(--Mindaro, #E2FF65);
+  min-height: 72px; /* consistent bottom row height */
 }
 
 .testimonial-avatar {
@@ -176,10 +178,12 @@
 
   .testimonial-message {
     font-size: var(--Body-M-Reg, 16px);
+    min-height: 100px;
   }
 
   .testimonial-profile {
     padding: var(--Margins, 14px);
+    min-height: 64px;
   }
 
   .testimonial-name {
@@ -228,10 +232,12 @@
 
   .testimonial-message {
     font-size: var(--Body-M-Reg, 14px);
+    min-height: 90px;
   }
 
   .testimonial-profile {
     padding: var(--Margins, 12px);
+    min-height: 60px;
   }
 
   .testimonial-name {
