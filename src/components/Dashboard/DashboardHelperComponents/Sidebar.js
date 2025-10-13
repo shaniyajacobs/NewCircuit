@@ -266,7 +266,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Desktop Sidebar (1280px and above) */}
-      <div className="hidden md:flex flex-col h-screen px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full border border-[rgba(33,31,32,0.10)] fixed left-0 top-0">  
+      <div className="hidden md:flex flex-col h-screen px-5 py-10 bg-white rounded-xl w-[280px] max-md:p-5 max-md:w-full border border-[rgba(33,31,32,0.10)] fixed left-0 top-0 z-20">  
         <Link to="/dashboard" className="p-6 sm:p-6 md:p-6 lg:p-6">
           <img
             loading="lazy"

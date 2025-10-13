@@ -11,6 +11,7 @@ import AdminSettings from "../components/Admin/AdminPages/AdminSettings";
 import AdminChangePassword from "../components/Admin/AdminPages/AdminChangePassword";
 import AdminDeactivateAccount from "../components/Admin/AdminPages/AdminDeactivateAccount";
 import AdminDeleteAccount from "../components/Admin/AdminPages/AdminDeleteAccount";
+import AdminWebsiteManagement from "../components/Admin/AdminPages/AdminWebsiteManagement";
 import AdminHeader from "../components/Admin/AdminHelperComponents/AdminHeader";
 import AdminSidebar from "../components/Admin/AdminHelperComponents/AdminSidebar";
 // Import other admin components as needed
@@ -55,6 +56,7 @@ const AdminDashboard = () => {
       <div className="flex flex-col flex-1 gap-8 md:ml-[280px] p-5">
         <AdminHeader path={currPath} />
         <Routes>
+          <Route path="/website-management/*" element={<AdminWebsiteManagement />} />
           <Route path="/coupons/*" element={<AdminCoupons />} />
           <Route path="/users/*" element={<AdminUserManagement />} />
           <Route path="/businesses/*" element={<AdminBusinessManagement />} />
