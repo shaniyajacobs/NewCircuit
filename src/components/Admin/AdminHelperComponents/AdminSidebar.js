@@ -44,6 +44,12 @@ const AdminSidebar = () => {
 
   const SidebarData = [
     {
+      title: "Website",
+      path: "/admin-dashboard/website-management",
+      icon: <FaIcons.FaGlobe className="w-5 h-5" />,
+      cName: "nav-text",
+    },
+    {
       title: "Events",
       path: "/admin-dashboard/events",
       icon: <FaIcons.FaCalendarAlt className="w-5 h-5" />,

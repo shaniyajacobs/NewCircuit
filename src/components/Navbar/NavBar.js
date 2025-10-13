@@ -4,17 +4,35 @@ import logo from '../../images/Cir_Primary_RGB_Mixed Black.png'; // Adjust the p
 import styles from './NavBar.module.css';
 import { FaInstagram, FaTiktok, FaLinkedin, FaXTwitter } from 'react-icons/fa6';
 import { FiX } from 'react-icons/fi';
+import { db } from '../../firebaseConfig';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const NavBar = () => {
     const [showAnnouncement, setShowAnnouncement] = useState(true);
+    const [bannerText, setBannerText] = useState('');
+    const [bannerEnabled, setBannerEnabled] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => {
-            setShowAnnouncement(window.scrollY < 40);
+            setShowAnnouncement((bannerEnabled ? true : false) && window.scrollY < 40);
         };
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
+    }, [bannerEnabled]);
+
+    // Subscribe to Firestore banner configuration
+    useEffect(() => {
+        const ref = doc(db, 'config', 'navbarBanner');
+        const unsub = onSnapshot(ref, (snap) => {
+            const data = snap.data();
+            if (data) {
+                if (typeof data.text === 'string') setBannerText(data.text);
+                if (typeof data.enabled === 'boolean') setBannerEnabled(data.enabled);
+                setShowAnnouncement((typeof data.enabled === 'boolean' ? data.enabled : true) && window.scrollY < 40);
+            }
+        });
+        return () => unsub();
     }, []);
 
     // Close menu on route change or link click
@@ -32,11 +50,13 @@ const NavBar = () => {
 
     return (
         <>
-        <div className={styles.top_text_box + (showAnnouncement ? '' : ' ' + styles.hide)}>
-            <span className={styles.top_text}>
-                The #1 Speed Dating App
-            </span>
-        </div>
+        {bannerEnabled && (
+            <div className={styles.top_text_box + (showAnnouncement ? '' : ' ' + styles.hide)}>
+                <span className={styles.top_text}>
+                    {bannerText}
+                </span>
+            </div>
+        )}
         <nav className={styles.navContainer}>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
                 <Link to="/" style={{ display: 'flex', alignItems: 'center' }} onClick={() => window.scrollTo(0, 0)}>
