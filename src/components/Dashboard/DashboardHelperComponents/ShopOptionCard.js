@@ -70,7 +70,7 @@ export default function ShopOptionCard({ option, onBuyNow, disabled }) {
               className={styles.PurchaseButton}
               onClick={() => onBuyNow({ packageType: "Individual", title, venue, price })}
             >
-              Purchase
+              {disabled ? "Coming Soon" : "Purchase"}
             </button>
           </div>
         </div>
