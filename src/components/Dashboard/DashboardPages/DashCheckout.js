@@ -8,7 +8,7 @@ import {
   getDoc,
   addDoc,
   setDoc,
-  Timestamp,
+  Timestamp, updateDoc, increment,
 } from "firebase/firestore";
 import {
   PayPalButtons,
@@ -23,6 +23,7 @@ import {
 
 import { db, auth, functions } from "../../../firebaseConfig";
 import { processDatePurchase } from "../../../utils/eventSpotsUtils";
+import PopUp from "../DashboardHelperComponents/PopUp";
 
 const parsePrice = (priceStr) => parseFloat(priceStr?.replace("$", "")) || 0;
 
@@ -31,9 +32,19 @@ const calculateTotal = (items, discount) => {
   if (!discount) return Number(base.toFixed(2));
 
   let discounted = base;
-  if (discount.amountOff) discounted = Math.max(0, base - discount.amountOff);
-  else if (discount.percentOff)
+  
+  // Handle new discount structure
+  if (discount.type === 'fixed') {
+    discounted = Math.max(0, base - discount.value);
+  } else if (discount.type === 'percentage') {
+    discounted = Math.max(0, base * (1 - discount.value / 100));
+  }
+  // Handle legacy discount structure for backward compatibility
+  else if (discount.amountOff) {
+    discounted = Math.max(0, base - discount.amountOff);
+  } else if (discount.percentOff) {
     discounted = Math.max(0, base * (1 - discount.percentOff / 100));
+  }
 
   return Number(discounted.toFixed(2));
 };
@@ -48,6 +59,8 @@ const DashCheckout = () => {
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountMessage, setDiscountMessage] = useState("");
   const [paymentClientId, setPaymentClientId] = useState(undefined);
 
   const initialOptions = {
@@ -134,7 +147,11 @@ const DashCheckout = () => {
   const totalPrice = calculateTotal(cartItems, appliedDiscount);
 
   const handleApplyDiscount = async () => {
-    if (!discountCode) return alert("Please enter a discount code.");
+    if (!discountCode) {
+      setDiscountMessage("Please enter a discount code.");
+      setShowDiscountModal(true);
+      return;
+    }
 
     try {
       const discountRef = doc(db, "discounts", discountCode.toUpperCase());
@@ -142,15 +159,57 @@ const DashCheckout = () => {
 
       if (discountSnap.exists()) {
         const discountData = discountSnap.data();
-        setAppliedDiscount(discountData);
-        alert("✅ Discount applied!");
+        
+        // Validate discount code
+        const now = new Date();
+        const validUntil = new Date(discountData.validUntil);
+        
+        // Check if discount is active
+        if (!discountData.isActive) {
+          setDiscountMessage("❌ This discount code is not active.");
+          setShowDiscountModal(true);
+          return;
+        }
+        
+        // Check if discount has expired
+        if (validUntil <= now) {
+          setDiscountMessage("❌ This discount code has expired.");
+          setShowDiscountModal(true);
+          return;
+        }
+        
+        // Check usage limit
+        if (discountData.usageLimit && discountData.usageCount >= discountData.usageLimit) {
+          setDiscountMessage("❌ This discount code has reached its usage limit.");
+          setShowDiscountModal(true);
+          return;
+        }
+        
+        // Convert to the format expected by calculateTotal
+        const formattedDiscount = {
+          type: discountData.type,
+          value: discountData.value,
+          code: discountData.code,
+          description: discountData.description
+        };
+        
+        setAppliedDiscount(formattedDiscount);
+        setDiscountMessage("✅ Discount applied successfully!");
+        setShowDiscountModal(true);
       } else {
-        alert("❌ Invalid discount code.");
+        setDiscountMessage("❌ Invalid discount code.");
+        setShowDiscountModal(true);
       }
     } catch (err) {
       console.error("Error checking discount code:", err);
-      alert("Error checking discount code.");
+      setDiscountMessage("Error checking discount code.");
+      setShowDiscountModal(true);
     }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode("");
   };
 
   const handleRemoveItem = async (title, venue, packageType) => {
@@ -233,8 +292,21 @@ const DashCheckout = () => {
                 totalDates: (item.quantity || 1) * (item.numDates || 1),
               })),
             });
-
-            // 3. Clear cart after successful purchase
+            
+            // 3. Update discount code usage count if applicable
+            if (appliedDiscount && appliedDiscount.code) {
+              try {
+                const discountRef = doc(db, "discounts", appliedDiscount.code);
+                await updateDoc(discountRef, {
+                  usageCount: increment(1)
+                });
+                console.log("✅ Discount usage count updated");
+              } catch (error) {
+                console.error("❌ Failed to update discount usage count:", error);
+              }
+            }
+            
+            // 4. Clear cart after successful purchase
             await setDoc(
               doc(db, "users", user.uid),
               { cart: [] },
@@ -439,10 +511,13 @@ const DashCheckout = () => {
                         <div className="flex mx-[5px]">
                           <input
                             type="text"
-                            className="w-full p-3 border border-gray-300 rounded-lg text-[15px] md:text-[16px]"
+                            className={`w-full p-3 border border-gray-300 rounded-lg text-[15px] md:text-[16px] ${
+                        appliedDiscount ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
                             value={discountCode}
                             onChange={(e) => setDiscountCode(e.target.value)}
                             placeholder="Enter code"
+                      disabled={appliedDiscount}
                           />
                           <button
                             className={`ml-2 px-4 py-2 rounded-lg text-[15px] md:text-[16px] ${
@@ -483,6 +558,38 @@ const DashCheckout = () => {
               <p className="text-[36px] md:text-[48px] lg:text-[60px] font-bold text-[#0043F1]">
                 ${totalPrice.toFixed(2)}
               </p>
+
+              {/* Discount Code Input */}
+              {!paymentSuccess && (
+                <div className="mt-6 mb-4">
+                  <label className="block text-[14px] md:text-[16px] text-gray-600 mb-2">
+                    Discount Code
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className={`flex-1 p-3 border border-gray-300 rounded-lg text-[14px] md:text-[15px] ${
+                        appliedDiscount ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value)}
+                      placeholder="Enter code"
+                      disabled={appliedDiscount}
+                    />
+                    <button
+                      className={`px-4 py-2 rounded-lg text-[14px] md:text-[15px] ${
+                        !discountCode || appliedDiscount
+                          ? "bg-gray-400 cursor-not-allowed text-white"
+                          : "bg-blue-500 hover:bg-blue-600 text-white"
+                      }`}
+                      onClick={handleApplyDiscount}
+                      disabled={!discountCode || appliedDiscount}
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-4">
                 {cartItems.map((plan, index) => (
@@ -533,9 +640,20 @@ const DashCheckout = () => {
                     <div className="inline-flex items-center bg-gray-300 text-gray-800 px-3 py-1.5 rounded-md text-[13px] md:text-[15px] lg:text-[16px] font-semibold w-fit">
                       <FaTag className="mr-2 text-gray-600" />
                       {discountCode.toUpperCase()}
+                    <button
+                      onClick={handleRemoveDiscount}
+                      className="ml-2 text-red-500 hover:text-red-700 transition-colors"
+                      title="Remove discount"
+                    >
+                      <FaTrash className="w-3 h-3" />
+                    </button>
                     </div>
                     <div className="mt-1 text-gray-500 text-[13px] md:text-[15px] lg:text-[16px]">
-                      {appliedDiscount.percentOff
+                      {appliedDiscount.type === 'percentage'
+                      ? `${appliedDiscount.value}% off`
+                      : appliedDiscount.type === 'fixed'
+                      ? `$${appliedDiscount.value.toFixed(2)} off`
+                      : appliedDiscount.percentOff
                         ? `${appliedDiscount.percentOff}% off`
                         : `$${appliedDiscount.amountOff.toFixed(2)} off`}
                     </div>
@@ -602,6 +720,21 @@ const DashCheckout = () => {
           )}
         </div>
       </div>
+
+      {/* Discount Code Modal */}
+      <PopUp
+        isOpen={showDiscountModal}
+        onClose={() => setShowDiscountModal(false)}
+        title="Discount Code"
+        subtitle={discountMessage}
+        icon={discountMessage.includes("✅") ? "✅" : "❌"}
+        iconColor={discountMessage.includes("✅") ? "green" : "red"}
+        maxWidth="max-w-sm"
+        primaryButton={{
+          text: "OK",
+          onClick: () => setShowDiscountModal(false)
+        }}
+      />
     </div>
   );
 };

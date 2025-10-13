@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, getDoc, addDoc, deleteDoc, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, addDoc, deleteDoc, doc, updateDoc, increment, setDoc } from 'firebase/firestore';
 import { db } from '../../../pages/firebaseConfig';
 import { getAuth } from 'firebase/auth';
-import { FaPlus, FaEdit, FaTrash, FaChartLine, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaChartLine, FaCheck, FaTimes, FaTag, FaDice } from 'react-icons/fa';
 import PopUp from '../../Dashboard/DashboardHelperComponents/PopUp';
 
 const AdminCoupons = () => {
@@ -35,12 +35,35 @@ const AdminCoupons = () => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
+  // Discount codes state
+  const [discountCodes, setDiscountCodes] = useState([]);
+  const [discountCodesLoading, setDiscountCodesLoading] = useState(true);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [showDeleteDiscountModal, setShowDeleteDiscountModal] = useState(false);
+  const [selectedDiscountCode, setSelectedDiscountCode] = useState(null);
+  const [newDiscountCode, setNewDiscountCode] = useState({
+    code: '',
+    type: 'percentage', // 'percentage' or 'fixed'
+    value: '',
+    description: '',
+    validUntil: '',
+    usageLimit: '',
+    isActive: true
+  });
+  const [generatedCodes, setGeneratedCodes] = useState([]);
+  const [showGeneratedCodes, setShowGeneratedCodes] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showToggleConfirmModal, setShowToggleConfirmModal] = useState(false);
+  const [discountToToggle, setDiscountToToggle] = useState(null);
+
   const auth = getAuth();
   const businessId = auth.currentUser?.uid;
 
   useEffect(() => {
     fetchCoupons();
     fetchBusinesses();
+    fetchDiscountCodes();
   }, []);
 
   const fetchBusinesses = async () => {
@@ -311,6 +334,185 @@ const AdminCoupons = () => {
     setShowImageModal(true);
   };
 
+  // Discount codes functions
+  const fetchDiscountCodes = async () => {
+    try {
+      setDiscountCodesLoading(true);
+      console.log('Fetching discount codes...');
+      const discountCodesRef = collection(db, 'discounts');
+      const querySnapshot = await getDocs(discountCodesRef);
+      console.log('Discount codes query snapshot:', querySnapshot);
+      
+      const discountCodesList = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('Processing discount code:', doc.id, data);
+        return {
+          id: doc.id,
+          ...data
+        };
+      });
+      
+      console.log('Processed discount codes list:', discountCodesList);
+      setDiscountCodes(discountCodesList);
+    } catch (error) {
+      console.error('Error fetching discount codes:', error);
+      // Set empty array on error to prevent crashes
+      setDiscountCodes([]);
+    } finally {
+      setDiscountCodesLoading(false);
+    }
+  };
+
+  const generateRandomCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const generateMultipleCodes = (count) => {
+    const codes = [];
+    for (let i = 0; i < count; i++) {
+      codes.push(generateRandomCode());
+    }
+    return codes;
+  };
+
+  const checkCodeExists = async (code) => {
+    try {
+      const discountRef = doc(db, 'discounts', code.toUpperCase());
+      const discountSnap = await getDoc(discountRef);
+      return discountSnap.exists();
+    } catch (error) {
+      console.error('Error checking code existence:', error);
+      return false;
+    }
+  };
+
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateCount, setGenerateCount] = useState(5);
+
+  const handleGenerateCodes = async () => {
+    if (!generateCount || generateCount < 1 || generateCount > 10) {
+      setSuccessMessage('❌ Please enter a number between 1 and 10');
+      setShowSuccessModal(true);
+      return;
+    }
+
+    const codes = generateMultipleCodes(generateCount);
+    setGeneratedCodes(codes);
+    setShowGenerateModal(false);
+    setShowGeneratedCodes(true);
+  };
+
+  const handleSelectGeneratedCode = async (code) => {
+    const exists = await checkCodeExists(code);
+    if (exists) {
+      setSuccessMessage('❌ This code already exists. Please try another one.');
+      setShowSuccessModal(true);
+      return;
+    }
+    
+    setNewDiscountCode({ ...newDiscountCode, code: code });
+    setShowGeneratedCodes(false);
+  };
+
+  const handleAddDiscountCode = async (e) => {
+    e.preventDefault();
+    
+    if (!newDiscountCode.code || !newDiscountCode.value || !newDiscountCode.validUntil) {
+      setSuccessMessage('❌ Please fill in all required fields');
+      setShowSuccessModal(true);
+      return;
+    }
+
+    // Check if code already exists
+    const exists = await checkCodeExists(newDiscountCode.code);
+    if (exists) {
+      setSuccessMessage('❌ This discount code already exists. Please choose a different code.');
+      setShowSuccessModal(true);
+      return;
+    }
+
+    try {
+      const discountData = {
+        code: newDiscountCode.code.toUpperCase(),
+        type: newDiscountCode.type,
+        value: parseFloat(newDiscountCode.value),
+        description: newDiscountCode.description,
+        validUntil: newDiscountCode.validUntil,
+        usageLimit: newDiscountCode.usageLimit ? parseInt(newDiscountCode.usageLimit) : null,
+        isActive: newDiscountCode.isActive,
+        createdAt: new Date().toISOString(),
+        usageCount: 0,
+        createdBy: auth.currentUser.uid
+      };
+
+      // Store in discounts collection with code as document ID
+      await setDoc(doc(db, 'discounts', newDiscountCode.code.toUpperCase()), discountData);
+      
+      setShowDiscountModal(false);
+      setNewDiscountCode({
+        code: '',
+        type: 'percentage',
+        value: '',
+        description: '',
+        validUntil: '',
+        usageLimit: '',
+        isActive: true
+      });
+      fetchDiscountCodes();
+      setSuccessMessage(`✅ Discount code "${newDiscountCode.code.toUpperCase()}" created successfully!`);
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Error adding discount code:', error);
+      setSuccessMessage('❌ Error creating discount code. Please try again.');
+      setShowSuccessModal(true);
+    }
+  };
+
+  const handleDeleteDiscountCode = async () => {
+    try {
+      const codeToDelete = selectedDiscountCode.code;
+      await deleteDoc(doc(db, 'discounts', selectedDiscountCode.id));
+      setShowDeleteDiscountModal(false);
+      fetchDiscountCodes();
+      setSuccessMessage(`✅ Discount code "${codeToDelete}" deleted successfully!`);
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Error deleting discount code:', error);
+      setSuccessMessage('❌ Error deleting discount code. Please try again.');
+      setShowSuccessModal(true);
+    }
+  };
+
+  const handleToggleDiscountCodeStatus = (discountCode) => {
+    setDiscountToToggle(discountCode);
+    setShowToggleConfirmModal(true);
+  };
+
+  const confirmToggleDiscountCodeStatus = async () => {
+    try {
+      const discountRef = doc(db, 'discounts', discountToToggle.id);
+      await updateDoc(discountRef, {
+        isActive: !discountToToggle.isActive
+      });
+      fetchDiscountCodes();
+      setShowToggleConfirmModal(false);
+      setSuccessMessage(`✅ Discount code "${discountToToggle.code}" ${!discountToToggle.isActive ? 'activated' : 'deactivated'} successfully!`);
+      setShowSuccessModal(true);
+      setDiscountToToggle(null);
+    } catch (error) {
+      console.error('Error toggling discount code status:', error);
+      setShowToggleConfirmModal(false);
+      setSuccessMessage('❌ Error updating discount code status. Please try again.');
+      setShowSuccessModal(true);
+      setDiscountToToggle(null);
+    }
+  };
+
   return (
     <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5">
       <div className="flex justify-between items-center mb-6">
@@ -436,6 +638,120 @@ const AdminCoupons = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Discount Codes Section */}
+      <div className="mt-12">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-indigo-950">Discount Codes</h2>
+          <button
+            onClick={() => setShowDiscountModal(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
+          >
+            <FaTag />
+            Create Discount Code
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid Until</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {discountCodesLoading ? (
+                <tr>
+                  <td colSpan="8" className="text-center py-8">
+                    <div className="text-gray-500">Loading discount codes...</div>
+                  </td>
+                </tr>
+              ) : discountCodes.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="text-center py-8">
+                    <div className="text-gray-500">No discount codes found. Create your first discount code!</div>
+                  </td>
+                </tr>
+              ) : (
+                discountCodes.map((discountCode) => {
+                  const isValid = discountCode.validUntil ? new Date(discountCode.validUntil) > new Date() : false;
+                  const isUsageLimitReached = discountCode.usageLimit && discountCode.usageCount >= discountCode.usageLimit;
+                  const isActive = discountCode.isActive && isValid && !isUsageLimitReached;
+                  
+                  return (
+                    <tr key={discountCode.id || discountCode.code} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-mono font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded">
+                          {discountCode.code || 'No code'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                        {discountCode.type || 'Unknown'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-lg font-bold text-[#0043F1]">
+                          {discountCode.type === 'percentage' 
+                            ? `${discountCode.value || 0}%` 
+                            : `$${(discountCode.value || 0).toFixed(2)}`}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                        {discountCode.description || 'No description'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {discountCode.validUntil ? new Date(discountCode.validUntil).toLocaleDateString() : 'No date set'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {discountCode.usageCount || 0}
+                        {discountCode.usageLimit && ` / ${discountCode.usageLimit}`}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => handleToggleDiscountCodeStatus(discountCode)}
+                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                              discountCode.isActive 
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                            title={discountCode.isActive ? 'Deactivate' : 'Activate'}
+                          >
+                            {discountCode.isActive ? 'Active' : 'Inactive'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedDiscountCode(discountCode);
+                              setShowDeleteDiscountModal(true);
+                            }}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete Discount Code"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add Coupon Modal */}
@@ -886,6 +1202,232 @@ const AdminCoupons = () => {
           className="max-w-full max-h-[70vh] object-contain rounded"
         />
       </PopUp>
+
+      {/* Create Discount Code Modal */}
+      <PopUp
+        isOpen={showDiscountModal}
+        onClose={() => setShowDiscountModal(false)}
+        title="Create Discount Code"
+        maxWidth="max-w-md"
+        primaryButton={{
+          text: "Create Discount Code",
+          onClick: handleAddDiscountCode
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowDiscountModal(false)
+        }}
+      >
+        <form onSubmit={handleAddDiscountCode} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Discount Code</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newDiscountCode.code}
+                    onChange={(e) => setNewDiscountCode({ ...newDiscountCode, code: e.target.value.toUpperCase() })}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., SAVE20"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowGenerateModal(true)}
+                    className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                    title="Generate Random Code"
+                  >
+                    <FaDice />
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
+                <select
+                  value={newDiscountCode.type}
+                  onChange={(e) => setNewDiscountCode({ ...newDiscountCode, type: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="percentage">Percentage Off</option>
+                  <option value="fixed">Fixed Amount Off</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {newDiscountCode.type === 'percentage' ? 'Percentage (%)' : 'Amount ($)'}
+                </label>
+                <input
+                  type="number"
+                  value={newDiscountCode.value}
+                  onChange={(e) => setNewDiscountCode({ ...newDiscountCode, value: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder={newDiscountCode.type === 'percentage' ? '20' : '10.00'}
+                  min="0"
+                  step={newDiscountCode.type === 'percentage' ? '1' : '0.01'}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                <textarea
+                  value={newDiscountCode.description}
+                  onChange={(e) => setNewDiscountCode({ ...newDiscountCode, description: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows="2"
+                  placeholder="Brief description of the discount"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
+                <input
+                  type="date"
+                  value={newDiscountCode.validUntil}
+                  onChange={(e) => setNewDiscountCode({ ...newDiscountCode, validUntil: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Usage Limit (Optional)</label>
+                <input
+                  type="number"
+                  value={newDiscountCode.usageLimit}
+                  onChange={(e) => setNewDiscountCode({ ...newDiscountCode, usageLimit: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Leave empty for unlimited"
+                  min="1"
+                />
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={newDiscountCode.isActive}
+                  onChange={(e) => setNewDiscountCode({ ...newDiscountCode, isActive: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                  Active
+                </label>
+              </div>
+              
+        </form>
+      </PopUp>
+
+      {/* Generate Codes Modal */}
+      <PopUp
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        title="Generate Random Codes"
+        subtitle="How many codes would you like to generate?"
+        maxWidth="max-w-sm"
+        primaryButton={{
+          text: "Generate",
+          onClick: handleGenerateCodes
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowGenerateModal(false)
+        }}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Number of codes (1-10)</label>
+            <input
+              type="number"
+              value={generateCount}
+              onChange={(e) => setGenerateCount(parseInt(e.target.value) || 1)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              min="1"
+              max="10"
+              required
+            />
+          </div>
+        </div>
+      </PopUp>
+
+      {/* Generated Codes Modal */}
+      <PopUp
+        isOpen={showGeneratedCodes}
+        onClose={() => setShowGeneratedCodes(false)}
+        title="Generated Codes"
+        subtitle="Click on a code to select it:"
+        maxWidth="max-w-md"
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowGeneratedCodes(false)
+        }}
+      >
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {generatedCodes.map((code, index) => (
+            <button
+              key={index}
+              onClick={() => handleSelectGeneratedCode(code)}
+              className="w-full p-3 text-left bg-gray-100 hover:bg-gray-200 rounded-lg font-mono text-sm transition-colors"
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+      </PopUp>
+
+      {/* Delete Discount Code Modal */}
+      <PopUp
+        isOpen={showDeleteDiscountModal && selectedDiscountCode}
+        onClose={() => setShowDeleteDiscountModal(false)}
+        title="Delete Discount Code"
+        subtitle={`Are you sure you want to delete discount code "${selectedDiscountCode?.code}"? This action cannot be undone.`}
+        icon="🗑️"
+        iconColor="red"
+        maxWidth="max-w-md"
+        primaryButton={{
+          text: "Delete",
+          onClick: handleDeleteDiscountCode
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowDeleteDiscountModal(false)
+        }}
+      />
+
+      {/* Success/Error Modal */}
+      <PopUp
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title={successMessage.includes("✅") ? "Success" : "Error"}
+        subtitle={successMessage}
+        icon={successMessage.includes("✅") ? "✅" : "❌"}
+        iconColor={successMessage.includes("✅") ? "green" : "red"}
+        maxWidth="max-w-sm"
+        primaryButton={{
+          text: "OK",
+          onClick: () => setShowSuccessModal(false)
+        }}
+      />
+
+      {/* Toggle Status Confirmation Modal */}
+      <PopUp
+        isOpen={showToggleConfirmModal && discountToToggle}
+        onClose={() => setShowToggleConfirmModal(false)}
+        title="Confirm Status Change"
+        subtitle={`Are you sure you want to ${discountToToggle?.isActive ? 'deactivate' : 'activate'} discount code "${discountToToggle?.code}"?`}
+        icon={discountToToggle?.isActive ? "⏸️" : "▶️"}
+        iconColor="blue"
+        maxWidth="max-w-md"
+        primaryButton={{
+          text: "Confirm",
+          onClick: confirmToggleDiscountCodeStatus
+        }}
+        secondaryButton={{
+          text: "Cancel",
+          onClick: () => setShowToggleConfirmModal(false)
+        }}
+      />
     </div>
   );
 };
