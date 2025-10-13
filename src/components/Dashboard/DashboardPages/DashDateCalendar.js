@@ -13,6 +13,9 @@ import { ReactComponent as Hole } from "../../../images/Hole.svg";
 import { ReactComponent as Butterfly } from "../../../images/Butterfly.svg";
 import { ReactComponent as Ellipse } from "../../../images/Ellipse.svg";
 import { ReactComponent as SoftFlower } from "../../../images/Soft Flower.svg";
+import ShopOptionCard from "../DashboardHelperComponents/ShopOptionCard";
+import { isActiveByTitle, bundleActiveByTitle } from "./shopOptionsConfig";
+import styles from "./Shop.module.css";
 
 const DatePlan = ({ title, time, price, venue, onBuyNow }) => {
   // Get the correct icon based on title
@@ -101,7 +104,7 @@ const DatePlan = ({ title, time, price, venue, onBuyNow }) => {
   );
 };
 
-const BundlePlan = ({ title, features, dates, price, venue, onBuyNow }) => {
+const BundlePlan = ({ title, features, dates, price, venue, onBuyNow, disabled = false }) => {
   // Calculate price per date for bundles
   const pricePerDate = Math.round(parseInt(price.replace('$', '')) / dates);
   const oldPrice = "$38";
@@ -111,88 +114,60 @@ const BundlePlan = ({ title, features, dates, price, venue, onBuyNow }) => {
   const getIcon = () => {
     switch (title) {
       case "The Adventure":
-        return <Team className="w-full h-full" />;
+        return <Team className={styles.PricingImage} />;
       case "The Connection":
-        return <FiveDots className="w-full h-full" />;
+        return <FiveDots className={styles.PricingImage} />;
       case "The Introduction":
-        return <Hole className="w-full h-full" />;
+        return <Hole className={styles.PricingImage} />;
       default:
-        return <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center">
-          <span className="text-2xl font-bold text-gray-600">{dates}</span>
+        return <div className={styles.PricingImage}>
+          <span>{dates}</span>
         </div>;
     }
   };
   
   return (
-    <div className="relative w-full lg:max-w-[425px] mx-auto">
-      <div className={`flex flex-col bg-white border border-[#211F20] rounded-2xl overflow-hidden 
-      sm:min-h-[450px] md:min-h-[500px] lg:min-h-[650px] ${isAdventure ? 'min-h-[400px]' : 'min-h-[340px]'}`}>
-      {/* The main card container needs to be relative for the absolute tag */}
-        <div className={`relative flex flex-col flex-1 bg-white pt-[0px]   ${isAdventure ? 'pt-[40px] sm:pt-[38px] md:pt-[45px] lg:pt-[55px]' : 'sm:pt-[0px] md:pt-[10px] lg:pt-[52px]'}`}>
-        
-        {/* Tag for BEST DEAL*/}
-        {isAdventure && (
-          <div className="absolute top-0 left-0 right-0 z-10 border-b border-white">
-            <div className="self-stretch text-[#F3F3F3] bg-[#1C50D8] text-center font-poppins 
-            text-[14px] sm:text-[14px] md:text-[16px] lg:text-[20px] font-medium leading-[110%] 
-             pt-3 rounded-t-2xl">
-              BEST DEAL 🔥
-              <div className="pt-2"> </div>
-              <div className="w-full bg-white pb-[16px] sm:pb-[16px] md:pb-[20px] lg:pb-[24px] rounded-t-2xl"> 
-              </div>
+    <div className={`${styles.card} ${styles.bundleCard}${disabled ? ' opacity-50 pointer-events-none' : ''}`} aria-disabled={disabled ? 'true' : undefined}>
+      {/* Tag for BEST DEAL*/}
+      {isAdventure && (
+        <div className={styles.tagContainer}> 
+          <div className={styles.tag}>BEST DEAL 🔥</div>
+        </div>
+      )}
+      
+      <div className={styles.upperContent}>
+        <div className={styles.PricingImageWrapper}>
+          {getIcon()}
+        </div>
+        <div className={styles.upperTextContainer}>
+          <div className={styles.upperText}>
+            <div className={styles.PricingSubheading}>{dates} Dates</div>
+            <h3 className={styles.PricingTitle}>{title}</h3>
+            <div className={styles.OldPrice}>{oldPrice}</div>
+            <div className={styles.currPriceWrapper}>
+              <div className={styles.Price}>${pricePerDate}</div>
+              <div className={styles.PricePerDate}>/Date</div>
             </div>
-            
-          </div>
-        )}
-        
-        {/* Upper Content */}
-        <div className="flex flex-col flex-1 p-3 sm:p-4 lg:p-5 xl:p-6">
-          {/* Icon */}
-          <div className="flex justify-start w-[50px] h-[50px] sm:w-[75px] sm:h-[75px] md:w-[75px] md:h-[75px] lg:w-[100px] lg:h-[100px] "> 
-            {getIcon()}
-          </div>
-          
-          {/* Text Content */}
-          <div className="mt-auto">
-            <div className="mb-[16px] sm:mb-[20px] md:mb-[24px] lg:mb-[32px]">
-              <div className="self-stretch text-[#211F20] font-bricolage text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] xl:text-[16px] font-medium leading-[130%] uppercase mb-[8px] sm:mb-[8px] md:mb-[10px] lg:mb-[12px]">{dates} Dates</div>
-              <h3 className="self-stretch text-[#211F20] font-bricolage text-[18px] sm:text-[20px] md:text-[28px] lg:text-[32px]  font-normal leading-[130%] mb-[8px] sm:mb-[8px] md:mb-[10px] lg:mb-[12px]">{title}</h3>
-              <div className="self-stretch text-gray-500 font-poppins text-[14px] md:text-[16] lg:text-[20] font-normal leading-[130%] line-through mb-[8px] sm:mb-[8px] md:mb-[10px] lg:mb-[12px]">{oldPrice}</div>
-              <div className="gap-[4px] self-stretch text-[#211F20] font-poppins text-[28px] sm:text-[30px] md:text-[36px] lg:text-[40px] font-medium leading-[100%] flex items-baseline">
-                <span className="text-[28px] sm:text-[30px] md:text-[36px] lg:text-[40px] font-medium text-[#211F20]">${pricePerDate}</span>
-                <span className="text-[#211F20] font-poppins text-[14px] sm:text-[14px] md:text-[16px] lg:text-[20px] font-normal leading-[130%]">/Date</span>
-              </div>
-            </div>
-            
-            {/* Purchase Section */}
-            <div className="flex items-center gap-3 sm:gap-4 lg:gap-5 xl:gap-6" style={{ alignSelf: 'stretch' }}>
-              <button
-                onClick={() => onBuyNow({ packageType: "Bundle", title, numDates: dates, venue, price })}
-                className="bg-[#211F20] text-white font-poppins
-                px-[20px] py-[4px] sm:px-[20px] sm:py-[4px] md:px-[20px] md:py-[5px] lg:px-[24px] lg:py-[6px]
-                rounded-lg text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] font-normal hover:bg-gray-800 transition-colors"
-              >
-                Purchase
-              </button>
-              <div className="text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] text-[#211F20]">Billed at USD${parseInt(price.replace('$', ''))}</div>
-            </div>
+          </div> 
+
+          <div className={styles.PurchaseSection}>
+            <button 
+              className={styles.PurchaseButton}
+              onClick={() => onBuyNow({ packageType: "Bundle", title, numDates: dates, venue, price })}
+            >
+              Purchase
+            </button>
+            <div className={styles.bill}>Billed at USD${parseInt(price.replace('$', ''))}</div>
           </div>
         </div>
-        
-        {/* Features */}
-        <div className="bg-white p-3 sm:p-4 lg:p-5 xl:p-6 rounded-b-2xl sm:rounded-b-xl lg:rounded-b-2xl xl:rounded-b-2xl border-t border-black">
-          <ul className="">
-            {features.map((feature, index) => (
-              <li key={index} className="self-stretch text-[#211F20] font-poppins text-[14px] md:text-[16px] lg:text-[20px] font-normal leading-[130%] flex items-start">
-                <span className="text-black-500 mr-2 ">•</span>
-                {feature}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-
       </div>
+
+      <div className={styles.featuresWrapper}>
+        <ul className={styles.features}>
+          {features.map((feature, index) => (
+            <li key={index}>{feature}</li>
+          ))}
+        </ul>
       </div>
     </div>
   );
@@ -206,6 +181,7 @@ const DashDateCalendar = () => {
   const [cartLoaded, setCartLoaded] = useState(false);
   const [datesRemaining, setDatesRemaining] = useState(100);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [isBundle, setIsBundle] = useState(false);
 
   // Function to check if dates remaining is greater than 0
   const shouldShowCard = () => {
@@ -552,7 +528,7 @@ const DashDateCalendar = () => {
 
         {/* Purchase more dates card */}
         {shouldShowCard() && (
-          <div className="relative w-full rounded-2xl overflow-hidden flex items-center mb-6">
+          <div className="relative w-full rounded-2xl overflow-hidden flex items-center">
           <img src={homePurchaseMoreDates} alt="" className="absolute inset-0 w-full h-full object-cover" />
           <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
           <div className="absolute inset-0 bg-[#211F20] bg-opacity-10" 
@@ -581,9 +557,30 @@ const DashDateCalendar = () => {
         </div>
         )}
 
+        {/* Header */}
+        
+
+        {/* Toggle Section */}
+        <div className={`${styles.toggleContainer} ${styles.toggleWithPadding}`}>
+          <span className={styles.toggleText}>Individual</span>
+          <button 
+            onClick={() => setIsBundle(!isBundle)}
+            className={styles.toggleBackground}
+            aria-label={`Switch to ${isBundle ? "Individual" : "Bundles"} pricing`}
+          >
+            <div
+              className={`transition-transform duration-300 ${styles.toggleButton} ${
+                isBundle ? "translate-x-full" : "translate-x-0"
+              }`}
+              style={{ transform: isBundle ? "translateX(100%)" : "translateX(0%)" }}
+            />
+          </button>
+          <span className={styles.toggleText}>Bundles</span>
+        </div>
+
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-[18px] sm:text-[20px] md:text-[28px] lg:text-[32px] font-bricolage font-medium leading-[130%] text-[#211F20]">
-            Bundles
+            {isBundle ? 'Bundles' : 'Individual'}
           </h2>
           {userLocation && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -594,39 +591,38 @@ const DashDateCalendar = () => {
           )}
         </div>
 
-        {/* Bundle Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] justify-items-center">
-          {locationBasedPlans.bundlePlans.length > 0 ? (
-            locationBasedPlans.bundlePlans.map((plan, index) => (
-              <div key={index} className="w-full max-w-[425px] flex-shrink-0 flex-grow-0">
-                <BundlePlan {...plan} onBuyNow={handleBuyNow} />
-              </div>
-            ))
-          ) : (
-            <div className="col-span-full flex items-center justify-center py-8">
+        {/* Cards Container */}
+        <div className={styles.cardsContainer}>
+          {isBundle ? (
+            // Bundle Cards
+            locationBasedPlans.bundlePlans.length > 0 ? (
+              locationBasedPlans.bundlePlans.map((plan, index) => (
+                <div key={index} className={styles.card}>
+                  <BundlePlan
+                    {...plan}
+                    onBuyNow={handleBuyNow}
+                    disabled={bundleActiveByTitle[plan.title] === false}
+                  />
+                </div>
+              ))
+            ) : (
               <div className="text-gray-500">Loading location-based plans...</div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center mt-20 mb-6 max-md:mt-10"> 
-          <h2 className="self-start text-3xl font-semibold leading-snug text-black">
-            Individual
-          </h2>
-        </div>
-
-        {/* Individual Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[16px] sm:gap-[16px] md:gap-[20px] lg:gap-[24px] justify-items-center">
-          {locationBasedPlans.datePlans.length > 0 ? (
-            locationBasedPlans.datePlans.map((plan, index) => (
-              <div key={index} className="w-full max-w-[425px] flex-shrink-0 flex-grow-0">
-                <DatePlan {...plan} onBuyNow={handleBuyNow} />
-              </div>
-            ))
+            )
           ) : (
-            <div className="col-span-full flex items-center justify-center py-8">
+            // Individual Cards
+            locationBasedPlans.datePlans.length > 0 ? (
+              locationBasedPlans.datePlans.map((plan, index) => (
+                <div key={index} className={styles.card}>
+                  <ShopOptionCard
+                    option={plan}
+                    onBuyNow={handleBuyNow}
+                    disabled={isActiveByTitle[plan.title] === false}
+                  />
+                </div>
+              ))
+            ) : (
               <div className="text-gray-500">Loading location-based plans...</div>
-            </div>
+            )
           )}
         </div>
 
