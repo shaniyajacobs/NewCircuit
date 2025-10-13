@@ -155,7 +155,7 @@ const BundlePlan = ({ title, features, dates, price, venue, onBuyNow, disabled =
               className={styles.PurchaseButton}
               onClick={() => onBuyNow({ packageType: "Bundle", title, numDates: dates, venue, price })}
             >
-              Purchase
+              {disabled ? "Coming Soon" : "Purchase"}
             </button>
             <div className={styles.bill}>Billed at USD${parseInt(price.replace('$', ''))}</div>
           </div>
@@ -496,8 +496,8 @@ const DashDateCalendar = () => {
   }, []);
 
   return (
-    <div className="px-[16px] sm:px-[24px] md:px-[32px] lg:px-[50px]">
-    <div className="pt-[16px] sm:pt-[24px] md:pt-[32px] lg:pt-[50px] pb-[16px] sm:pb-[24px] md:pb-[32px] lg:pb-[50px] bg-white rounded-3xl border border-gray-50 max-w-[1340px] mx-auto">
+    <div className="px-[16px] sm:px-[24px] md:px-[32px] lg:px-[50px] relative z-10">
+    <div className="pt-[16px] sm:pt-[24px] md:pt-[32px] lg:pt-[50px] pb-[16px] sm:pb-[24px] md:pb-[32px] lg:pb-[50px] bg-white rounded-3xl border border-gray-50 max-w-[1340px] mx-auto relative z-10">
       <div className="flex flex-col max-w-full text-3xl w-full">
 
         {/* Header with Cart Button */}
