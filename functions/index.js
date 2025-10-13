@@ -6,14 +6,26 @@ const admin = require("firebase-admin");
 const Stripe = require("stripe");
 const util = require('util');
 const nodemailer = require('nodemailer');
+const paypal = require('@paypal/checkout-server-sdk');
 
 const stripeSecret = defineSecret("STRIPE_SECRET");
 const remoSecret = defineSecret('REMO_API_KEY');
 const remoCompanyIdSecret = defineSecret('REMO_COMPANY_ID');
 const emailUser = defineSecret('EMAIL_USER');
 const emailPass = defineSecret('EMAIL_PASS');
+const payPalClientId = defineSecret('PAYPAL_CLIENT_ID_SANDBOX');
+const payPalClientSecret = defineSecret('PAYPAL_SECRET');
 
 admin.initializeApp();
+
+// Helper function to create PayPal client
+function getPayPalClient() {
+  const environment = new paypal.core.SandboxEnvironment(
+    payPalClientId.value(),
+    payPalClientSecret.value()
+  );
+  return new paypal.core.PayPalHttpClient(environment);
+}
 
 exports.createPaymentIntent = onCall(
   {
@@ -509,5 +521,80 @@ exports.promoteFromWaitlist = onDocumentDeleted(
     } catch (err) {
       console.error('[promoteFromWaitlist] post-tx mirror error:', err);
     }
+  }
+);
+
+exports.createPayPalOrder = onCall(
+  {
+    region: "us-central1",
+    runtime: 'nodejs18',
+    secrets: [payPalClientId, payPalClientSecret],
+  },
+  async (data, context) => {   
+    try {
+      const amount = Number(data?.data?.amount);
+      if (!amount) {
+        throw new functions.https.HttpsError('internal', 'Missing amount');
+      }
+
+      const client = getPayPalClient();
+
+      const request = new paypal.orders.OrdersCreateRequest();
+      request.prefer("return=representation");
+      request.requestBody({
+        intent: "CAPTURE",
+        purchase_units: [{ amount: { currency_code: "USD", value: amount } }],
+      });
+
+      const order = await client.execute(request);
+
+      if (order.result.status !== "APPROVED") {
+        throw new functions.https.HttpsError('internal', 'Order not approved yet');
+      }
+
+      return { id: order.result.id };
+    }catch(error){
+      throw new functions.https.HttpsError('internal', 'Some issue in payment initialization');
+    }
+  });
+   
+exports.capturePayPalOrder = onCall(
+  {
+    region: "us-central1",
+    runtime: 'nodejs18',
+    secrets: [payPalClientId, payPalClientSecret],
+  },
+  async (data, context) => {
+    try{
+      const orderId = data?.data.orderId;
+      if (!orderId) {
+        throw new functions.https.HttpsError('internal', 'Missing orderId');
+      }
+
+      const client = getPayPalClient();
+      
+      const request = new paypal.orders.OrdersCaptureRequest(orderId);
+      request.requestBody({});
+
+      const capture = await client.execute(request);
+
+      if (capture?.result?.purchase_units?.[0]?.payments?.captures?.[0]?.status !== "COMPLETED") {
+        throw new functions.https.HttpsError('internal', 'Payment was declined or failed.');
+      }
+
+      return capture.result;
+    }catch(error){
+      throw new functions.https.HttpsError('internal', 'Failed to capture order');
+    }
+  });   
+
+exports.paymentClientId = onCall(
+  {
+    region: "us-central1",
+    secrets: [payPalClientId],
+    runtime: 'nodejs18',
+  },
+  (data, context) => {
+    return { clientId: payPalClientId.value() }
   }
 );
