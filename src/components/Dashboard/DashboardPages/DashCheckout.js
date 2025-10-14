@@ -670,10 +670,8 @@ const DashCheckout = () => {
                   }}
                   onApprove={(data, actions) => {
                     return actions.order.capture().then((details) => {
-                      console.log("Details", details);
                       setIsProcessing(true);
                       onSaveDB(details);
-                      // alert(`Transaction completed by ${details.payer.name.given_name}`);
                     });
                   }}
                 />
