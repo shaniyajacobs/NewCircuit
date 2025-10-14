@@ -9,8 +9,11 @@ import {
   addDoc,
   setDoc,
   Timestamp,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
 import {
+  PayPalButtons,
   PayPalCardFieldsProvider,
   PayPalCVVField,
   PayPalExpiryField,
@@ -22,6 +25,8 @@ import {
 
 import { db, auth, functions } from "../../../firebaseConfig";
 import { processDatePurchase } from "../../../utils/eventSpotsUtils";
+import "./DashCheckout.css";
+import PopUp from "../DashboardHelperComponents/PopUp";
 
 const parsePrice = (priceStr) => parseFloat(priceStr?.replace("$", "")) || 0;
 
@@ -30,9 +35,19 @@ const calculateTotal = (items, discount) => {
   if (!discount) return Number(base.toFixed(2));
 
   let discounted = base;
-  if (discount.amountOff) discounted = Math.max(0, base - discount.amountOff);
-  else if (discount.percentOff)
+
+  // Handle new discount structure
+  if (discount.type === "fixed") {
+    discounted = Math.max(0, base - discount.value);
+  } else if (discount.type === "percentage") {
+    discounted = Math.max(0, base * (1 - discount.value / 100));
+  }
+  // Handle legacy discount structure for backward compatibility
+  else if (discount.amountOff) {
+    discounted = Math.max(0, base - discount.amountOff);
+  } else if (discount.percentOff) {
     discounted = Math.max(0, base * (1 - discount.percentOff / 100));
+  }
 
   return Number(discounted.toFixed(2));
 };
@@ -47,16 +62,18 @@ const DashCheckout = () => {
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountMessage, setDiscountMessage] = useState("");
   const [paymentClientId, setPaymentClientId] = useState(undefined);
 
   const initialOptions = {
     "client-id": paymentClientId,
-    "enable-funding": "venmo",
+    "enable-funding": "venmo,paylater",
     "disable-funding": "",
     // "buyer-country": "US",
     currency: "USD",
     "data-page-type": "product-details",
-    components: "buttons,card-fields",
+    components: "buttons,card-fields,messages",
     "data-sdk-integration-source": "developer-studio",
   };
 
@@ -133,7 +150,11 @@ const DashCheckout = () => {
   const totalPrice = calculateTotal(cartItems, appliedDiscount);
 
   const handleApplyDiscount = async () => {
-    if (!discountCode) return alert("Please enter a discount code.");
+    if (!discountCode) {
+      setDiscountMessage("Please enter a discount code.");
+      setShowDiscountModal(true);
+      return;
+    }
 
     try {
       const discountRef = doc(db, "discounts", discountCode.toUpperCase());
@@ -141,15 +162,62 @@ const DashCheckout = () => {
 
       if (discountSnap.exists()) {
         const discountData = discountSnap.data();
-        setAppliedDiscount(discountData);
-        alert("✅ Discount applied!");
+
+        // Validate discount code
+        const now = new Date();
+        const validUntil = new Date(discountData.validUntil);
+
+        // Check if discount is active
+        if (!discountData.isActive) {
+          setDiscountMessage("❌ This discount code is not active.");
+          setShowDiscountModal(true);
+          return;
+        }
+
+        // Check if discount has expired
+        if (validUntil <= now) {
+          setDiscountMessage("❌ This discount code has expired.");
+          setShowDiscountModal(true);
+          return;
+        }
+
+        // Check usage limit
+        if (
+          discountData.usageLimit &&
+          discountData.usageCount >= discountData.usageLimit
+        ) {
+          setDiscountMessage(
+            "❌ This discount code has reached its usage limit."
+          );
+          setShowDiscountModal(true);
+          return;
+        }
+
+        // Convert to the format expected by calculateTotal
+        const formattedDiscount = {
+          type: discountData.type,
+          value: discountData.value,
+          code: discountData.code,
+          description: discountData.description,
+        };
+
+        setAppliedDiscount(formattedDiscount);
+        setDiscountMessage("✅ Discount applied successfully!");
+        setShowDiscountModal(true);
       } else {
-        alert("❌ Invalid discount code.");
+        setDiscountMessage("❌ Invalid discount code.");
+        setShowDiscountModal(true);
       }
     } catch (err) {
       console.error("Error checking discount code:", err);
-      alert("Error checking discount code.");
+      setDiscountMessage("Error checking discount code.");
+      setShowDiscountModal(true);
     }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode("");
   };
 
   const handleRemoveItem = async (title, venue, packageType) => {
@@ -184,7 +252,6 @@ const DashCheckout = () => {
 
   const onSaveDB = async (result) => {
     try {
-
       if (result.status === "COMPLETED") {
         //store in firebase
         const user = auth.currentUser;
@@ -234,7 +301,23 @@ const DashCheckout = () => {
               })),
             });
 
-            // 3. Clear cart after successful purchase
+            // 3. Update discount code usage count if applicable
+            if (appliedDiscount && appliedDiscount.code) {
+              try {
+                const discountRef = doc(db, "discounts", appliedDiscount.code);
+                await updateDoc(discountRef, {
+                  usageCount: increment(1),
+                });
+                console.log("✅ Discount usage count updated");
+              } catch (error) {
+                console.error(
+                  "❌ Failed to update discount usage count:",
+                  error
+                );
+              }
+            }
+
+            // 4. Clear cart after successful purchase
             await setDoc(
               doc(db, "users", user.uid),
               { cart: [] },
@@ -395,7 +478,9 @@ const DashCheckout = () => {
                 Fill in the information below to complete your purchase.
               </p>
 
-              {paymentClientId && (
+              {!paymentClientId ? (
+                <ShimmerLoader />
+              ) : (
                 <div className="mt-8 md:mt-20">
                   <PayPalScriptProvider options={initialOptions}>
                     <PayPalCardFieldsProvider
@@ -439,10 +524,15 @@ const DashCheckout = () => {
                         <div className="flex mx-[5px]">
                           <input
                             type="text"
-                            className="w-full p-3 border border-gray-300 rounded-lg text-[15px] md:text-[16px]"
+                            className={`w-full p-3 border border-gray-300 rounded-lg text-[15px] md:text-[16px] ${
+                              appliedDiscount
+                                ? "bg-gray-100 cursor-not-allowed"
+                                : ""
+                            }`}
                             value={discountCode}
                             onChange={(e) => setDiscountCode(e.target.value)}
                             placeholder="Enter code"
+                            disabled={appliedDiscount}
                           />
                           <button
                             className={`ml-2 px-4 py-2 rounded-lg text-[15px] md:text-[16px] ${
@@ -567,8 +657,44 @@ const DashCheckout = () => {
               </div>
             </div>
           </div>
+
+          {!paymentSuccess && paymentClientId && (
+            <div className="mt-8">
+              <PayPalScriptProvider options={initialOptions}>
+                <PayPalButtons
+                  style={{ layout: "vertical" }}
+                  createOrder={(data, actions) => {
+                    return actions.order.create({
+                      purchase_units: [{ amount: { value: totalPrice } }],
+                    });
+                  }}
+                  onApprove={(data, actions) => {
+                    return actions.order.capture().then((details) => {
+                      setIsProcessing(true);
+                      onSaveDB(details);
+                    });
+                  }}
+                />
+              </PayPalScriptProvider>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Discount Code Modal */}
+      <PopUp
+        isOpen={showDiscountModal}
+        onClose={() => setShowDiscountModal(false)}
+        title="Discount Code"
+        subtitle={discountMessage}
+        icon={discountMessage.includes("✅") ? "✅" : "❌"}
+        iconColor={discountMessage.includes("✅") ? "green" : "red"}
+        maxWidth="max-w-sm"
+        primaryButton={{
+          text: "OK",
+          onClick: () => setShowDiscountModal(false),
+        }}
+      />
     </div>
   );
 };
@@ -597,5 +723,24 @@ const SubmitPayment = () => {
     </button>
   );
 };
+
+const ShimmerLoader = () => (
+  <div className="shimmer-wrapper">
+    <div className="shimmer-line w-1/4"></div>
+    <div className="shimmer-card"></div>
+    <br />
+
+    <div className="shimmer-line w-1/4"></div>
+    <div className="shimmer-card"></div>
+    <br />
+
+    <div className="shimmer-line w-1/4"></div>
+    <div className="shimmer-card"></div>
+    <br />
+    <br />
+
+    <div className="shimmer-card"></div>
+  </div>
+);
 
 export default DashCheckout;
