@@ -547,11 +547,6 @@ exports.createPayPalOrder = onCall(
       });
 
       const order = await client.execute(request);
-
-      if (order.result.status !== "APPROVED") {
-        throw new functions.https.HttpsError('internal', 'Order not approved yet');
-      }
-
       return { id: order.result.id };
     }catch(error){
       throw new functions.https.HttpsError('internal', 'Some issue in payment initialization');
