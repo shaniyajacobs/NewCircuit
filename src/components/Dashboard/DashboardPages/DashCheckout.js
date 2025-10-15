@@ -517,17 +517,15 @@ const DashCheckout = () => {
                         </div>
                       </div>
 
-                      <div className="mb-6 md:mb-8">
-                        <label className="block text-[16px] md:text-[20px] text-gray-600 mb-[8px]">
+                      <div className="mt-6 mb-4">
+                        <label className="block text-[14px] md:text-[16px] text-gray-600 mb-2">
                           Discount Code
                         </label>
-                        <div className="flex mx-[5px]">
+                        <div className="flex gap-2">
                           <input
                             type="text"
-                            className={`w-full p-3 border border-gray-300 rounded-lg text-[15px] md:text-[16px] ${
-                              appliedDiscount
-                                ? "bg-gray-100 cursor-not-allowed"
-                                : ""
+                            className={`flex-1 p-3 border border-gray-300 rounded-lg text-[14px] md:text-[15px] ${
+                              appliedDiscount ? 'bg-gray-100 cursor-not-allowed' : ''
                             }`}
                             value={discountCode}
                             onChange={(e) => setDiscountCode(e.target.value)}
@@ -535,9 +533,9 @@ const DashCheckout = () => {
                             disabled={appliedDiscount}
                           />
                           <button
-                            className={`ml-2 px-4 py-2 rounded-lg text-[15px] md:text-[16px] ${
+                            className={`px-4 py-2 rounded-lg text-[14px] md:text-[15px] ${
                               !discountCode || appliedDiscount
-                                ? "bg-gray-400 cursor-not-allowed"
+                                ? "bg-gray-400 cursor-not-allowed text-white"
                                 : "bg-blue-500 hover:bg-blue-600 text-white"
                             }`}
                             onClick={handleApplyDiscount}
@@ -614,11 +612,22 @@ const DashCheckout = () => {
                   <div className="inline-flex items-center bg-gray-300 text-gray-800 px-3 py-1.5 rounded-md text-[13px] md:text-[15px] lg:text-[16px] font-semibold w-fit">
                     <FaTag className="mr-2 text-gray-600" />
                     {discountCode.toUpperCase()}
+                    <button
+                      onClick={handleRemoveDiscount}
+                      className="ml-2 text-red-500 hover:text-red-700 transition-colors"
+                      title="Remove discount"
+                    >
+                      <FaTrash className="w-3 h-3" />
+                    </button>
                   </div>
                   <div className="mt-1 text-gray-500 text-[13px] md:text-[15px] lg:text-[16px]">
-                    {appliedDiscount.percentOff
-                      ? `${appliedDiscount.percentOff}% off`
-                      : `$${appliedDiscount.amountOff.toFixed(2)} off`}
+                    {appliedDiscount.type === 'percentage'
+                      ? `${appliedDiscount.value}% off`
+                      : appliedDiscount.type === 'fixed'
+                      ? `$${appliedDiscount.value.toFixed(2)} off`
+                      : appliedDiscount.percentOff
+                        ? `${appliedDiscount.percentOff}% off`
+                        : `$${appliedDiscount.amountOff.toFixed(2)} off`}
                   </div>
                 </div>
 
