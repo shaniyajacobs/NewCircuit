@@ -304,7 +304,7 @@ const DashDateCalendar = () => {
           title: "Brunch",
           time: "12:30pm - 2:00pm",
           venue: userLocation,
-          price: "$28",
+          price: "$38",
           features: [
             "Virtual Brunch Speed Date",
             "12:30pm - 2:00 pm",
@@ -315,7 +315,7 @@ const DashDateCalendar = () => {
           title: "Happy Hour",
           time: "3:00pm - 4:30pm",
           venue: userLocation,
-          price: "$28",
+          price: "$38",
           features: [
             "Virtual Happy Hour Speed Date",
             "3:00pm - 4:30pm",
@@ -551,7 +551,7 @@ const DashDateCalendar = () => {
               
             "
           >
-              Dates Remaining: {datesRemaining}
+              Date credits remaining: {datesRemaining}
             </span>
           </div>
         </div>
