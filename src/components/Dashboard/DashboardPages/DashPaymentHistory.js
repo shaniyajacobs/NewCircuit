@@ -66,7 +66,9 @@ const DashPaymentHistory = () => {
       return `${paymentMethod.brand?.toUpperCase()} •••• ${paymentMethod.last4}`;
     } else if (paymentMethod.type === 'paypal') {
       return 'PayPal';
-    }
+    } else if (paymentMethod.type === 'venmo') {
+      return 'Venmo';
+    } 
     return 'Payment Processed';
   };
 
