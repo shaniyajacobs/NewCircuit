@@ -16,6 +16,7 @@ import MyMatches from "../components/Dashboard/DashboardPages/MyMatches";
 import SeeAllMatches from "../components/Dashboard/DashboardPages/SeeAllMatches";
 import DashPaymentHistory from "../components/Dashboard/DashboardPages/DashPaymentHistory";
 import MatchmakingTest from "../components/Dashboard/DashboardPages/MatchmakingTest";
+import DashOrderConfirmation from "../components/Dashboard/DashboardPages/DashOrderConfirmation";
 
 import SignOut from "../components/Dashboard/DashboardPages/SignOut";
 
@@ -92,6 +93,7 @@ const Dashboard = () => {
             <Route path="dashSignOut" element={<SignOut />} />
             <Route path="dashPaymentHistory" element={<DashPaymentHistory />} />
             <Route path="matchmakingTest" element={<MatchmakingTest />} />
+            <Route path="dashOrderConfirmation" element={<DashOrderConfirmation />} />
           </Routes>
       </div>
     </div>
