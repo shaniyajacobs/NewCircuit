@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
@@ -12,6 +12,7 @@ const DashOrderConfirmation = () => {
   const [orderData, setOrderData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const purchaseTrackedRef = useRef(false);
 
   useEffect(() => {
     const validatePurchase = async () => {
@@ -61,6 +62,41 @@ const DashOrderConfirmation = () => {
 
     validatePurchase();
   }, [navigate, location.state]);
+
+  // Track Purchase event (simplified version)
+  useEffect(() => {
+    const trackPurchase = () => {
+      if (!orderData) return;
+      if (purchaseTrackedRef.current) return;
+      if (typeof window === 'undefined' || !window.fbq) return;
+
+      try {
+        // Fire the Purchase event
+        const value = Number(orderData?.amount || 0);
+        const contents = (orderData?.cart || []).map((item) => ({
+          id: item.eventId || item.id || item.sku || formatCartItemDisplay(item),
+          quantity: 1,
+          item_price: Number(String(item.price || '').replace('$','')) || undefined,
+        }));
+
+        window.fbq('track', 'Purchase', {
+          value,
+          currency: 'USD',
+          contents,
+          content_type: 'product',
+          num_items: contents.length,
+          eventID: orderData.paymentIntentId, // For deduplication
+        });
+
+        purchaseTrackedRef.current = true;
+        console.log('Purchase event tracked successfully');
+      } catch (error) {
+        console.error('Failed to track purchase:', error);
+      }
+    };
+
+    trackPurchase();
+  }, [orderData]);
 
   // Loading state
   if (loading) {
