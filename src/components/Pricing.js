@@ -54,7 +54,7 @@ const Pricing = () => {
                 subheading: isBundle ? "10 Dates" : "",
                 title: isBundle ? "The Adventure" : "Brunch",
                 oldPrice: isBundle ? "$38" : "", 
-                price: isBundle ? "$22" : "$28",
+                price: isBundle ? "$22" : "$38",
 
                 features: isBundle
                   ? ["10 Virtual Speed Dates", "Advanced Matching Algorithm", "Includes up to 3 Virtual dinner speed dates"]
@@ -67,7 +67,7 @@ const Pricing = () => {
                 subheading: isBundle ? "6 Dates" : "",
                 title: isBundle ? "The Connection" : "Happy Hour",
                 oldPrice: isBundle ? "$38" : "", 
-                price: isBundle ? "$24" : "$28",
+                price: isBundle ? "$24" : "$38",
                 features: isBundle
                   ? ["6 Virtual Speed Dates", "Advanced Matching Algorithm", "Includes up to 2 Virtual dinner speed dates"]
                   : ["Virtual Happy Hour Speed Date", "3:00pm - 4:30pm", "Advanced Matching Algorithm"],

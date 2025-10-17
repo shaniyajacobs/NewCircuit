@@ -668,7 +668,7 @@ const getEventData = async (eventID) => {
     const currentRemaining = Number.isFinite(datesRemaining) ? datesRemaining : 0;
     if (currentRemaining <= 0) {
       console.log('[JOIN NOW] No dates remaining - cannot sign up');
-      alert('You have no dates remaining. Please purchase more dates to join events.');
+      alert('You have no date credits remaining. Please purchase date credits in the shop tab to register for date events.');
       return;
     }
 
@@ -1405,7 +1405,7 @@ useEffect(() => {
                     mb-4
                   "
                 >
-                    Dates Remaining: {datesRemaining}
+                    Date credits remaining: {datesRemaining}
                   </span>
                   <button
                     onClick={handlePurchaseMoreDatesClick}
