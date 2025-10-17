@@ -93,7 +93,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [spotsData, setSpotsData] = useState({ menCount: 0, womenCount: 0, menSpots: 0, womenSpots: 0 });
   const [isEventActive, setIsEventActive] = useState(false);
   const [hasJoinedEvent, setHasJoinedEvent] = useState(false);
-  const [showSignUpSuccessModal, setShowSignUpSuccessModal] = useState(false);
   // Prefer Remo timestamp if available
   const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
   const { dayOfWeek, day, month, timeLabel } = dateParts;
@@ -563,10 +562,10 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 setErrorMessage('Missing event ID');
                 setShowErrorModal(true);
                 return;
-              }
-              try {
-                setJoining(true);
-                if (shouldShowWaitlist) {
+                }
+                try {
+                  setJoining(true);
+                  if (shouldShowWaitlist) {
                   try {
                     if (!auth.currentUser) {
                       setErrorMessage('Please log in to join the waitlist.');
@@ -590,6 +589,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                   console.log('[JOIN NOW] onSignUp finished with result:', signUpResult);
                   if (signUpResult && signUpResult.success) {
                     console.log('[JOIN NOW] onSignUp successful');
+                    return;
                   } else {
                     console.error('[JOIN NOW] onSignUp failed:', signUpResult);
                     // Use the specific error message from DashHome if available
@@ -623,7 +623,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 
                 // Sign-up completed successfully
                 console.log('[SIGNUP] All operations completed successfully');
-                setShowSignUpSuccessModal(true);
               } catch (err) {
                 console.error('Error fetching join URL:', err);
                 setErrorMessage('Unable to fetch join link. Please try again later.');
@@ -684,19 +683,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
         }}
       />
 
-      {/* Sign-Up Success Modal */}
-      <PopUp
-        isOpen={showSignUpSuccessModal}
-        onClose={() => setShowSignUpSuccessModal(false)}
-        title="Successfully Signed Up!"
-        subtitle="You've been successfully signed up for this event. Please check your email for the virtual event invitation."
-        icon="✓"
-        iconColor="green"
-        primaryButton={{
-          text: "Got it!",
-          onClick: () => setShowSignUpSuccessModal(false)
-        }}
-      />
     </>
   );
 };
