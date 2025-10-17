@@ -286,7 +286,7 @@ const PersonalityQuizPage = () => {
                 onClick={handleConfirmSubmit}
                 className={styles.modalBtnConfirm}
               >
-                Submit Quiz
+                Submit
               </button>
             </div>
           </div>
