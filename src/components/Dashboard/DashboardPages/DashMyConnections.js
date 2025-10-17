@@ -86,7 +86,8 @@ async function isLatestEventWithin48Hours(userId) {
       hoursSinceEvent: Math.round(hoursSinceEvent * 100) / 100 
     });
     
-    return hoursSinceEvent <= 48;
+    // Only show banner AFTER event has ended (positive hoursSinceEvent) and within 48 hours
+    return hoursSinceEvent > 0 && hoursSinceEvent <= 48;
   } catch (error) {
     console.error('[48HOURS] Error checking event time:', error);
     return false;

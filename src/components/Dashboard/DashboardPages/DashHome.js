@@ -103,14 +103,19 @@ function isEventUpcoming(event, userLocation) {
     }
   }
 
-  // Add 90 minutes for event duration
-  const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+  // Use actual endTime from Remo if available, otherwise fallback to 90 minutes
+  let eventEndDateTime;
+  if (event.endTime) {
+    eventEndDateTime = DateTime.fromMillis(Number(event.endTime));
+  } else {
+    eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+  }
 
   // Get user's time zone from location or fallback to browser local zone
   const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
   const now = DateTime.now().setZone(userZone);
 
-  // Compare event end time (converted to user's zone) with now
+  // Show join button until actual event ends
   return eventEndDateTime.setZone(userZone) > now;
 }
 
@@ -178,7 +183,8 @@ async function isLatestEventWithin48Hours(userId) {
       hoursSinceEvent: Math.round(hoursSinceEvent * 100) / 100 
     });
     
-    return hoursSinceEvent <= 48;
+    // Only show banner AFTER event has ended (positive hoursSinceEvent) and within 48 hours
+    return hoursSinceEvent > 0 && hoursSinceEvent <= 48;
   } catch (error) {
     console.error('[48HOURS] Error checking event time:', error);
     return false;
@@ -224,6 +230,8 @@ const DashHome = () => {
   const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
   const [selectingMatches, setSelectingMatches] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -231,6 +239,9 @@ const DashHome = () => {
     title: '',
     message: '',
   });
+
+  // Success modal state for signup confirmation
+  const [showSignUpSuccessModal, setShowSignUpSuccessModal] = useState(false);
 
   // Handle message click to open chat
   const handleMessageClick = (connection) => {
@@ -668,15 +679,21 @@ const getEventData = async (eventID) => {
     const currentRemaining = Number.isFinite(datesRemaining) ? datesRemaining : 0;
     if (currentRemaining <= 0) {
       console.log('[JOIN NOW] No dates remaining - cannot sign up');
-      alert('You have no dates remaining. Please purchase more dates to join events.');
-      return;
+      return { 
+        success: false, 
+        message: 'You have no date credits remaining. Please purchase date credits in the shop tab to register for date events.',
+        showError: true 
+      };
     }
 
     const user = auth.currentUser;
     if (!user) {
       console.error('[JOIN NOW] No authenticated user found');
-      alert('Please log in to join events.');
-      return;
+      return { 
+        success: false, 
+        message: 'Please log in to join events.',
+        showError: true 
+      };
     }
 
     try {
@@ -730,13 +747,29 @@ const getEventData = async (eventID) => {
         });
 
         console.log('✅ Event signup completed successfully');
+        setShowSignUpSuccessModal(true);
+        return { success: true, message: 'Event signup completed successfully', showSuccess: true };
+      } else {
+        console.log('❌ Signup failed - result.success is false:', result);
+        return { 
+          success: false, 
+          message: result.message || 'Failed to sign up for event. Please try again.',
+          showError: true,
+          showSuccess: false
+        };
       }
     } catch (error) {
       console.error('❌ Error during event signup:', error);
       // Don't show alert for capacity errors since users should see waitlist button
       if (!error.message.includes('Event is full for')) {
-        alert(error.message || 'Failed to sign up for event. Please try again.');
+        // Return error details to EventCard instead of showing modal here
+        return { 
+          success: false, 
+          message: error.message || 'Failed to sign up for event. Please try again.',
+          showError: true 
+        };
       }
+      return { success: false, message: 'Failed to sign up for event. Please try again.' };
     }
   };
 
@@ -1077,12 +1110,13 @@ useEffect(() => {
   const signUpEventLimit = useResponsiveEventLimit();
   // Filter for upcoming and sign-up events (already sorted by date)
   const upcomingEvents = useMemo(() => {
+    if (!userProfile?.location) return [];
     const filtered = allEvents.filter(event =>
-      signedUpEventIds.has(event.firestoreID)
+      signedUpEventIds.has(event.firestoreID) && isEventUpcoming(event, userProfile.location)
     );
     // Ensure they remain sorted (should already be sorted from loadEvents)
     return sortEventsByDate(filtered);
-  }, [allEvents, signedUpEventIds]);
+  }, [allEvents, signedUpEventIds, userProfile?.location]);
 
   // Show *all* events (regardless of date) that the user has not yet signed up for (sorted by date)
   const upcomingSignupEvents = useMemo(() => {
@@ -1405,7 +1439,7 @@ useEffect(() => {
                     mb-4
                   "
                 >
-                    Dates Remaining: {datesRemaining}
+                    Date credits remaining: {datesRemaining}
                   </span>
                   <button
                     onClick={handlePurchaseMoreDatesClick}
@@ -1573,6 +1607,34 @@ useEffect(() => {
               </button>
             </div>
             <DashMessages connection={selectedConnection} />
+          </div>
+        </div>
+      )}
+
+      {/* Sign-Up Success Modal */}
+      {showSignUpSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowSignUpSuccessModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-lg max-w-md w-full p-8 z-10">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-green-600">Successfully Signed Up!</h2>
+              <button
+                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                onClick={() => setShowSignUpSuccessModal(false)}
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            </div>
+            <p className="text-gray-700 mb-6">You've been successfully signed up for this event. Please check your email for the virtual event invitation.</p>
+            <div className="flex justify-end">
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                onClick={() => setShowSignUpSuccessModal(false)}
+              >
+                Got it!
+              </button>
+            </div>
           </div>
         </div>
       )}
