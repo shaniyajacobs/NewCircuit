@@ -86,13 +86,14 @@ function getDatePartsFromMillis(millis) {
 const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
   const [joining, setJoining] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [waitlistClicked, setWaitlistClicked] = useState(false);
   const [spotsData, setSpotsData] = useState({ menCount: 0, womenCount: 0, menSpots: 0, womenSpots: 0 });
-  
+  const [isEventActive, setIsEventActive] = useState(false);
+  const [hasJoinedEvent, setHasJoinedEvent] = useState(false);
+  const [showSignUpSuccessModal, setShowSignUpSuccessModal] = useState(false);
   // Prefer Remo timestamp if available
   const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
   const { dayOfWeek, day, month, timeLabel } = dateParts;
@@ -108,6 +109,43 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
     fetchSpots();
   }, [event?.firestoreID]);
 
+  // Check if event is currently active using actual endTime
+  useEffect(() => {
+    const checkEventStatus = () => {
+      if (event.startTime && event.endTime) {
+        const now = DateTime.now();
+        const startTime = DateTime.fromMillis(Number(event.startTime));
+        const endTime = DateTime.fromMillis(Number(event.endTime));
+        setIsEventActive(now >= startTime && now <= endTime);
+      }
+    };
+    
+    checkEventStatus();
+    const interval = setInterval(checkEventStatus, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, [event.startTime, event.endTime]);
+
+  // Check if user has previously joined this event (persisted in Firebase)
+  useEffect(() => {
+    const checkJoinedEventStatus = async () => {
+      if (!auth.currentUser || !event.eventID) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const joinedEvents = userData.joinedEvents || [];
+          const hasJoinedThisEvent = joinedEvents.includes(event.eventID);
+          setHasJoinedEvent(hasJoinedThisEvent);
+          console.log('[EventCard] User has joined this event:', hasJoinedThisEvent, 'Event ID:', event.eventID);
+        }
+      } catch (error) {
+        console.error('[EventCard] Error checking joined event status:', error);
+      }
+    };
+    
+    checkJoinedEventStatus();
+  }, [event.eventID]);
 
 
   // Calculate time range for display
@@ -466,6 +504,31 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 }
                 
                 console.log('[JOIN NOW] Join process completed successfully');
+                setHasJoinedEvent(true);
+                
+                // Persist joined event to Firebase
+                if (auth.currentUser) {
+                  try {
+                    const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                    if (userDoc.exists()) {
+                      const userData = userDoc.data();
+                      const joinedEvents = userData.joinedEvents || [];
+                      
+                      // Add this event to joined events if not already present
+                      if (!joinedEvents.includes(event.eventID)) {
+                        joinedEvents.push(event.eventID);
+                        await setDoc(
+                          doc(db, 'users', auth.currentUser.uid),
+                          { joinedEvents: joinedEvents },
+                          { merge: true }
+                        );
+                        console.log('[JOIN NOW] Added event to joined events list:', event.eventID);
+                      }
+                    }
+                  } catch (error) {
+                    console.error('[JOIN NOW] Error updating joined events:', error);
+                  }
+                }
               } catch (err) {
                 console.error('[JOIN NOW] Error in join process:', err);
                 alert(`Error: ${err.message || 'Unable to fetch join link. Please try again later.'}`);
@@ -490,7 +553,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               ${joining ? 'opacity-60 cursor-not-allowed' : ''}
             `}
           >
-            {joining ? 'Loading…' : 'Join Now'}
+            {joining ? 'Loading…' : (isEventActive && hasJoinedEvent) ? 'Rejoin Event' : 'Join Now'}
           </button>
         ) : (
           <button
@@ -524,13 +587,13 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 if (onSignUp) {
                   console.log('[JOIN NOW] Calling onSignUp for event:', event);
                   const signUpResult = await onSignUp(event);
-                  console.log('[JOIN NOW] onSignUp finished');
-                  if (signUpResult.success) {
+                  console.log('[JOIN NOW] onSignUp finished with result:', signUpResult);
+                  if (signUpResult && signUpResult.success) {
                     console.log('[JOIN NOW] onSignUp successful');
                   } else {
-                    console.error('[JOIN NOW] onSignUp failed');
+                    console.error('[JOIN NOW] onSignUp failed:', signUpResult);
                     // Use the specific error message from DashHome if available
-                    const errorMsg = signUpResult.message || 'Failed to sign up for event. Please try again.';
+                    const errorMsg = signUpResult?.message || 'Failed to sign up for event. Please try again.';
                     setErrorMessage(errorMsg);
                     setShowErrorModal(true);
                     return;
@@ -557,7 +620,10 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     { merge: true }
                   );
                 }
-                setShowSuccessModal(true);
+                
+                // Sign-up completed successfully
+                console.log('[SIGNUP] All operations completed successfully');
+                setShowSignUpSuccessModal(true);
               } catch (err) {
                 console.error('Error fetching join URL:', err);
                 setErrorMessage('Unable to fetch join link. Please try again later.');
@@ -582,24 +648,13 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               ${shouldShowWaitlist && waitlistClicked ? 'opacity-50 cursor-not-allowed' : ''}
             `}
           >
-            {joining ? 'Loading…' : shouldShowWaitlist ? (waitlistClicked ? 'Added to Waitlist' : 'Waitlist') : 'Sign Up'}
+            {joining ? 'Loading…' : 
+             shouldShowWaitlist ? (waitlistClicked ? 'Added to Waitlist' : 'Waitlist') : 
+             'Sign Up'}
           </button>
         )}
       </div>
 
-      {/* Success Modal */}
-      <PopUp
-        isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        title="Successfully Signed Up!"
-        subtitle="You've been successfully signed up for this event. Please check your email for the virtual event invitation."
-        icon="✓"
-        iconColor="green"
-        primaryButton={{
-          text: "Got it!",
-          onClick: () => setShowSuccessModal(false)
-        }}
-      />
 
       {/* Waitlist Modal */}
       <PopUp
@@ -626,6 +681,20 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
         primaryButton={{
           text: "Try Again",
           onClick: () => setShowErrorModal(false)
+        }}
+      />
+
+      {/* Sign-Up Success Modal */}
+      <PopUp
+        isOpen={showSignUpSuccessModal}
+        onClose={() => setShowSignUpSuccessModal(false)}
+        title="Successfully Signed Up!"
+        subtitle="You've been successfully signed up for this event. Please check your email for the virtual event invitation."
+        icon="✓"
+        iconColor="green"
+        primaryButton={{
+          text: "Got it!",
+          onClick: () => setShowSignUpSuccessModal(false)
         }}
       />
     </>

@@ -103,14 +103,19 @@ function isEventUpcoming(event, userLocation) {
     }
   }
 
-  // Add 90 minutes for event duration
-  const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+  // Use actual endTime from Remo if available, otherwise fallback to 90 minutes
+  let eventEndDateTime;
+  if (event.endTime) {
+    eventEndDateTime = DateTime.fromMillis(Number(event.endTime));
+  } else {
+    eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+  }
 
   // Get user's time zone from location or fallback to browser local zone
   const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
   const now = DateTime.now().setZone(userZone);
 
-  // Compare event end time (converted to user's zone) with now
+  // Show join button until actual event ends
   return eventEndDateTime.setZone(userZone) > now;
 }
 
@@ -178,7 +183,8 @@ async function isLatestEventWithin48Hours(userId) {
       hoursSinceEvent: Math.round(hoursSinceEvent * 100) / 100 
     });
     
-    return hoursSinceEvent <= 48;
+    // Only show banner AFTER event has ended (positive hoursSinceEvent) and within 48 hours
+    return hoursSinceEvent > 0 && hoursSinceEvent <= 48;
   } catch (error) {
     console.error('[48HOURS] Error checking event time:', error);
     return false;
@@ -1092,12 +1098,13 @@ useEffect(() => {
   const signUpEventLimit = useResponsiveEventLimit();
   // Filter for upcoming and sign-up events (already sorted by date)
   const upcomingEvents = useMemo(() => {
+    if (!userProfile?.location) return [];
     const filtered = allEvents.filter(event =>
-      signedUpEventIds.has(event.firestoreID)
+      signedUpEventIds.has(event.firestoreID) && isEventUpcoming(event, userProfile.location)
     );
     // Ensure they remain sorted (should already be sorted from loadEvents)
     return sortEventsByDate(filtered);
-  }, [allEvents, signedUpEventIds]);
+  }, [allEvents, signedUpEventIds, userProfile?.location]);
 
   // Show *all* events (regardless of date) that the user has not yet signed up for (sorted by date)
   const upcomingSignupEvents = useMemo(() => {
