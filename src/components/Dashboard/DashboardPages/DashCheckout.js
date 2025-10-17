@@ -119,14 +119,6 @@ const DashCheckout = () => {
     );
   }
 
-  if (cart.length === 0 && !paymentSuccess) {
-    return (
-      <p className="text-center text-xl mt-10">
-        No package selected. Please go back to the Date Calendar.
-      </p>
-    );
-  }
-
   // Group same plans
   const groupedCart = cart.reduce((acc, plan) => {
     const key = `${plan.title}-${plan.venue}-${plan.packageType}`;
@@ -278,13 +270,11 @@ const DashCheckout = () => {
               // Add payment method information
               paymentMethod: result.payment_source?.card ? {
                 type: 'card',
-                last4: result.payment_source.card.last_digits,
-                brand: result.payment_source.card.brand,
-                expiryMonth: result.payment_source.card.expiry_month,
-                expiryYear: result.payment_source.card.expiry_year
+                last4: result.payment_source.card.last_digits || '****',
+                brand: result.payment_source.card.brand || 'Card'
               } : result.payment_source?.paypal ? {
                 type: 'paypal',
-                email: result.payment_source.paypal.email_address
+                email: result.payment_source.paypal.email_address || 'PayPal'
               } : {
                 type: 'unknown'
               }

@@ -1,5 +1,5 @@
-import { collection, getDocs, doc, getDoc, runTransaction, updateDoc } from 'firebase/firestore';
-import { db } from '../pages/firebaseConfig';
+import { collection, getDocs, doc, getDoc, runTransaction, updateDoc, addDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 
 // Debug utility for consistent logging
 const debug = {
@@ -354,7 +354,8 @@ export const processDatePurchase = async (userId, cartItems, paymentIntentId, to
     });
     
     // 5. WRITE: Create purchase record in user's purchases subcollection
-    const purchaseRef = doc(collection(db, 'users', userId, 'purchases'));
+    const purchasesCollection = collection(db, 'users', userId, 'purchases');
+    const purchaseRef = doc(purchasesCollection);
     const purchaseData = {
       purchaseId: purchaseRef.id,
       paymentIntentId: paymentIntentId,
