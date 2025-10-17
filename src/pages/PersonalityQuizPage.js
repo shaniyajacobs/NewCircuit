@@ -273,7 +273,7 @@ const PersonalityQuizPage = () => {
               Confirm Submission
             </h3>
             <p className={styles.modalSubtitle}>
-              Are you sure you want to submit your personality quiz? You won't be able to change your answers after submission.
+              Are you sure you want to submit your personality indicator? You won't be able to change your answers after submission.
             </p>
             <div className={styles.modalActions}>
               <button 
