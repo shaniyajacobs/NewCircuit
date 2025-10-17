@@ -265,6 +265,11 @@ const DashOrderConfirmation = () => {
                       <div className="font-medium">PayPal</div>
                       <div className="text-sm text-gray-500">{orderData.paymentMethod.email}</div>
                     </div>
+                  ) : orderData.paymentMethod.type === 'venmo' ? (
+                    <div className="text-right">
+                      <div className="font-medium">Venmo</div>
+                      <div className="text-sm text-gray-500">{orderData.paymentMethod.email}</div>
+                    </div>
                   ) : (
                     <span className="font-medium">Payment Processed</span>
                   )}
