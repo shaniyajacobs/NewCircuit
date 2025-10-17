@@ -523,8 +523,18 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
 
                 if (onSignUp) {
                   console.log('[JOIN NOW] Calling onSignUp for event:', event);
-                  await onSignUp(event);
+                  const signUpResult = await onSignUp(event);
                   console.log('[JOIN NOW] onSignUp finished');
+                  if (signUpResult.success) {
+                    console.log('[JOIN NOW] onSignUp successful');
+                  } else {
+                    console.error('[JOIN NOW] onSignUp failed');
+                    // Use the specific error message from DashHome if available
+                    const errorMsg = signUpResult.message || 'Failed to sign up for event. Please try again.';
+                    setErrorMessage(errorMsg);
+                    setShowErrorModal(true);
+                    return;
+                  }
                 }
                 const functions = getFunctions();
                 console.log('About to call getEventData');
