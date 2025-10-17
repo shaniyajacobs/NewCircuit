@@ -3,6 +3,7 @@ const { onCall } = require("firebase-functions/v2/https");
 const { onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
+const { collection, query, where, getDocs, updateDoc } = require("firebase/firestore");
 const Stripe = require("stripe");
 const util = require('util');
 const nodemailer = require('nodemailer');
@@ -15,6 +16,7 @@ const emailUser = defineSecret('EMAIL_USER');
 const emailPass = defineSecret('EMAIL_PASS');
 const payPalClientId = defineSecret('PAYPAL_CLIENT_ID');
 const payPalClientSecret = defineSecret('PAYPAL_SECRET');
+const fbPixelId = defineSecret('FB_PIXEL_ID');
 
 admin.initializeApp();
 
@@ -591,5 +593,49 @@ exports.paymentClientId = onCall(
   },
   (data, context) => {
     return { clientId: payPalClientId.value() }
+  }
+);
+
+exports.getFbPixelId = onCall(
+  {
+    region: "us-central1",
+    secrets: [fbPixelId],
+    runtime: 'nodejs18',
+  },
+  () => ({ pixelId: fbPixelId.value() })
+);
+
+exports.markPixelTracked = onCall(
+  {
+    region: "us-central1",
+    runtime: 'nodejs18',
+  },
+  async (data, context) => {
+    const { paymentIntentId } = data.data;
+    if (!paymentIntentId) {
+      throw new functions.https.HttpsError('invalid-argument', 'Missing paymentIntentId');
+    }
+
+    const auth = context.auth;
+    if (!auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+    }
+
+    // Find the payment document by paymentIntentId
+    const paymentsRef = collection(db, 'users', auth.uid, 'payments');
+    const q = query(paymentsRef, where('paymentIntentId', '==', paymentIntentId));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      throw new functions.https.HttpsError('not-found', 'Payment not found');
+    }
+
+    const paymentDoc = snapshot.docs[0];
+    await updateDoc(paymentDoc.ref, {
+      pixelTracked: true,
+      pixelTrackedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return { success: true };
   }
 );
