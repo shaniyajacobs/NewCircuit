@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaTag, FaTrash } from "react-icons/fa";
 import { httpsCallable } from "firebase/functions";
+import { formatCartItemDisplay } from "../../../utils/dateTypeFormatter";
 import {
   collection,
   doc,
@@ -257,8 +258,11 @@ const DashCheckout = () => {
         const user = auth.currentUser;
         if (user) {
           try {
+            // Generate session token for security
+            const sessionToken = `purchase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
             //1. Save payment record
-            await addDoc(collection(db, "users", user.uid, "payments"), {
+            const paymentData = {
               amount: totalPrice,
               originalAmount: Number(baseTotal.toFixed(2)),
               discountCode: discountCode || null,
@@ -267,10 +271,26 @@ const DashCheckout = () => {
               createdAt: Timestamp.now(),
               paymentIntentId: result.id,
               status: result.status,
+              sessionToken: sessionToken,
               planLabel: cartItems
                 .map((item) => `${item.packageType} (${item.title})`)
                 .join(", "),
-            });
+              // Add payment method information
+              paymentMethod: result.payment_source?.card ? {
+                type: 'card',
+                last4: result.payment_source.card.last_digits,
+                brand: result.payment_source.card.brand,
+                expiryMonth: result.payment_source.card.expiry_month,
+                expiryYear: result.payment_source.card.expiry_year
+              } : result.payment_source?.paypal ? {
+                type: 'paypal',
+                email: result.payment_source.paypal.email_address
+              } : {
+                type: 'unknown'
+              }
+            };
+            
+            await addDoc(collection(db, "users", user.uid, "payments"), paymentData);
 
             // 2. Process date purchase transactionally
             const purchaseResult = await processDatePurchase(
@@ -325,14 +345,8 @@ const DashCheckout = () => {
             );
 
             setIsProcessing(false);
-            setPaymentSuccess(true);
 
-            // 4. Show success message with dates added
-            alert(
-              `🎉 Purchase successful! ${purchaseResult.totalDatesPurchased} dates added to your account.`
-            );
-
-            // 5. Dispatch event to refresh dates remaining in other components
+            // 5. Dispatch events to refresh dates remaining and cart in other components
             window.dispatchEvent(
               new CustomEvent("datesUpdated", {
                 detail: {
@@ -341,6 +355,17 @@ const DashCheckout = () => {
                 },
               })
             );
+
+            // Dispatch cart update event to refresh sidebar cart count
+            window.dispatchEvent(new CustomEvent("cartUpdated"));
+
+            // 6. Navigate directly to confirmation page
+            navigate('/dashboard/dashOrderConfirmation', {
+              state: {
+                orderData: paymentData,
+                sessionToken: sessionToken,
+              }
+            });
           } catch (e) {
             console.error("Error processing purchase:", e);
             alert(
@@ -452,31 +477,17 @@ const DashCheckout = () => {
         </div>
       )}
 
-      <h2
-        className={`text-3xl md:text-4xl font-semibold mb-6 md:mb-8 ${
-          paymentSuccess
-            ? "text-4xl md:text-5xl text-center w-full mb-10"
-            : "text-black"
-        }`}
-      >
-        {paymentSuccess ? "Confirmation of Purchase" : "Checkout Details"}
+      <h2 className="text-3xl md:text-4xl font-semibold mb-6 md:mb-8 text-black">
+        Checkout Details
       </h2>
 
       {/* Responsive layout */}
       <div className="flex flex-col lg:flex-row w-full max-w-full min-h-[600px] gap-8 md:gap-16 lg:gap-20 xl:gap-28">
         {/* Left Side - Payment Form */}
         <div className="w-full lg:w-2/3 h-full">
-          {paymentSuccess ? (
-            <div className="flex flex-col justify-start w-full">
-              <p className="text-[22px] md:text-[26px] font-light text-black mt-10 md:mt-20 ml-0 md:ml-20">
-                Congrats! You just bought this.
-              </p>
-            </div>
-          ) : (
-            <>
-              <p className="text-[#000000] text-[18px] md:text-[22px] lg:text-[24px] mb-6 md:mb-9">
-                Fill in the information below to complete your purchase.
-              </p>
+          <p className="text-[#000000] text-[18px] md:text-[22px] lg:text-[24px] mb-6 md:mb-9">
+            Fill in the information below to complete your purchase.
+          </p>
 
               {!paymentClientId ? (
                 <ShimmerLoader />
@@ -551,15 +562,13 @@ const DashCheckout = () => {
                   </PayPalScriptProvider>
                 </div>
               )}
-            </>
-          )}
         </div>
 
         {/* Right Side - Summary Box */}
         <div className="w-full lg:w-2/5 bg-[#F8FAFF] p-5 md:p-8 rounded-2xl shadow-md min-h-[400px] flex flex-col justify-between border border-gray-100">
           <div>
             <p className="text-[16px] md:text-[20px] font-medium text-gray-600 mb-2">
-              {paymentSuccess ? "You bought:" : "You're paying,"}
+              You're paying,
             </p>
             <p className="text-[36px] md:text-[48px] lg:text-[60px] font-bold text-[#0043F1]">
               ${totalPrice.toFixed(2)}
@@ -573,9 +582,7 @@ const DashCheckout = () => {
                 >
                   <div className="flex flex-col">
                     <p className="font-bold text-[18px] md:text-[22px] lg:text-[26px] leading-tight text-[#211F20]">
-                      {`${plan.quantity * (plan.numDates || 1)} x ${
-                        plan.packageType === "Bundle" ? "Bundle Date" : "Date"
-                      }${plan.quantity * (plan.numDates || 1) > 1 ? "s" : ""}`}
+                      {formatCartItemDisplay(plan)}
                     </p>
                     <p className="text-gray-600 text-[15px] md:text-[18px] lg:text-[20px] font-poppins">
                       {plan.venue}
@@ -587,20 +594,18 @@ const DashCheckout = () => {
                     <p className="text-[16px] md:text-[20px] lg:text-[24px] font-semibold text-[#0043F1]">
                       ${parseFloat(plan.price.replace("$", "")).toFixed(2)}
                     </p>
-                    {!paymentSuccess && (
-                      <button
-                        onClick={() =>
-                          handleRemoveItem(
-                            plan.title,
-                            plan.venue,
-                            plan.packageType
-                          )
-                        }
-                        className="text-red-600 hover:text-red-800 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      >
-                        <FaTrash size={18} />
-                      </button>
-                    )}
+                    <button
+                      onClick={() =>
+                        handleRemoveItem(
+                          plan.title,
+                          plan.venue,
+                          plan.packageType
+                        )
+                      }
+                      className="text-red-600 hover:text-red-800 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    >
+                      <FaTrash size={18} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -667,7 +672,7 @@ const DashCheckout = () => {
             </div>
           </div>
 
-          {!paymentSuccess && paymentClientId && (
+          {paymentClientId && (
             <div className="mt-8">
               <PayPalScriptProvider options={initialOptions}>
                 <PayPalButtons
@@ -704,6 +709,7 @@ const DashCheckout = () => {
           onClick: () => setShowDiscountModal(false),
         }}
       />
+
     </div>
   );
 };
