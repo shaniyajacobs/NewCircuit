@@ -224,6 +224,8 @@ const DashHome = () => {
   const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
   const [selectingMatches, setSelectingMatches] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
@@ -668,15 +670,21 @@ const getEventData = async (eventID) => {
     const currentRemaining = Number.isFinite(datesRemaining) ? datesRemaining : 0;
     if (currentRemaining <= 0) {
       console.log('[JOIN NOW] No dates remaining - cannot sign up');
-      alert('You have no date credits remaining. Please purchase date credits in the shop tab to register for date events.');
-      return;
+      return { 
+        success: false, 
+        message: 'You have no date credits remaining. Please purchase date credits in the shop tab to register for date events.',
+        showError: true 
+      };
     }
 
     const user = auth.currentUser;
     if (!user) {
       console.error('[JOIN NOW] No authenticated user found');
-      alert('Please log in to join events.');
-      return;
+      return { 
+        success: false, 
+        message: 'Please log in to join events.',
+        showError: true 
+      };
     }
 
     try {
@@ -730,13 +738,20 @@ const getEventData = async (eventID) => {
         });
 
         console.log('✅ Event signup completed successfully');
+        return { success: true, message: 'Event signup completed successfully' };
       }
     } catch (error) {
       console.error('❌ Error during event signup:', error);
       // Don't show alert for capacity errors since users should see waitlist button
       if (!error.message.includes('Event is full for')) {
-        alert(error.message || 'Failed to sign up for event. Please try again.');
+        // Return error details to EventCard instead of showing modal here
+        return { 
+          success: false, 
+          message: error.message || 'Failed to sign up for event. Please try again.',
+          showError: true 
+        };
       }
+      return { success: false, message: 'Failed to sign up for event. Please try again.' };
     }
   };
 
