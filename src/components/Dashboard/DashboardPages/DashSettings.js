@@ -18,7 +18,7 @@ const DashSettings = () => {
           </h1>
           <div className="space-y-3 flex-1">
             <SettingItem title="Change password" path="/dashboard/dashChangePassword" clickable={true} />
-            <SettingItem title="Payment history" clickable={true} />
+            <SettingItem title="Payment history" path="/dashboard/dashPaymentHistory" clickable={true} />
             <SettingItem title="Deactivate account" path="/dashboard/dashDeactivateAccount" clickable={true} />
             <SettingItem title="Delete account" path="/dashboard/dashDeleteAccount" clickable={true} />
           </div>

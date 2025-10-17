@@ -1,6 +1,7 @@
 import React from "react";
 import { IoClose } from "react-icons/io5";
 import { FaTrash } from "react-icons/fa";
+import { formatCartItemDisplay } from '../../../utils/dateTypeFormatter';
 
 const ConfirmationModal = ({ isOpen, onClose, cart, removeFromCart, navigate }) => {
   const groupedCart = cart.reduce((acc, plan) => {
@@ -62,7 +63,7 @@ const ConfirmationModal = ({ isOpen, onClose, cart, removeFromCart, navigate }) 
                   >
                     <div>
                       <p className="font-semibold text-[16px] md:text-[18px] text-[#211F20] font-bricolage">
-                        {totalDates} x {plan.packageType === "Bundle" ? "Bundle Dates" : "Date"}
+                        {formatCartItemDisplay(plan)}
                       </p>
                       <p className="text-gray-500 text-[14px] md:text-[15px] font-poppins">{plan.venue}</p>
                     </div>
