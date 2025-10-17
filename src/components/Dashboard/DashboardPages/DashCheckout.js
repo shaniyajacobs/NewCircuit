@@ -275,6 +275,9 @@ const DashCheckout = () => {
               } : result.payment_source?.paypal ? {
                 type: 'paypal',
                 email: result.payment_source.paypal.email_address || 'PayPal'
+              } : result.payment_source?.venmo ? {
+                type: 'venmo',
+                email: result.payment_source.venmo.email_address || 'Venmo'
               } : {
                 type: 'unknown'
               }
