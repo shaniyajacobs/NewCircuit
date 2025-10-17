@@ -2,6 +2,7 @@
 import { initializeApp, getApp, getApps} from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getRemoteConfig } from "firebase/remote-config";
 
 import { getFunctions } from "firebase/functions";
 
@@ -29,8 +30,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app, "us-central1");
 const storage = getStorage(app);
+const remoteConfig = getRemoteConfig(app);
 
-export { app, auth, db, functions, storage };
+export { app, auth, db, functions, storage, remoteConfig };
 
 // Expose test functions globally for debugging
 if (typeof window !== 'undefined') {
