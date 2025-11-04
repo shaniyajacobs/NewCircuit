@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import HeaderBar from '../components/HeaderBar';
-import whiteLogo from '../images/logomark_white.png';
+import styles from './LocationScreen.module.css';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db, auth } from '../firebaseConfig';
+import { IoChevronBack } from 'react-icons/io5';
 
 // Import all images at the top
 import atlantaImg from '../images/atlanta.jpeg';
@@ -29,24 +29,21 @@ const cities = [
     { name: 'Miami', image: miamiImg },
     { name: 'New York City', image: newYorkImg },
     { name: 'Sacramento', image: sacramentoImg },
-    { name: 'San Francisco', image: sanfranciscoImg },
+    { name: 'San Francisco / Bay Area', image: sanfranciscoImg },
     { name: 'Seattle', image: seattleImg },
     { name: 'Washington D.C.', image: washingtonDCImg }
 ];
 
 const LocationScreen = () => {
     const navigate = useNavigate();
-     // Access the location state
     const location = useLocation();
-    // Destructure userData, and provide a fallback if it's undefined
     const initialUserData = location.state?.userData || {};
-    const [userData, setUserData] = useState(initialUserData || {});
+    const [userData] = useState(initialUserData || {});
     const [selectedCity, setSelectedCity] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [imagesLoaded, setImagesLoaded] = useState(false);
 
     useEffect(() => {
-        // Preload all images
         Promise.all(cities.map(city => {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -61,99 +58,79 @@ const LocationScreen = () => {
         .catch(err => console.log("Error loading images", err));
     }, []);
 
-    const handleCityClick = async (cityName) => {
-        console.log("City click handler started for:", cityName);
-        setSelectedCity(cityName);
-      
-        try {
-          // Assumes that userData contains a unique user identifier (e.g., userData.userId)
-          // that was created during VerifyEmail (the uid from Firebase Authentication)
-          console.log('in try block');
-          console.log('User Data:', userData);
-          await updateDoc(doc(db, "users", userData.userId), {
-            location: cityName
-          });
-          console.log(`User location updated to ${cityName}`);
-        } catch (error) {
-          console.error("Error updating user location:", error);
-          // Optionally, set error state if you want to notify the user
-        }
-        setShowModal(true);
+    const handleCityClick = (cityName) => {
+      setSelectedCity(cityName);
+      setShowModal(true);
     };
 
-    const handleConfirm = () => {
-        setShowModal(false);
-        navigate('/quiz-start');
+    const handleConfirm = async () => {
+      try {
+        const uid = userData.userId || (auth.currentUser && auth.currentUser.uid);
+        if (!uid) throw new Error('No user ID available');
+        await updateDoc(doc(db, 'users', uid), {
+          location: selectedCity,
+          locationSet: true,
+        });
+      } catch (error) {
+        console.error('Error updating user location:', error);
+      }
+      setShowModal(false);
+      navigate('/quiz-start');
     };
 
-    // Show loading state while images are loading
     if (!imagesLoaded) {
         return (
-            <div className="min-h-screen bg-[#85A2F2] flex items-center justify-center">
+            <div className="min-h-screen bg-[#211F20] flex items-center justify-center">
                 <div className="text-white text-xl">Loading...</div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen">
-            <HeaderBar 
-                title="Location" 
-                logo={whiteLogo}
-                logoHeight="h-20"
-                titleSize="text-4xl"
-            />
-
-            <div className="bg-white p-8">
-                <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-[#151D48] text-3xl font-semibold mb-2">Select City</h2>
-                        <p className="text-[#151D48] text-lg">You can change this later</p>
-                    </div>
-
-                    <div className="bg-white rounded-3xl p-8 mx-[-2rem]">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {cities.map((city) => (
-                                <div 
-                                    key={city.name}
-                                    className="relative rounded-2xl overflow-hidden aspect-square cursor-pointer group"
-                                    onClick={() => handleCityClick(city.name)}
-                                >
-                                    <img 
-                                        src={city.image} 
-                                        alt={city.name}
-                                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-30">
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <h3 className="text-white text-2xl font-semibold">{city.name}</h3>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+        <div className={styles.bgFull}>
+            {/* Top Bar */}
+            <div className={styles.topBar}>
+                <button className={styles.backBtn} onClick={() => navigate('/preferencePage')}>
+                    <IoChevronBack className={styles.backIcon} />
+                </button>
+                <span className={styles.locationText}>GENDER</span>
             </div>
 
+            {/* Main Content */}
+            <div className={styles.contentWrapper}>
+                <h2 className={styles.selectCityTitle}>Select City</h2>
+                <p className={styles.selectCitySubtitle}>You can change this later</p>
+                <div className={styles.cityGrid}>
+                    {cities.map((city, idx) => (
+                        <div
+                            key={city.name + idx}
+                            className={styles.cityCard}
+                            style={{ backgroundImage: `linear-gradient(0deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.65) 100%), url(${city.image})` }}
+                            onClick={() => handleCityClick(city.name)}
+                        >
+                            <span className={styles.cityName}>{city.name}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
             {/* Confirmation Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-                        <h3 className="text-2xl font-semibold text-[#151D48] mb-4">
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modalBox}>
+                        <h3 className={styles.modalTitle}>
                             You have selected {selectedCity}
                         </h3>
-                        <p className="text-gray-600 mb-6">Please confirm your selection</p>
-                        <div className="flex justify-end gap-4">
+                        <p className={styles.modalSubtitle}>Please confirm your selection</p>
+                        <div className={styles.modalActions}>
                             <button 
                                 onClick={() => setShowModal(false)}
-                                className="px-6 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+                                className={styles.modalBtnCancel}
                             >
                                 No
                             </button>
                             <button 
                                 onClick={handleConfirm}
-                                className="px-6 py-2 rounded-lg bg-[#85A2F2] text-white hover:bg-[#7491e1]"
+                                className={styles.modalBtnConfirm}
                             >
                                 Yes
                             </button>

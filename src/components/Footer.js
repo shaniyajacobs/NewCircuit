@@ -1,18 +1,19 @@
 import React from "react";
 import { FaInstagram, FaTiktok, FaLinkedin, FaXTwitter } from "react-icons/fa6";
 import logo from "../images/Cir_Secondary_RGB_Mixed Black.png";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
 
   return (
-    <footer className="bg-[#FAFFE7] text-black px-3 py-12 md:px-16 lg:px-24">
+    <footer className="bg-[#FAFFE7] text-black px-3 py-12 md:px-16 lg:px-24 border-t border-black overflow-x-hidden">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div>
           <h5 className="text-xs font-semibold uppercase mb-4">Pages</h5>
           <ul className="space-y-2 text-sm">
             <li><a href="/create-account" onClick={() => window.scrollTo(0, 0)}>Get started</a></li>
             <li><a href="/" onClick={() => window.scrollTo(0, 0)}>Homepage</a></li>
-            <li><a href="#">How it works</a></li>
+            <li><a href="/how-it-works" onClick={() => window.scrollTo(0, 0)}>How it works</a></li>
             <li><a href="/pricing" onClick={() => window.scrollTo(0, 0)}>Pricing</a></li>
             <li><a href="/faq" onClick={() => window.scrollTo(0, 0)}>FAQ</a></li>
             <li><a href="/contact" onClick={() => window.scrollTo(0, 0)}>Contact</a></li>
@@ -22,9 +23,9 @@ const Footer = () => {
         <div>
           <h5 className="text-xs font-semibold uppercase mb-4">Legal</h5>
           <ul className="space-y-2 text-sm">
-            <li><a href="#">Privacy policy</a></li>
-            <li><a href="#">Cookie policy</a></li>
-            <li><a href="#">Terms of service</a></li>
+            <li><Link to="/terms-of-service#privacy" onClick={() => window.scrollTo(0, 0)}>Privacy policy</Link></li>
+            <li><Link to="/terms-of-service#cookies" onClick={() => window.scrollTo(0, 0)}>Cookie policy</Link></li>
+            <li><Link to="/terms-of-service#intro" onClick={() => window.scrollTo(0, 0)}>Terms of service</Link></li>
           </ul>
         </div>
 
@@ -32,17 +33,18 @@ const Footer = () => {
         <div className="md:text-right">
           <h5 className="text-xs font-semibold uppercase mb-4">Get in touch</h5>
           <p className="text-2xl mb-1 underline">
-            <a href="mailto:hello@circuit.com">hello@circuit.com</a>
+            <a href="mailto:hello@circuit.com">contact@circuitspeeddating.com</a>
           </p>
-          <p className="text-2xl underline">+514.514.5144</p>
+          <p className="text-2xl underline">+510.903.7210</p>
         </div>
       </div>
 
-      <div className="w-full flex justify-center">
+      {/* LOGO: perfectly edge-to-edge full width on desktop, normal on mobile */}
+      <div className="w-screen relative left-1/2 -translate-x-1/2 flex justify-center items-center">
         <img
           src={logo}
           alt="Circuit Logo"
-          className="w-full max-w-[1600px] h-auto object-contain"
+          className="w-full h-auto object-contain"
           style={{ maxHeight: '400px' }}
         />
       </div>
@@ -52,10 +54,28 @@ const Footer = () => {
           © 2025 Circuit Dating. All rights reserved.
         </p>
         <div className="flex gap-4 text-xl">
-          <a href="#"><FaInstagram /></a>
-          <a href="#"><FaTiktok /></a>
-          <a href="#"><FaLinkedin /></a>
-          <a href="#"><FaXTwitter /></a>
+          <a
+            className="hover:opacity-70 transition-opacity"
+            aria-label="Follow us on Instagram"
+            href="https://www.instagram.com/circuitdating/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png"
+              alt="Instagram"
+              style={{ width: 28, height: 28 }}
+            />
+          </a>
+          <button className="hover:text-gray-600 transition-colors" aria-label="Follow us on TikTok">
+            <FaTiktok />
+          </button>
+          <button className="hover:text-gray-600 transition-colors" aria-label="Follow us on LinkedIn">
+            <FaLinkedin />
+          </button>
+          <button className="hover:text-gray-600 transition-colors" aria-label="Follow us on X (Twitter)">
+            <FaXTwitter />
+          </button>
         </div>
       </div>
     </footer>

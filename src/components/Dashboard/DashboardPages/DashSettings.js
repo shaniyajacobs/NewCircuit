@@ -3,11 +3,22 @@ import { useNavigate } from 'react-router-dom';
 
 const DashSettings = () => {
     return (
-      <div className="p-7 pt-3 min-h-screen">
-        <div className="bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] p-7 h-full">
-          <div className="space-y-4 w-1/2 mx-auto flex flex-col items-center"> 
+      <div className="p-7 pt-3 h-screen bg-white overflow-hidden">
+        <div className="w-full md:w-3/4 lg:w-1/2 mx-auto flex flex-col h-full"> 
+          <h1 
+            className="text-[#211F20] font-bricolage text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[32px] font-medium leading-[130%] mb-4 pt-4 pb-2"
+            style={{
+              fontFamily: '"Bricolage Grotesque", sans-serif',
+              fontStyle: 'normal',
+              fontWeight: 500,
+              lineHeight: '130%'
+            }}
+          >
+            Settings
+          </h1>
+          <div className="space-y-3 flex-1">
             <SettingItem title="Change password" path="/dashboard/dashChangePassword" clickable={true} />
-            <SettingItem title="Payment history" clickable={false} />
+            <SettingItem title="Payment history" path="/dashboard/dashPaymentHistory" clickable={true} />
             <SettingItem title="Deactivate account" path="/dashboard/dashDeactivateAccount" clickable={true} />
             <SettingItem title="Delete account" path="/dashboard/dashDeleteAccount" clickable={true} />
           </div>
@@ -18,21 +29,35 @@ const DashSettings = () => {
 
   function SettingItem({ title, path, clickable }) {
     const navigate = useNavigate(); 
-    return (
-      clickable ? 
-      <button 
-        className="w-full py-8 px-6 bg-white rounded-lg shadow-md cursor-pointer hover:shadow-lg hover:bg-blue-50 flex justify-between items-center font-[poppins]"
+    const baseClass = `
+      flex items-center justify-between w-full
+      px-4 sm:px-6 md:px-8 lg:px-[24px] 
+      py-2 sm:py-3 md:py-4 lg:py-[12px]
+      rounded-[8px]
+      border border-[rgba(0,0,0,0.10)]
+      bg-white
+      font-poppins
+      align-stretch
+      transition-all duration-200
+      ${clickable ? 'cursor-pointer hover:bg-blue-50 hover:shadow-md' : ''}
+    `;
+    const content = (
+      <>
+        <span className="text-[#211F20] font-poppins text-sm sm:text-base font-medium leading-normal break-words">{title}</span>
+        <span className="text-[rgba(33,31,32,0.75)] text-xl sm:text-2xl lg:text-3xl flex-shrink-0">{'>'}</span>
+      </>
+    );
+    return clickable ? (
+      <button
+        className={baseClass}
         onClick={() => navigate(path)}
+        type="button"
       >
-        <span className="text-gray-800 text-2xl font-light">{title}</span>
-        <span className="text-gray-500 text-3xl">{'>'}</span>
+        {content}
       </button>
-      :
-      <div 
-        className="w-full py-8 px-6 bg-white rounded-lg shadow-md cursor-pointer hover:shadow-lg hover:bg-blue-50 flex justify-between items-center font-[poppins]"
-      >
-        <span className="text-gray-800 text-2xl font-light">{title}</span>
-        <span className="text-gray-500 text-3xl">{'>'}</span>
+    ) : (
+      <div className={baseClass}>
+        {content}
       </div>
     );
   }

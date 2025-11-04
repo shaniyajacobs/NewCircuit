@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../pages/firebaseConfig';
 import { getAuth } from 'firebase/auth';
-import { FaUsers, FaChartLine, FaTicketAlt } from 'react-icons/fa';
+import { FaUsers, FaChartLine, FaTicketAlt, FaEdit, FaTrash } from 'react-icons/fa';
 
 const BusinessAnalytics = () => {
   const [analytics, setAnalytics] = useState({
@@ -11,6 +11,10 @@ const BusinessAnalytics = () => {
     activeCoupons: 0,
     recentRedemptions: []
   });
+  const [coupons, setCoupons] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
 
   const auth = getAuth();
   const businessId = auth.currentUser?.uid;
@@ -21,6 +25,7 @@ const BusinessAnalytics = () => {
 
   const fetchAnalytics = async () => {
     try {
+      setLoading(true);
       const couponsRef = collection(db, 'coupons');
       const q = query(couponsRef, where('businessId', '==', businessId));
       const querySnapshot = await getDocs(q);
@@ -29,8 +34,12 @@ const BusinessAnalytics = () => {
       let activeCoupons = 0;
       const now = new Date();
 
-      querySnapshot.docs.forEach(doc => {
-        const coupon = doc.data();
+      const couponsList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      couponsList.forEach(coupon => {
         totalRedeemed += coupon.redeemedCount || 0;
         if (new Date(coupon.validUntil) > now) {
           activeCoupons++;
@@ -43,8 +52,11 @@ const BusinessAnalytics = () => {
         activeCoupons,
         recentRedemptions: [] // This would be populated from a separate collection tracking redemptions
       });
+      setCoupons(couponsList);
     } catch (error) {
       console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,33 +115,98 @@ const BusinessAnalytics = () => {
 
         <div className="mt-8">
           <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-indigo-950 mb-4">Recent Redemptions</h2>
-            {analytics.recentRedemptions.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Date</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Coupon</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Customer</th>
+            <h2 className="text-xl font-semibold text-indigo-950 mb-4">My Coupons</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coupon</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid Until</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Redeemed</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="6" className="text-center py-8">
+                        <div className="text-gray-500">Loading coupons...</div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {analytics.recentRedemptions.map((redemption, index) => (
-                      <tr key={index} className="border-b border-gray-100">
-                        <td className="py-3 px-4 text-sm text-gray-600">{redemption.date}</td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{redemption.coupon}</td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{redemption.customer}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">No recent redemptions</p>
-            )}
+                  ) : coupons.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="text-center py-8">
+                        <div className="text-gray-500">No coupons found.</div>
+                      </td>
+                    </tr>
+                  ) : (
+                    coupons.map((coupon) => {
+                      const isValid = new Date(coupon.validUntil) > new Date();
+                      return (
+                        <tr key={coupon.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{coupon.title}</div>
+                              <div 
+                                className="text-sm text-gray-500 max-w-xs truncate cursor-pointer hover:text-blue-600 transition-colors"
+                                onClick={() => {
+                                  setSelectedCoupon(coupon);
+                                  setShowDescriptionModal(true);
+                                }}
+                                title="Click to view full description"
+                              >
+                                {coupon.description}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-lg font-bold text-[#0043F1]">{coupon.discount}</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {new Date(coupon.validUntil).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{coupon.redeemedCount || 0}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${coupon.totalRevenue || 0}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              isValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {isValid ? 'Active' : 'Expired'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+
+        {/* Description Modal */}
+        {showDescriptionModal && selectedCoupon && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Description</h2>
+                <button
+                  onClick={() => setShowDescriptionModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-gray-800 whitespace-pre-wrap">{selectedCoupon.description}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
   );
 };

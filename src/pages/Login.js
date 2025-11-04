@@ -3,14 +3,15 @@ import cirCrossPBlue from '../images/cir_cross_PWhite.svg';
 import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
 import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
 import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { signInWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "./firebaseConfig"; // Import Firebase auth
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from "./firebaseConfig"; // Import Firestore
 
+// First commit
 
 const shapeOptions = [
   { src: cirCrossPBlue, alt: 'Cross' },
@@ -141,7 +142,7 @@ export const FooterShapes = () => {
   const rowCount = 8;
   const shapesPerRow = 12;
 
-  const patternData = useMemo(() => {
+  const patternData = React.useMemo(() => {
     // Generate grid of shapes
     const grid = Array(rowCount).fill().map(() => 
       Array(shapesPerRow).fill(shapeOptions[0])
@@ -237,6 +238,17 @@ const Login = () => {
       // Sign in user
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
+      // First check if user is admin
+      const adminDoc = await getDoc(doc(db, 'adminUsers', userCredential.user.uid));
+      if (adminDoc.exists()) {
+        navigate('/admin-dashboard');
+        console.log('Admin logged in');
+        return;
+      } else {
+        console.log('User is not admin');
+      }
+
+      // If not admin, continue with regular user flow
       // Check if email is verified
       if (!userCredential.user.emailVerified) {
         await signOut(auth);

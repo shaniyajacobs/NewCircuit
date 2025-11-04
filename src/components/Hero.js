@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Hero.module.css';
 import SlidingBar from './SlidingBar';
 import Info from './Info';
 import {HowItWorks} from './CircuitHowItWorks';
+import { testimonials } from './testimonialsData';
 
 const LightningIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="22" viewBox="0 0 12 22" fill="none" className="inline-block mr-2 align-middle">
@@ -12,6 +13,39 @@ const LightningIcon = () => (
 );
 
 const Hero = () => {
+  const marqueeContainerRef = useRef(null);
+  const marqueeContentRef = useRef(null);
+  const [repeatCount, setRepeatCount] = useState(2);
+
+  const renderCard = (t) => (
+    <div className={styles['testimonial-card']}>
+      <div className={styles['testimonial-message']}>{t.message}</div>
+      <div className={styles['testimonial-profile']}>
+        {/* Avatar removed per request */}
+        <div className={styles['testimonial-info']}>
+          <div className={styles['testimonial-name']}>{t.name}</div>
+          <div className={styles['testimonial-location']}>{t.city}, {t.age}</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  useEffect(() => {
+    function updateRepeatCount() {
+      if (!marqueeContainerRef.current || !marqueeContentRef.current) return;
+      const containerWidth = marqueeContainerRef.current.offsetWidth;
+      const contentWidth = marqueeContentRef.current.offsetWidth;
+      if (contentWidth === 0) return;
+      // Ensure at least 2x container width for seamless looping
+      const minWidth = containerWidth * 2;
+      const count = Math.ceil(minWidth / contentWidth) + 1;
+      setRepeatCount(count);
+    }
+    updateRepeatCount();
+    window.addEventListener('resize', updateRepeatCount);
+    return () => window.removeEventListener('resize', updateRepeatCount);
+  }, []);
+
   return (
     <div className="w-full overflow-hidden relative">
       {/* Video Background */}
@@ -55,8 +89,8 @@ const Hero = () => {
                 alignSelf: 'stretch',
               }}
             >
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis<br />
-              metus neque, ac hendrerit risus pharetra ac.
+              We bring singles together for face-to-face first impressions and genuine connections.
+
             </p>
             <Link to="/create-account" className="inline-block">
               <button
@@ -81,7 +115,7 @@ const Hero = () => {
                 }}
                 onMouseOver={(e) => e.currentTarget.style.opacity = '0.6'}
                 onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
-                className="transition-colors hover:scale-110 transition-transform"
+                className="hover:scale-110 transition-transform"
               >
                 <LightningIcon />
                 Spark your connection
@@ -99,36 +133,19 @@ const Hero = () => {
             {/* Testimonials Section */}
             <section className={styles['testimonials-section']}>
                 <div className={styles['testimonials-container']}>
-                    <h2 className={styles['testimonials-heading']}>What they're saying</h2>
-                    <div className={styles['testimonials-list-marquee']}>
+                    <h2 className={styles['testimonials-heading']}>What They're Saying</h2>
+                    <div className={styles['testimonials-list-marquee']} ref={marqueeContainerRef}>
+                      {/* Hidden for measurement only */}
+                      <div style={{ display: 'inline-block', visibility: 'hidden', position: 'absolute', left: 0, top: 0 }} ref={marqueeContentRef}>
+                        {renderCard(testimonials[0])}
+                      </div>
                       <div className={styles['marquee-track']}>
-                        {[...Array(6)].map((_, i) => (
-                          <div className={styles['testimonial-card']} key={i}>
-                            <div className={styles['testimonial-message']}>
-                              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
-                            </div>
-                            <div className={styles['testimonial-profile']}>
-                              <img className={styles['testimonial-avatar']} src="https://randomuser.me/api/portraits/women/44.jpg" alt="Audrey M." />
-                              <div className={styles['testimonial-info']}>
-                                <div className={styles['testimonial-name']}>Audrey M.</div>
-                                <div className={styles['testimonial-location']}>Chicago, 20</div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        {[...Array(6)].map((_, i) => (
-                          <div className={styles['testimonial-card']} key={`dup-${i}`}>
-                            <div className={styles['testimonial-message']}>
-                              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
-                            </div>
-                            <div className={styles['testimonial-profile']}>
-                              <img className={styles['testimonial-avatar']} src="https://randomuser.me/api/portraits/women/44.jpg" alt="Audrey M." />
-                              <div className={styles['testimonial-info']}>
-                                <div className={styles['testimonial-name']}>Audrey M.</div>
-                                <div className={styles['testimonial-location']}>Chicago, 20</div>
-                              </div>
-                            </div>
-                          </div>
+                        {Array.from({ length: repeatCount }).map((_, i) => (
+                          <React.Fragment key={i}>
+                            {testimonials.map((t, idx) => (
+                              <React.Fragment key={`${i}-${idx}`}>{renderCard(t)}</React.Fragment>
+                            ))}
+                          </React.Fragment>
                         ))}
                       </div>
                     </div>

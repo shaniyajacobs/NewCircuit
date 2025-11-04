@@ -4,26 +4,26 @@ import { useNavigate } from "react-router-dom";
 const thirdDateSteps = [
   {
     step: "STEP 01",
-    title: "Do your first speed date",
-    desc: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+    title: "Join a speed date",
+    desc: "Meet singles in your city through 6-minute face-to-face video chats, and see who leaves an impression."
   },
   {
     step: "STEP 02",
-    title: "Connect with a spark",
-    desc: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+    title: "Spark a Connection",
+    desc: "Choose up to 3 people you’d like to keep the energy going with. If the spark is mutual, you'll unlock messaging and take the next step."
   },
   {
     step: "STEP 03",
-    title: "Go on 3 dates with a spark & take pictures",
-    desc: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac."
+    title: "Go on Two Real- Life Dates",
+    desc: "Meet up in person with your spark and snap a photo from each of your first two dates. We love seeing your chemistry in action."
   }
 ];
 
-export function ThirdDatesOnUs() {
+export function ThirdDatesOnUs({ showHeader = true }) {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full bg-[#FAFFE7] flex flex-col items-center gap-[16px] sm:gap-[20px] md:gap-[24px] lg:gap-[32px]">
+    <div className="w-full px-4 bg-[#FAFFE7] flex flex-col items-center gap-[16px] sm:gap-[20px] md:gap-[24px] lg:gap-[32px]">
       {/* Title */}
       <h2
         style={{
@@ -37,22 +37,22 @@ export function ThirdDatesOnUs() {
         }}
         className="text-[32px] sm:text-[32px] md:text-[40px] lg:text-[48px] mb-[24px] sm:mb-[50px] md:mb-[75px] lg:mb-[100px]"
       >
-        The third date's on us
+        Third Date On Us
       </h2>
 
       {/* Card Grid */}
       <div className="flex flex-col items-center w-full gap-[16px]
         sm:flex-col sm:items-center sm:justify-center sm:gap-[20px] sm:mx-auto
         md:flex-row md:items-stretch md:justify-center md:gap-[24px] md:max-w-[1216px]
-        lg:flex-row lg:items-stretch lg:justify-between lg:gap-[32px] lg:max-w-[1340px]">
+        lg:flex-row lg:items-stretch lg:justify-center lg:gap-[32px] lg:max-w-[1340px]">
         {thirdDateSteps.map((card, index) => (
           <div
             key={index}
-            className="w-[358px] h-[202px] sm:w-[690px] sm:h-[246px] md:w-[380px] md:h-[350px] lg:w-[426px] lg:h-[450px] flex flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] border-[1.5px] border-[#211F20] bg-[#FAFFE7] relative p-[12px] sm:p-[16px] md:p-[20px] lg:p-[24px] shrink-0"
+            className="w-full sm:w-full md:w-[380px] lg:w-[426px] h-[202px] sm:h-[246px] md:h-[350px] lg:h-[450px] flex flex-col justify-end items-start rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] border-[1.5px] border-[#211F20] bg-[#FAFFE7] relative p-[12px] sm:p-[16px] md:p-[20px] lg:p-[24px] shrink-0"
           >
             {/* Icon container in top left corner */}
             <div
-              className="absolute top-[12px] left-[12px] sm:top-[16px] sm:left-[16px] md:top-[20px] md:left-[20px] lg:top-[24px] lg:left-[24px] flex items-center justify-center w-[50px] h-[50px] sm:w-[75px] sm:h-[75px] lg:w-[100px] lg:h-[100px]"
+              className="absolute top-[12px] left-[12px] sm:top-[16px] sm:left-[16px] md:top-[20px] md:left-[20px] lg:top-[24px] lg:left-[24px] flex items-center justify-center w-[50px] h-[50px] sm:w-[75px] sm:h-[75px] md:w-[85px] md:h-[85px] lg:w-[100px] lg:h-[100px]"
             >
               {index === 0 && (
                 <svg
@@ -137,7 +137,7 @@ export function ThirdDatesOnUs() {
       </div>
       {/* Image Section */}
       <div
-        className="w-[358px] h-[259px] sm:w-[696px] sm:h-[217px] md:w-[1216px] md:h-[350px] lg:w-[1340px] lg:h-[450px] relative flex flex-col justify-end items-end overflow-hidden rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px]"
+        className="w-full md:max-w-[1188px] lg:max-w-[1340px] h-[259px] sm:h-[217px] md:h-[350px] lg:h-[450px] relative flex flex-col justify-end items-end overflow-hidden rounded-[8px] sm:rounded-[10px] md:rounded-[12px] lg:rounded-[16px] mx-auto"
       >
         {/* Background image with overlays */}
         <div className="absolute inset-0">
@@ -211,10 +211,10 @@ export function ThirdDatesOnUs() {
             STEP 04
           </span>
           <span className="text-[32px] sm:text-[32px] md:text-[48px] lg:text-[64px] text-[#FAFFE7] font-bricolage font-medium leading-[110%]">
-            The third date includes a drink on us
+            Enjoy Your Third Date On Us
           </span>
           <span className="text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] text-[#FAFFE7] font-poppins leading-normal mt-[8px]">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse mattis metus neque, ac hendrerit risus pharetra ac.
+            Once your photos are verified, you’ll get to choose a reward—either two drinks or two appetizers at a partner restaurant in your city.
           </span>
         </div>
       </div>
@@ -240,7 +240,7 @@ export function ThirdDatesOnUs() {
         onMouseOver={(e) => e.currentTarget.style.opacity = '0.6'}
         onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
       >
-        Claim my free drink
+        Claim my reward
       </button>
     </div>
   );
