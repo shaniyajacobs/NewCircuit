@@ -434,18 +434,21 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                   }
                 }
                 
+                // TEMPORARY: Disable Remo redirect for in-person events
+                // To re-enable virtual events, uncomment the block below
+                /*
                 // Step 4: Build and open join URL
                 const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
                 console.log('[JOIN NOW] Join URL:', joinUrl);
-                
+
                 // Mobile-friendly approach for opening URLs
                 const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 console.log('[JOIN NOW] Is mobile device:', isMobile);
-                
+
                 if (isMobile) {
                   // For mobile devices, try multiple approaches
                   let success = false;
-                  
+
                   // Approach 1: Try using window.location.href (most reliable for mobile)
                   try {
                     console.log('[JOIN NOW] Mobile: Trying window.location.href');
@@ -454,7 +457,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                   } catch (error1) {
                     console.error('[JOIN NOW] Mobile: window.location.href failed:', error1);
                   }
-                  
+
                   // Approach 2: If Approach 1 failed, try creating and clicking a link
                   if (!success) {
                     try {
@@ -466,20 +469,20 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                       link.style.display = 'none';
                       document.body.appendChild(link);
                       link.click();
-                      
+
                       // Clean up the link after a short delay
                       setTimeout(() => {
                         if (document.body.contains(link)) {
                           document.body.removeChild(link);
                         }
                       }, 1000);
-                      
+
                       success = true;
                     } catch (error2) {
                       console.error('[JOIN NOW] Mobile: Programmatic link click failed:', error2);
                     }
                   }
-                  
+
                   // Approach 3: If both failed, show URL to copy
                   if (!success) {
                     console.log('[JOIN NOW] Mobile: All navigation methods failed, showing URL to copy');
@@ -490,7 +493,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                   try {
                     console.log('[JOIN NOW] Desktop: Trying window.open');
                     const newWindow = window.open(joinUrl, '_blank');
-                    
+
                     // Check if the window was blocked or failed to open
                     if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
                       console.log('[JOIN NOW] Desktop: window.open failed, showing URL to copy');
@@ -501,6 +504,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
                   }
                 }
+                */
                 
                 console.log('[JOIN NOW] Join process completed successfully');
                 setHasJoinedEvent(true);

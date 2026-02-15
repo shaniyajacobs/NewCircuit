@@ -472,9 +472,11 @@ export const signUpForEventWithDates = async (eventId, userId, userData, datesCh
     transaction.set(userRef, userDocData);
     
     // Update user document
+    // Use data.eventID (Remo event ID) to match what "Join Now" stores
+    // This ensures signed-up users can trigger connection selection
     transaction.update(userDocRef, {
       datesRemaining: newDatesRemaining,
-      latestEventId: eventId
+      latestEventId: data.eventID || eventId
     });
     
     debug.success('signUpForEventWithDates', 'Combined transaction completed successfully');
