@@ -355,18 +355,19 @@ const DashHome = () => {
           setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
 
-          // Only show the 'Select my sparks' card if latest event was within 48 hours
-          const within48 = await isLatestEventWithin48Hours(user.uid);
-          setShowSelectSparksCard(within48);
+          // Show the 'Select my sparks' card if user has a latestEventId
+          setShowSelectSparksCard(!!data.latestEventId);
 
-          // Start polling every 60s to auto-hide banner after 48h passes
-          const interval = setInterval(async () => {
-            const stillWithin48 = await isLatestEventWithin48Hours(user.uid);
-            setShowSelectSparksCard(stillWithin48);
-          }, 60000);
-          // store interval on window to clear on unmount or auth change
-          window.__selectSparksPoller && clearInterval(window.__selectSparksPoller);
-          window.__selectSparksPoller = interval;
+          // TEMPORARY: Disabled 48-hour check and polling (was using Remo API)
+          // const within48 = await isLatestEventWithin48Hours(user.uid);
+          // setShowSelectSparksCard(within48);
+          //
+          // const interval = setInterval(async () => {
+          //   const stillWithin48 = await isLatestEventWithin48Hours(user.uid);
+          //   setShowSelectSparksCard(stillWithin48);
+          // }, 60000);
+          // window.__selectSparksPoller && clearInterval(window.__selectSparksPoller);
+          // window.__selectSparksPoller = interval;
         }
       }
     });
@@ -1167,7 +1168,7 @@ useEffect(() => {
               Welcome back, {userProfile?.firstName}
             </h2>
 
-            {/* Select my sparks card - always visible (48 hour filter disabled) */}
+            {/* Select my sparks card */}
             {showSelectSparksCard && (
             <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
               <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
