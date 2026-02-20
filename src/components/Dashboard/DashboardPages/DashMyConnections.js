@@ -323,9 +323,11 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
         const data = userDoc.data();
         console.log('[SELECTSPARKS] User data:', { latestEventId: data.latestEventId, hasConnections: data.connections });
         
-        // Check if latest event was within 48 hours
-        const within48Hours = await isLatestEventWithin48Hours(user.uid);
-        console.log('[SELECTSPARKS] Within 48 hours:', within48Hours);
+        // Show if user has a latestEventId
+        // TEMPORARY: Disabled 48-hour Remo API check for in-person events
+        // const within48Hours = await isLatestEventWithin48Hours(user.uid);
+        const within48Hours = !!data.latestEventId;
+        console.log('[SELECTSPARKS] Has latestEventId:', within48Hours);
         
         // Note: We're not checking max selections here anymore
         // This allows users to select connections for new events
