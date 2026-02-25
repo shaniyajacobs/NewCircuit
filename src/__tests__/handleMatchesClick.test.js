@@ -41,11 +41,12 @@ jest.mock('../pages/firebaseConfig', () => ({
 
 const firestore = require('firebase/firestore');
 
-// Helper: simulate the event lookup logic from DashHome.js lines 911-918
+// Helper: simulate the event lookup logic from DashHome.js
+// Matches by eventID (virtual) OR by Firestore doc ID (in-person fallback)
 function findEventDocId(eventsSnapshot, latestEventId) {
   let eventDocId = null;
   eventsSnapshot.forEach((docSnap) => {
-    if (docSnap.data().eventID === latestEventId) {
+    if (docSnap.data().eventID === latestEventId || docSnap.id === latestEventId) {
       eventDocId = docSnap.id;
     }
   });
@@ -158,11 +159,13 @@ describe('handleMatchesClick - event lookup and user pool', () => {
       expect(eventDocId).toBe(FIREBASE_DOC_ID_2);
     });
 
-    it('should NOT find any event when latestEventId is a Firebase doc ID instead of Remo eventID', async () => {
+    it('should find event via doc ID fallback even for virtual events (in-person parity)', async () => {
+      // The fallback (docSnap.id === latestEventId) is additive — it also matches virtual events
+      // by their Firestore doc ID, which enables in-person event support without breaking virtual
       const eventsSnapshot = await firestore.getDocs(firestore.collection({}, 'events'));
       const eventDocId = findEventDocId(eventsSnapshot, FIREBASE_DOC_ID_2);
 
-      expect(eventDocId).toBeNull();
+      expect(eventDocId).toBe(FIREBASE_DOC_ID_2);
     });
 
     it('should return null when latestEventId does not match any event', async () => {
@@ -307,7 +310,9 @@ describe('handleMatchesClick - event lookup and user pool', () => {
       expect(userIds).toContain('userB');
     });
 
-    it('should FAIL to find the event if latestEventId is stored as Firebase doc ID (old bug)', async () => {
+    it('should find the event via doc ID fallback when latestEventId is the Firestore doc ID', async () => {
+      // Simulates an in-person event where no Remo eventID exists — latestEventId IS the doc ID.
+      // The fallback (docSnap.id === latestEventId) ensures the event is still found.
       global.__testFirestore2['users/currentUser1'].latestEventId = FIREBASE_DOC_ID_1;
 
       const userDoc = await firestore.getDoc({ _path: 'users/currentUser1' });
@@ -316,7 +321,7 @@ describe('handleMatchesClick - event lookup and user pool', () => {
       const eventsSnapshot = await firestore.getDocs(firestore.collection({}, 'events'));
       const eventDocId = findEventDocId(eventsSnapshot, latestEventId);
 
-      expect(eventDocId).toBeNull();
+      expect(eventDocId).toBe(FIREBASE_DOC_ID_1);
     });
 
     it('should fetch quiz and profile data for all signed-up users once event is found', async () => {
@@ -330,6 +335,84 @@ describe('handleMatchesClick - event lookup and user pool', () => {
       expect(quizUserIds).toContain('currentUser1');
       expect(quizUserIds).toContain('userA');
       expect(quizUserIds).toContain('userB');
+    });
+  });
+
+  describe('in-person event: lookup and connection pool', () => {
+    const IN_PERSON_DOC_ID = 'inPersonDoc1';
+
+    beforeEach(() => {
+      const answers = makeQuizAnswers();
+
+      // In-person event has no eventID field — only a Firestore doc ID
+      global.__testFirestore2[`events/${IN_PERSON_DOC_ID}`] = {
+        eventFormat: 'in-person',
+        title: 'NYC Mixer',
+        venue: 'The Standard, NYC',
+        location: 'New York City',
+      };
+
+      global.__testFirestore2[`events/${IN_PERSON_DOC_ID}/signedUpUsers/currentUser1`] = {
+        userID: 'currentUser1', userGender: 'male',
+      };
+      global.__testFirestore2[`events/${IN_PERSON_DOC_ID}/signedUpUsers/userA`] = {
+        userID: 'userA', userGender: 'female',
+      };
+      global.__testFirestore2[`events/${IN_PERSON_DOC_ID}/signedUpUsers/userB`] = {
+        userID: 'userB', userGender: 'female',
+      };
+
+      // latestEventId is the Firestore doc ID (no Remo eventID fallback)
+      global.__testFirestore2['users/currentUser1'] = {
+        latestEventId: IN_PERSON_DOC_ID,
+        gender: 'Male',
+        sexualPreference: 'Women',
+      };
+      global.__testFirestore2['users/userA'] = { gender: 'Female', sexualPreference: 'Men' };
+      global.__testFirestore2['users/userB'] = { gender: 'Female', sexualPreference: 'Men' };
+
+      global.__testFirestore2['users/currentUser1/quizResponses/latest'] = { answers };
+      global.__testFirestore2['users/userA/quizResponses/latest'] = { answers };
+      global.__testFirestore2['users/userB/quizResponses/latest'] = { answers };
+    });
+
+    it('should find in-person event by Firestore doc ID (no eventID field)', async () => {
+      const eventsSnapshot = await firestore.getDocs(firestore.collection({}, 'events'));
+      const eventDocId = findEventDocId(eventsSnapshot, IN_PERSON_DOC_ID);
+
+      expect(eventDocId).toBe(IN_PERSON_DOC_ID);
+    });
+
+    it('should NOT find in-person event when searching by a wrong ID', async () => {
+      const eventsSnapshot = await firestore.getDocs(firestore.collection({}, 'events'));
+      const eventDocId = findEventDocId(eventsSnapshot, 'wrong_id');
+
+      expect(eventDocId).toBeNull();
+    });
+
+    it('should retrieve all signed-up users for an in-person event', async () => {
+      const userIds = await getSignedUpUserIds(IN_PERSON_DOC_ID);
+
+      expect(userIds).toHaveLength(3);
+      expect(userIds).toContain('currentUser1');
+      expect(userIds).toContain('userA');
+      expect(userIds).toContain('userB');
+    });
+
+    it('end-to-end: in-person user finds event and gets full connection pool', async () => {
+      const userDoc = await firestore.getDoc({ _path: 'users/currentUser1' });
+      const latestEventId = userDoc.data().latestEventId;
+
+      const eventsSnapshot = await firestore.getDocs(firestore.collection({}, 'events'));
+      const eventDocId = findEventDocId(eventsSnapshot, latestEventId);
+      expect(eventDocId).toBe(IN_PERSON_DOC_ID);
+
+      const userIds = await getSignedUpUserIds(eventDocId);
+      expect(userIds).toHaveLength(3);
+
+      const { quizResponses, userProfiles } = await fetchQuizAndProfiles(userIds);
+      expect(quizResponses).toHaveLength(3);
+      expect(userProfiles).toHaveLength(3);
     });
   });
 });
