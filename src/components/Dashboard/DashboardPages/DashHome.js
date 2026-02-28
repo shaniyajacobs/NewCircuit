@@ -135,7 +135,6 @@ async function isLatestEventWithin48Hours(userId) {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
     const latestEventId = userDoc.data()?.latestEventId;
-    
     if (!latestEventId) {
       console.log('[48HOURS] No latestEventId found for user:', userId);
       return false;
