@@ -346,7 +346,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-2 relative">
                   <LocationIcon className="w-4 h-4 text-gray-600 shrink-0" />
-                  {event.eventFormat === 'in-person' && event.venue && event.venue !== 'TBD' && type === 'upcoming' ? (
+                  {event.eventFormat === 'in-person' && event.venue && event.venue !== 'TBD' ? (
                     <div className="relative">
                       <button
                         onClick={() => setShowMapsMenu(prev => !prev)}
@@ -390,7 +390,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     </span>
                   )}
                 </div>
-                {event.eventFormat === 'in-person' && event.venue === 'TBD' && type === 'upcoming' && (
+                {event.eventFormat === 'in-person' && event.venue === 'TBD' && (
                   <span className="text-[11px] text-gray-400 font-bricolage leading-[130%] ml-6">
                     Location to be announced...
                   </span>

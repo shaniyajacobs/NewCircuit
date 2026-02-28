@@ -73,11 +73,20 @@ const AdminEvents = () => {
       const eventsList = await Promise.all(
         eventsSnapshot.docs.map(async (d) => {
           const meta = d.data();
+          // In-person events are not Remo events — skip the CF call entirely
+          if (meta.eventFormat === 'in-person') {
+            return { id: d.id, ...meta };
+          }
           const eventId = meta.eventID || d.id;
           try {
             const res = await getEventDataCF({ eventId });
             const remo = res.data?.event || {};
-            return { id: d.id, ...remo, ...meta }; // Firebase meta (eventType etc.) overrides
+            // Strip empty/null meta fields so they don't overwrite valid Remo values
+            // (e.g. empty startTime/endTime/title stored in Firestore for virtual events)
+            const metaFiltered = Object.fromEntries(
+              Object.entries(meta).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+            );
+            return { id: d.id, ...remo, ...metaFiltered };
           } catch (e) {
             console.error('Remo fetch fail', e);
             return { id: d.id, ...meta };
@@ -85,9 +94,7 @@ const AdminEvents = () => {
         })
       );
       
-      // Sort events chronologically from newest to oldest
-      const sortedEvents = sortEventsByDate(eventsList);
-      setEvents(sortedEvents);
+      setEvents(sortEventsByDate(eventsList));
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
@@ -544,17 +551,18 @@ const AdminEvents = () => {
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[80px]">Sign Ups</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Type</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Age Range</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Format</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-8 text-gray-600">Loading...</td>
+                  <td colSpan="10" className="text-center py-8 text-gray-600">Loading...</td>
                 </tr>
               ) : filteredEvents.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-8 text-gray-600">No events found.</td>
+                  <td colSpan="10" className="text-center py-8 text-gray-600">No events found.</td>
                 </tr>
               ) : (
                 filteredEvents.map(evt => (
@@ -631,6 +639,15 @@ const AdminEvents = () => {
                       <div className="truncate max-w-[100px]" title={evt.ageRange || '-'}>
                         {evt.ageRange || '-'}
                       </div>
+                    </td>
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                      <span className={`font-semibold rounded-full px-2 py-0.5 text-xs ${
+                        evt.eventFormat === 'in-person'
+                          ? 'bg-purple-200 text-purple-800'
+                          : 'bg-blue-200 text-blue-800'
+                      }`}>
+                        {evt.eventFormat === 'in-person' ? 'In-Person' : 'Virtual'}
+                      </span>
                     </td>
                     <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
