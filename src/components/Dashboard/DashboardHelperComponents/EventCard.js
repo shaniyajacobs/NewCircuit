@@ -85,6 +85,7 @@ function getDatePartsFromMillis(millis) {
 
 const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
+  const [showMapsMenu, setShowMapsMenu] = useState(false);
   const [joining, setJoining] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
@@ -260,25 +261,43 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
 
 
         {/* Remo Event Title - above age range */}
-        <div className="border-3 border-black p-2 rounded mb-[-20px]">  
+        <div className="border-3 border-black p-2 rounded mb-[-20px]">
             {event.title && (
               <div className="font-medium text-[#211F20] font-bricolage leading-[130%] text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px]">
                 {event.title}
               </div>
             )}
           </div>
-        
-        {/* Age Range - Top */}
-        {event.ageRange && (
+
+        {/* Age Range + Format Badge - inline */}
+        {(event.ageRange || event.eventFormat) && (
           <div className="border-3 border-black p-2 rounded">
-            <div className="
-              font-medium
-              text-[#211F20]
-              font-bricolage
-              leading-[130%]
-              text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px]
-            ">
-              Ages {event.ageRange}
+            <div className="flex items-center gap-2">
+              {event.ageRange && (
+                <span className="
+                  font-medium
+                  text-[#211F20]
+                  font-bricolage
+                  leading-[130%]
+                  text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px]
+                ">
+                  Ages {event.ageRange}
+                </span>
+              )}
+              {event.eventFormat && (
+                <span className={`font-semibold rounded-full px-2 py-0.5
+                  text-[11px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
+                  ${type === 'upcoming'
+                    ? event.eventFormat === 'in-person'
+                      ? 'bg-purple-200 text-purple-800'
+                      : 'bg-blue-200 text-blue-800'
+                    : event.eventFormat === 'in-person'
+                      ? 'bg-yellow-200 text-yellow-800'
+                      : 'bg-green-200 text-green-800'
+                  }`}>
+                  {event.eventFormat === 'in-person' ? 'In-Person' : 'Virtual'}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -323,21 +342,61 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
 
             {/* Event Info */}
             <div className="flex-1 flex flex-col gap-2 sm:gap-2 md:gap-[10px] lg:gap-3">
-              {/* Location */}
-              <div className="flex items-center gap-2">
-                <LocationIcon className="w-4 h-4 text-gray-600" />
-                <span className="
-                  font-medium
-                  text-[#211F20]
-                  font-bricolage
-                  leading-[130%]
-                  uppercase
-                  text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
-                ">
-                  {event.location}
-                </span>
+              {/* Location — for signed-up in-person events, show venue with maps picker */}
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2 relative">
+                  <LocationIcon className="w-4 h-4 text-gray-600 shrink-0" />
+                  {event.eventFormat === 'in-person' && event.venue && event.venue !== 'TBD' ? (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowMapsMenu(prev => !prev)}
+                        className="
+                          font-medium font-bricolage leading-[130%] uppercase underline
+                          text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
+                          text-[#0043F1] hover:text-[#0034BD] text-left
+                        "
+                      >
+                        {event.venue}
+                      </button>
+                      {showMapsMenu && (
+                        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden text-left">
+                          <a
+                            href={`https://maps.google.com/?q=${encodeURIComponent(event.venue)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setShowMapsMenu(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                          >
+                            Google Maps
+                          </a>
+                          <a
+                            href={`https://maps.apple.com/?q=${encodeURIComponent(event.venue)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setShowMapsMenu(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                          >
+                            Apple Maps
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="
+                      font-medium text-[#211F20] font-bricolage leading-[130%] uppercase
+                      text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
+                    ">
+                      {event.location}
+                    </span>
+                  )}
+                </div>
+                {event.eventFormat === 'in-person' && event.venue === 'TBD' && (
+                  <span className="text-[11px] text-gray-400 font-bricolage leading-[130%] ml-6">
+                    Location to be announced...
+                  </span>
+                )}
               </div>
-              
+
               {/* Time */}
               <div className="flex items-center gap-2">
                 <TimerIcon className="w-4 h-4 text-gray-600" />

@@ -255,4 +255,77 @@ describe('signUpForEventWithDates - latestEventId storage', () => {
       expect(signedUpDoc.userEmail).toBe('test@example.com');
     });
   });
+
+  describe('in-person event (no eventID field)', () => {
+    const IN_PERSON_DOC_ID = 'inPersonFirebaseDoc';
+
+    beforeEach(() => {
+      // In-person event: has eventFormat but NO eventID
+      global.__testFirestore[`events/${IN_PERSON_DOC_ID}`] = {
+        eventFormat: 'in-person',
+        title: 'NYC Mixer',
+        venue: 'The Standard, NYC',
+        menSpots: 10,
+        womenSpots: 10,
+        menSignupCount: 0,
+        womenSignupCount: 0,
+      };
+
+      global.__testFirestore['users/user1'] = {
+        datesRemaining: 5,
+        gender: 'Male',
+      };
+    });
+
+    it('should store the Firestore doc ID as latestEventId when there is no eventID field', async () => {
+      const userData = {
+        userName: 'Test User',
+        userEmail: 'test@example.com',
+        userPhoneNumber: '555-1234',
+        userGender: 'male',
+        userLocation: 'NYC',
+      };
+
+      await signUpForEventWithDates(IN_PERSON_DOC_ID, 'user1', userData, -1);
+
+      const userUpdate = global.__transactionUpdates.find((u) => u.path === 'users/user1');
+      expect(userUpdate).toBeDefined();
+      // No eventID → fallback to Firestore doc ID
+      expect(userUpdate.data.latestEventId).toBe(IN_PERSON_DOC_ID);
+    });
+
+    it('should NOT store undefined or null as latestEventId for in-person events', async () => {
+      const userData = {
+        userName: 'Test User',
+        userEmail: 'test@example.com',
+        userPhoneNumber: '555-1234',
+        userGender: 'female',
+        userLocation: 'NYC',
+      };
+
+      await signUpForEventWithDates(IN_PERSON_DOC_ID, 'user1', userData, -1);
+
+      const userUpdate = global.__transactionUpdates.find((u) => u.path === 'users/user1');
+      expect(userUpdate).toBeDefined();
+      expect(userUpdate.data.latestEventId).toBeTruthy();
+      expect(userUpdate.data.latestEventId).not.toBeNull();
+      expect(userUpdate.data.latestEventId).not.toBeUndefined();
+    });
+
+    it('should add the user to the signedUpUsers subcollection of the in-person event', async () => {
+      const userData = {
+        userName: 'Test User',
+        userEmail: 'test@example.com',
+        userPhoneNumber: '555-1234',
+        userGender: 'male',
+        userLocation: 'NYC',
+      };
+
+      await signUpForEventWithDates(IN_PERSON_DOC_ID, 'user1', userData, -1);
+
+      const signedUpDoc = global.__testFirestore[`events/${IN_PERSON_DOC_ID}/signedUpUsers/user1`];
+      expect(signedUpDoc).toBeDefined();
+      expect(signedUpDoc.userID).toBe('user1');
+    });
+  });
 });
