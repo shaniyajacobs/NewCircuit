@@ -8,6 +8,14 @@ import { signOutFromEvent, calculateActualCounts, reconcileCounts, clearLatestEv
 import { formatUserName } from '../../../utils/nameFormatter';
 import { sortEventsByDate } from '../../../utils/eventSorter';
 
+// Convert Unix ms timestamp to local datetime string for datetime-local inputs
+// toISOString() returns UTC, which would show the wrong time in the input
+const toLocalDatetimeInput = (ms) => {
+  const d = new Date(ms);
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+};
+
 const AdminEvents = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +31,12 @@ const AdminEvents = () => {
     menSpots: '',
     womenSpots: '',
     ageRange: '',
-    eventType: ''
+    eventType: '',
+    eventFormat: 'virtual',
+    venue: '',
+    title: '',
+    startTime: '',
+    endTime: ''
   });
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -60,11 +73,20 @@ const AdminEvents = () => {
       const eventsList = await Promise.all(
         eventsSnapshot.docs.map(async (d) => {
           const meta = d.data();
+          // In-person events are not Remo events — skip the CF call entirely
+          if (meta.eventFormat === 'in-person') {
+            return { id: d.id, ...meta };
+          }
           const eventId = meta.eventID || d.id;
           try {
             const res = await getEventDataCF({ eventId });
             const remo = res.data?.event || {};
-            return { id: d.id, ...remo, ...meta }; // Firebase meta (eventType etc.) overrides
+            // Strip empty/null meta fields so they don't overwrite valid Remo values
+            // (e.g. empty startTime/endTime/title stored in Firestore for virtual events)
+            const metaFiltered = Object.fromEntries(
+              Object.entries(meta).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+            );
+            return { id: d.id, ...remo, ...metaFiltered };
           } catch (e) {
             console.error('Remo fetch fail', e);
             return { id: d.id, ...meta };
@@ -72,9 +94,7 @@ const AdminEvents = () => {
         })
       );
       
-      // Sort events chronologically from newest to oldest
-      const sortedEvents = sortEventsByDate(eventsList);
-      setEvents(sortedEvents);
+      setEvents(sortEventsByDate(eventsList));
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
@@ -97,6 +117,32 @@ const AdminEvents = () => {
     setShowUsersModal(true);
     setLoadingUsers(true);
     try {
+      // In-person events have no Remo attendees — fetch Circuit signups only
+      if (event.eventFormat === 'in-person') {
+        const signedUpUsersRef = collection(db, 'events', event.id, 'signedUpUsers');
+        const signedUpUsersSnapshot = await getDocs(signedUpUsersRef);
+        const users = signedUpUsersSnapshot.docs.map(doc => {
+          const userData = doc.data();
+          let userName = 'Unknown';
+          if (userData.userName?.trim()) userName = userData.userName.trim();
+          else if (userData.firstName?.trim()) userName = `${userData.firstName} ${userData.lastName || ''}`.trim();
+          return {
+            id: doc.id,
+            name: userName,
+            email: userData.userEmail || 'N/A',
+            userGender: userData.userGender || 'Unknown',
+            signedUpAt: userData.signUpTime ? userData.signUpTime.toDate().toLocaleString() : 'N/A',
+            status: 'Signed Up',
+            accepted: 'Yes',
+            source: 'firebase',
+            firebaseProfileId: doc.id,
+            hasCircuitSignup: true
+          };
+        });
+        setEventUsers(users);
+        return;
+      }
+
       const functionsInst = getFunctions();
       const getMembers = httpsCallable(functionsInst, 'getEventMembers');
       // The Callable result comes back as an object: { data: <actualArray> }
@@ -300,9 +346,16 @@ const AdminEvents = () => {
   const handleAddEvent = async (e) => {
     e.preventDefault();
     try {
+      // Convert datetime-local string to Unix ms for in-person events
+      const eventData = { ...newEvent };
+      if (eventData.eventFormat === 'in-person') {
+        if (eventData.startTime) eventData.startTime = new Date(eventData.startTime).getTime();
+        if (eventData.endTime) eventData.endTime = new Date(eventData.endTime).getTime();
+      }
+
       // 1️⃣ Create the doc first to obtain its ID
       const docRef = await addDoc(collection(db, 'events'), {
-        ...newEvent,
+        ...eventData,
         menSignupCount: 0,
         womenSignupCount: 0,
       });
@@ -311,7 +364,7 @@ const AdminEvents = () => {
       await updateDoc(docRef, { id: docRef.id });
 
       setShowAddModal(false);
-      setNewEvent({ eventID: '', location: '', menSpots: '', womenSpots: '', ageRange: '', eventType: '' });
+      setNewEvent({ eventID: '', location: '', menSpots: '', womenSpots: '', ageRange: '', eventType: '', eventFormat: 'virtual', venue: '', title: '', startTime: '', endTime: '' });
       fetchEvents();
     } catch (error) {
       console.error('Error adding event:', error);
@@ -498,17 +551,18 @@ const AdminEvents = () => {
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[80px]">Sign Ups</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Type</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Age Range</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Format</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-8 text-gray-600">Loading...</td>
+                  <td colSpan="10" className="text-center py-8 text-gray-600">Loading...</td>
                 </tr>
               ) : filteredEvents.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-8 text-gray-600">No events found.</td>
+                  <td colSpan="10" className="text-center py-8 text-gray-600">No events found.</td>
                 </tr>
               ) : (
                 filteredEvents.map(evt => (
@@ -587,6 +641,15 @@ const AdminEvents = () => {
                       </div>
                     </td>
                     <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                      <span className={`font-semibold rounded-full px-2 py-0.5 text-xs ${
+                        evt.eventFormat === 'in-person'
+                          ? 'bg-purple-200 text-purple-800'
+                          : 'bg-blue-200 text-blue-800'
+                      }`}>
+                        {evt.eventFormat === 'in-person' ? 'In-Person' : 'Virtual'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEditEvent(evt)}
@@ -644,6 +707,19 @@ const AdminEvents = () => {
             <h2 className="text-xl sm:text-2xl font-semibold mb-4">Add New Event</h2>
             <form onSubmit={handleAddEvent} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Event Format</label>
+                <select
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newEvent.eventFormat}
+                  onChange={(e) => setNewEvent({ ...newEvent, eventFormat: e.target.value })}
+                  required
+                >
+                  <option value="virtual">Virtual</option>
+                  <option value="in-person">In-Person</option>
+                </select>
+              </div>
+              {newEvent.eventFormat === 'virtual' && (
+              <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Event ID</label>
                 <input
                   type="text"
@@ -653,6 +729,67 @@ const AdminEvents = () => {
                   required
                 />
               </div>
+              )}
+              {newEvent.eventFormat === 'in-person' && (
+              <>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Event Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. NYC In-Person Mixer"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Start Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newEvent.startTime}
+                  onChange={(e) => {
+                    const start = e.target.value;
+                    const autoEnd = start ? toLocalDatetimeInput(new Date(start).getTime() + 2 * 60 * 60 * 1000) : '';
+                    setNewEvent({ ...newEvent, startTime: start, endTime: autoEnd });
+                  }}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">End Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newEvent.endTime}
+                  onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700">Venue</label>
+                  <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newEvent.venue === 'TBD'}
+                      onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.checked ? 'TBD' : '' })}
+                    />
+                    TBD
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  placeholder="e.g. The Standard, 848 Washington St"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                  value={newEvent.venue === 'TBD' ? '' : newEvent.venue}
+                  disabled={newEvent.venue === 'TBD'}
+                  onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.value })}
+                />
+              </div>
+              </>
+              )}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Location</label>
                 <select
@@ -735,7 +872,21 @@ const AdminEvents = () => {
           <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl sm:text-2xl font-semibold mb-4">Edit Event</h2>
             <form onSubmit={handleUpdateEvent} className="flex flex-col gap-4">
-              {/* Event ID */}
+              {/* Event Format */}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Event Format</label>
+                <select
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedEvent.eventFormat || 'virtual'}
+                  onChange={(e)=>setSelectedEvent({...selectedEvent,eventFormat:e.target.value})}
+                  required
+                >
+                  <option value="virtual">Virtual</option>
+                  <option value="in-person">In-Person</option>
+                </select>
+              </div>
+              {/* Event ID — virtual only */}
+              {(selectedEvent.eventFormat || 'virtual') !== 'in-person' && (
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Event ID</label>
                 <input
@@ -746,6 +897,73 @@ const AdminEvents = () => {
                   required
                 />
               </div>
+              )}
+              {/* In-person only fields */}
+              {selectedEvent.eventFormat === 'in-person' && (
+              <>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Event Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. NYC In-Person Mixer"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedEvent.title || ''}
+                  onChange={(e)=>setSelectedEvent({...selectedEvent,title:e.target.value})}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Start Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedEvent.startTime
+                    ? toLocalDatetimeInput(Number(selectedEvent.startTime))
+                    : (selectedEvent._startTimeLocal || '')}
+                  onChange={(e) => {
+                    const start = e.target.value;
+                    const startMs = new Date(start).getTime();
+                    const autoEndMs = startMs + 2 * 60 * 60 * 1000;
+                    setSelectedEvent({ ...selectedEvent, _startTimeLocal: start, startTime: startMs, _endTimeLocal: toLocalDatetimeInput(autoEndMs), endTime: autoEndMs });
+                  }}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">End Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedEvent.endTime
+                    ? toLocalDatetimeInput(Number(selectedEvent.endTime))
+                    : (selectedEvent._endTimeLocal || '')}
+                  onChange={(e)=>setSelectedEvent({...selectedEvent, _endTimeLocal: e.target.value, endTime: new Date(e.target.value).getTime()})}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700">Venue</label>
+                  <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedEvent.venue === 'TBD'}
+                      onChange={(e)=>setSelectedEvent({...selectedEvent, venue: e.target.checked ? 'TBD' : ''})}
+                    />
+                    TBD
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  placeholder="e.g. The Standard, 848 Washington St"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                  value={selectedEvent.venue === 'TBD' ? '' : (selectedEvent.venue || '')}
+                  disabled={selectedEvent.venue === 'TBD'}
+                  onChange={(e)=>setSelectedEvent({...selectedEvent,venue:e.target.value})}
+                />
+              </div>
+              </>
+              )}
 
               {/* Location */}
               <div className="flex flex-col gap-1">

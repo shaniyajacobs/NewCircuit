@@ -135,7 +135,6 @@ async function isLatestEventWithin48Hours(userId) {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
     const latestEventId = userDoc.data()?.latestEventId;
-    
     if (!latestEventId) {
       console.log('[48HOURS] No latestEventId found for user:', userId);
       return false;
@@ -518,6 +517,33 @@ const DashHome = () => {
         querySnapshot.docs.map(async (docSnapshot) => {
           const docData = docSnapshot.data() || {};
           const eventId = docData.eventID || docSnapshot.id; // fallback
+
+          // In-person events: skip Remo API, build directly from Firestore fields
+          if (docData.eventFormat === 'in-person') {
+            let date = null;
+            let time = null;
+            let timeZone = null;
+            if (docData.startTime) {
+              const dt = DateTime.fromMillis(Number(docData.startTime));
+              if (dt.isValid) {
+                date = dt.toFormat('yyyy-MM-dd');
+                time = dt.toFormat('h:mma');
+                timeZone = dt.zoneName;
+              }
+            }
+            const eventObj = {
+              ...docData,
+              title: docData.title || 'Untitled',
+              firestoreID: docSnapshot.id,
+              eventID: eventId,
+              date,
+              time,
+              timeZone,
+            };
+            console.log('[ALL EVENTS] In-person event loaded:', eventObj);
+            return eventObj;
+          }
+
           try {
             const res = await getEventDataCF({ eventId });
             const remoEvent = res.data?.event;
@@ -913,7 +939,7 @@ useEffect(() => {
       const eventsSnapshot = await getDocs(collection(db, 'events'));
       let eventDocId = null;
       eventsSnapshot.forEach(docSnap => {
-        if (docSnap.data().eventID === latestEventId) {
+        if (docSnap.data().eventID === latestEventId || docSnap.id === latestEventId) {
           eventDocId = docSnap.id;
         }
       });
