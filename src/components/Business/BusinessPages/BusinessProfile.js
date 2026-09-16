@@ -5,11 +5,13 @@ import { db } from '../../../pages/firebaseConfig';
 import { FaEdit, FaSave } from 'react-icons/fa';
 
 const BusinessProfile = () => {
-  //const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [businessData, setBusinessData] = useState({
-    businessName: '',
+    legalBusinessName: '',
     email: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const auth = getAuth();
   const businessId = auth.currentUser?.uid;
@@ -31,7 +33,7 @@ const BusinessProfile = () => {
     }
   };
 
-  /* const handleInputChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setBusinessData(prev => ({
       ...prev,
@@ -39,135 +41,106 @@ const BusinessProfile = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSave = async () => {
+    if (!businessId) return;
+
     try {
+      setLoading(true);
+      setError('');
+      
       const businessRef = doc(db, 'businesses', businessId);
-      await updateDoc(businessRef, businessData);
+      await updateDoc(businessRef, {
+        legalBusinessName: businessData.legalBusinessName,
+        email: businessData.email
+      });
+
+      // Exit edit mode
       setIsEditing(false);
+      alert("Business profile updated successfully!");
     } catch (error) {
       console.error('Error updating business data:', error);
+      setError('Error updating profile. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  }; */
+  };
 
-  const ProfileField = ({ label, name, type = 'text', value, onChange, disabled }) => (
-    <div className="mb-6">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      {type === 'textarea' ? (
-        <textarea
-          name={name}
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          rows="4"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-          readOnly
-        />
-      ) : (
-        <input
-          type={type}
-          name={name}
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-          readOnly
-        />
-      )}
-    </div>
-  );
+  const handleCancel = () => {
+    // Reset to original data and exit edit mode
+    fetchBusinessData();
+    setIsEditing(false);
+    setError('');
+  };
 
   return (
     <div className="p-7 bg-white rounded-3xl border border-gray-50 border-solid shadow-[0_4px_20px_rgba(238,238,238,0.502)] max-sm:p-5 min-h-screen">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-semibold text-indigo-950">Business Profile</h1>
-        {/* <button
-          onClick={() => setIsEditing(!isEditing)}
-          className="flex items-center gap-2 px-6 py-3 bg-[#0043F1] text-white rounded-xl hover:bg-[#0034BD] transition-colors"
-        >
-          {isEditing ? (
-            <>
-              <FaSave />
-              Save Changes
-            </>
-          ) : (
-            <>
-              <FaEdit />
-              Edit Profile
-            </>
-          )}
-        </button> */}
-      </div>
-
-      <div className="max-w-2xl">
-        <div className="mb-8">
-          <div className="flex items-center gap-6 mb-6">
-            {/* <div className="w-32 h-32 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
-              {businessData.logo ? (
-                <img
-                  src={businessData.logo}
-                  alt="Business Logo"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-gray-400">No logo</span>
-              )}
-            </div> */}
-            {/* {isEditing && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Logo
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-lg file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-[#0043F1] file:text-white
-                    hover:file:bg-[#0034BD]"
-                />
-              </div>
-            )} */}
-          </div>
-        </div>
-      </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ProfileField
-            label="Business Name"
-            name="businessName"
-            value={businessData.businessName}
-            //onChange={handleInputChange}
-            //disabled={!isEditing}
-          />
-          <ProfileField
-            label="Email"
-            name="email"
-            type="email"
-            value={businessData.email}
-            //onChange={handleInputChange}
-            //disabled={true}
-          />
-
-        {/* {isEditing && (
-          <div className="flex justify-end gap-4 mt-6">
+        {!isEditing ? (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-[#0043F1] text-white rounded-xl hover:bg-[#0034BD] transition-colors"
+          >
+            <FaEdit />
+            Edit Profile
+          </button>
+        ) : (
+          <div className="flex gap-3">
             <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={handleCancel}
+              className="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button
-              type="submit"
-              className="px-4 py-2 bg-[#0043F1] text-white rounded-lg hover:bg-[#0034BD] transition-colors"
+              onClick={handleSave}
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-3 bg-[#0043F1] text-white rounded-xl hover:bg-[#0034BD] transition-colors disabled:opacity-50"
             >
-              Save Changes
+              <FaSave />
+              {loading ? "Saving..." : "Save Changes"}
             </button>
           </div>
-        )} */}
+        )}
+      </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
+
+      <div className="max-w-2xl">
+        <div className="mb-8">
+          <div className="flex items-center gap-6 mb-6">
+            {/* Logo upload functionality can be added here later */}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+            <input
+              type="text"
+              name="legalBusinessName"
+              value={businessData.legalBusinessName || ''}
+              onChange={handleInputChange}
+              disabled={!isEditing}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+            />
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={businessData.email || ''}
+              onChange={handleInputChange}
+              disabled={!isEditing}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

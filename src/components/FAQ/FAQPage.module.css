@@ -85,6 +85,7 @@
   cursor: pointer;
   outline: none;
   font: inherit;
+  text-align: left; /* ensure wrapped text aligns left */
 }
 
 .faqQ {
@@ -94,6 +95,9 @@
   font-style: normal;
   font-weight: 500;
   line-height: normal;
+  text-align: left;      /* do not center when wrapping */
+  flex: 1 1 auto;        /* take available width so icon stays right */
+  margin-right: 16px;    /* spacing from plus/minus icon */
 }
 
 .faqPlusMinus {

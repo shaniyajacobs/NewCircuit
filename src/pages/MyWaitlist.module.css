@@ -1,0 +1,112 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  min-height: 100vh;
+  background: #f8f6f3;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 32px;
+}
+
+.empty {
+  font-size: 18px;
+  color: #666;
+  text-align: center;
+  margin-top: 60px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #1a1a1a;
+}
+
+.card p {
+  margin: 2px 0;
+  font-size: 14px;
+  color: #444;
+}
+
+.card .info {
+  flex: 1;
+}
+
+.leaveBtn {
+  padding: 8px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.leaveBtn:hover {
+  background: #dc2626;
+}
+
+@media (max-width: 600px) {
+  .card {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .leaveBtn {
+    width: 100%;
+  }
+}
+.statusWaiting {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.statusPromoted {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.statusExpired {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.claimBtn {
+  padding: 8px 16px;
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 8px;
+}
+
+.claimBtn:hover {
+  background: #16a34a;
+}
