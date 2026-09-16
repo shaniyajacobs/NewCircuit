@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import EventCard from "../DashboardHelperComponents/EventCard";
 import ConnectionsTable from "../DashboardHelperComponents/ConnectionsTable";
 import RemoEvent from "../DashboardHelperComponents/RemoEvent";
@@ -28,9 +28,8 @@ import { DashMessages } from "./DashMessages";
 import xIcon from "../../../images/x.svg";
 import tickCircle from "../../../images/tick-circle.svg";
 
-const MAX_SELECTIONS = 3; // maximum matches a user can choose
+const MAX_SELECTIONS = 3;
 
-// Helper: map city to IANA time zone
 const cityToTimeZone = {
   'Atlanta': 'America/New_York',
   'Chicago': 'America/Chicago',
@@ -44,7 +43,6 @@ const cityToTimeZone = {
   'Washington D.C.': 'America/New_York',
 };
 
-// Helper: map event timeZone field to IANA
 const eventZoneMap = {
   'PST': 'America/Los_Angeles',
   'PDT': 'America/Los_Angeles',
@@ -57,69 +55,37 @@ const eventZoneMap = {
   'UTC': 'UTC',
   'GMT': 'Europe/London',
   'BST': 'Europe/London',
-  // Add more as needed
 };
 
-// Updated isEventUpcoming function
 function isEventUpcoming(event, userLocation) {
-  if (!event.date || !event.time || !event.timeZone) {
-    console.warn('[isEventUpcoming] Rejected: missing date/time/timeZone', {
-      title: event.title,
-      date: event.date,
-      time: event.time,
-      timeZone: event.timeZone
-    });
-    return false;
-  }
-
-  // Parse event time zone
-  let eventZone = eventZoneMap[event.timeZone] || event.timeZone || 'UTC';
-
-  // Normalize time string to uppercase AM/PM
-  const normalizedTime = event.time ? event.time.replace(/am|pm/i, match => match.toUpperCase()) : '';
-
-  // Combine date and time (assume time is like '6:00pm' or '18:00')
-  // Try both 12-hour and 24-hour formats
-  let eventDateTime = DateTime.fromFormat(
-    `${event.date} ${normalizedTime}`,
-    'yyyy-MM-dd h:mma',
-    { zone: eventZone }
-  );
-  if (!eventDateTime.isValid) {
-    eventDateTime = DateTime.fromFormat(
-      `${event.date} ${normalizedTime}`,
-      'yyyy-MM-dd H:mm',
-      { zone: eventZone }
-    );
-    if (!eventDateTime.isValid) {
-      console.warn('[isEventUpcoming] Rejected: could not parse event time', {
-        title: event.title,
-        date: event.date,
-        time: event.time,
-        normalizedTime,
-        eventZone
-      });
-      return false;
+  if (event.startTime) {
+    const eventDateTime = DateTime.fromMillis(Number(event.startTime));
+    if (eventDateTime.isValid) {
+      const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
+      const now = DateTime.now().setZone(userZone);
+      const eventEndDateTime = event.endTime ? DateTime.fromMillis(Number(event.endTime)) : eventDateTime.plus({ minutes: 90 });
+      return eventEndDateTime.setZone(userZone) > now;
     }
   }
 
-  // Use actual endTime from Remo if available, otherwise fallback to 90 minutes
-  let eventEndDateTime;
-  if (event.endTime) {
-    eventEndDateTime = DateTime.fromMillis(Number(event.endTime));
-  } else {
-    eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+  if (event.date && event.time) {
+    let eventZone = event.timeZone || 'UTC';
+    const normalizedTime = event.time.replace(/am|pm/i, m => m.toUpperCase());
+    let eventDateTime = DateTime.fromFormat(`${event.date} ${normalizedTime}`, 'yyyy-MM-dd h:mma', { zone: eventZone });
+    if (!eventDateTime.isValid) {
+      eventDateTime = DateTime.fromFormat(`${event.date} ${normalizedTime}`, 'yyyy-MM-dd H:mm', { zone: eventZone });
+    }
+    if (eventDateTime.isValid) {
+      const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
+      const now = DateTime.now().setZone(userZone);
+      const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
+      return eventEndDateTime.setZone(userZone) > now;
+    }
   }
 
-  // Get user's time zone from location or fallback to browser local zone
-  const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
-  const now = DateTime.now().setZone(userZone);
-
-  // Show join button until actual event ends
-  return eventEndDateTime.setZone(userZone) > now;
+  return true;
 }
 
-// Add a hook to detect window width
 function useResponsiveEventLimit() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
@@ -130,59 +96,34 @@ function useResponsiveEventLimit() {
   return isMobile ? 4 : 6;
 }
 
-// Helper: check if latest event was within 48 hours
 async function isLatestEventWithin48Hours(userId) {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
     const latestEventId = userDoc.data()?.latestEventId;
-    if (!latestEventId) {
-      console.log('[48HOURS] No latestEventId found for user:', userId);
-      return false;
-    }
-    
-    // Use getEventData Cloud Function to get event data from Remo
+    if (!latestEventId) return false;
+
     const functionsInst = getFunctions();
     const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
     const res = await getEventDataCF({ eventId: latestEventId });
-    
-    if (!res.data?.event) {
-      console.log('[48HOURS] No event data returned from getEventData:', latestEventId);
-      return false;
-    }
-    
+
+    if (!res.data?.event) return false;
+
     const eventData = res.data.event;
-    console.log('[48HOURS] Event data from getEventData:', { eventID: eventData.id, endTime: eventData.endTime, startTime: eventData.startTime });
-    
-    // Check if event ended within the last 48 hours
     const now = DateTime.now();
     let eventEndDateTime;
-    
+
     if (eventData.endTime) {
       eventEndDateTime = DateTime.fromMillis(Number(eventData.endTime));
-      console.log('[48HOURS] Using endTime:', eventEndDateTime.toISO());
     } else if (eventData.startTime) {
       const eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
       eventEndDateTime = eventDateTime.plus({ minutes: 90 });
-      console.log('[48HOURS] Using startTime + 90min:', eventEndDateTime.toISO());
     } else {
-      console.log('[48HOURS] No valid time data in event');
       return false;
     }
-    
-    if (!eventEndDateTime || !eventEndDateTime.isValid) {
-      console.log('[48HOURS] Failed to calculate event end time');
-      return false;
-    }
-    
+
+    if (!eventEndDateTime || !eventEndDateTime.isValid) return false;
+
     const hoursSinceEvent = now.diff(eventEndDateTime, 'hours').hours;
-    
-    console.log('[48HOURS] Time calculation:', { 
-      eventEnd: eventEndDateTime.toISO(), 
-      now: now.toISO(), 
-      hoursSinceEvent: Math.round(hoursSinceEvent * 100) / 100 
-    });
-    
-    // Only show banner AFTER event has ended (positive hoursSinceEvent) and within 48 hours
     return hoursSinceEvent > 0 && hoursSinceEvent <= 48;
   } catch (error) {
     console.error('[48HOURS] Error checking event time:', error);
@@ -190,7 +131,6 @@ async function isLatestEventWithin48Hours(userId) {
   }
 }
 
-// Helper: convert emails to user IDs
 async function emailsToUserIds(emails) {
   if (!emails || emails.length === 0) return [];
   const userIds = [];
@@ -204,27 +144,26 @@ async function emailsToUserIds(emails) {
 
 const DashHome = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const guestUid = location.state?.guestUid || localStorage.getItem('guestUid');
+
   const [events, setEvents] = useState([]);
   const [firebaseEvents, setFirebaseEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userGender, setUserGender] = useState(null);
   const [datesRemaining, setDatesRemaining] = useState(100);
   const [userProfile, setUserProfile] = useState(null);
-  // Removed redundant state; upcoming events are derived via useMemo below
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [showAllSignUp, setShowAllSignUp] = useState(false);
   const [allEvents, setAllEvents] = useState([]);
   const [signedUpEventIds, setSignedUpEventIds] = useState(new Set());
   const [signedUpEventsLoaded, setSignedUpEventsLoaded] = useState(false);
-  // Fetch only mutual connections and pass to ConnectionsTable
   const [connections, setConnections] = useState([]);
   const [loadingConnections, setLoadingConnections] = useState(true);
   const [hasNewSpark, setHasNewSpark] = useState(false);
   const [checkingNewSparks, setCheckingNewSparks] = useState(false);
   const [hideNewSparksNotification, setHideNewSparksNotification] = useState(false);
-  const [hasCouponRequestUpdate, setHasCouponRequestUpdate] = useState(false);
-  const [checkingCouponRequests, setCheckingCouponRequests] = useState(false);
-  const [hideCouponRequestNotification, setHideCouponRequestNotification] = useState(false);
   const [showSelectSparksCard, setShowSelectSparksCard] = useState(false);
   const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
   const [selectingMatches, setSelectingMatches] = useState(false);
@@ -232,34 +171,189 @@ const DashHome = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
 
-  // Error modal state for informative popups (e.g., missing event)
   const [errorModal, setErrorModal] = useState({
     open: false,
     title: '',
     message: '',
   });
 
-  // Success modal state for signup confirmation
+  const [pendingSelections, setPendingSelections] = useState([]);
+  const [loadingSelections, setLoadingSelections] = useState(false);
+
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelEventId, setCancelEventId] = useState(null);
+
+  // ✅ Cancelled events tombstone (in-memory Set)
+  const [cancelledEventIds, setCancelledEventIds] = useState(new Set());
+
+  const handleCancelClick = (eventId) => {
+    setCancelEventId(eventId);
+    setShowCancelModal(true);
+  };
+
+  // ============================================================
+  // ✅ Tombstone load – handles BOTH array and object formats
+  // ============================================================
+  useEffect(() => {
+    const userId = guestUid || auth.currentUser?.uid;
+    if (!userId) return;
+    const unsub = onSnapshot(doc(db, 'users', userId), (snap) => {
+      if (snap.exists()) {
+        const raw = snap.data()?.cancelledEvents;
+        const ids = new Set();
+        if (Array.isArray(raw)) {
+          raw.forEach(id => ids.add(id));
+        } else if (raw && typeof raw === 'object') {
+          Object.keys(raw).forEach(k => {
+            if (raw[k] === true) ids.add(k);
+          });
+        }
+        setCancelledEventIds(ids);
+      }
+    });
+    return () => unsub();
+  }, [guestUid, auth.currentUser?.uid]);
+
+  // ============================================================
+  // ✅ performCancelRegistration – idempotent + optimistic + phone-aware
+  // ============================================================
+  const performCancelRegistration = async () => {
+    if (!cancelEventId) return;
+
+    const uid = auth.currentUser?.uid || guestUid;
+    if (!uid) {
+      setErrorModal({
+        open: true,
+        title: 'Error',
+        message: 'You are not logged in. Please log in to cancel.',
+      });
+      setShowCancelModal(false);
+      return;
+    }
+
+    const eventIdToCancel = cancelEventId;
+    const event = allEvents.find(e => e.firestoreID === eventIdToCancel);
+    const phoneNumber = userProfile?.phoneNumber || null;
+
+    try {
+      // 1. Save tombstone FIRST as OBJECT
+      await updateDoc(doc(db, 'users', uid), {
+        [`cancelledEvents.${eventIdToCancel}`]: true,
+      });
+
+      // 2. Update local state optimistically
+      setCancelledEventIds(prev => {
+        const next = new Set(prev);
+        next.add(eventIdToCancel);
+        return next;
+      });
+      setSignedUpEventIds(prev => {
+        const next = new Set(prev);
+        next.delete(eventIdToCancel);
+        return next;
+      });
+
+      // 3. Call the CF (with fallback)
+      const functions = getFunctions();
+      const cancelEvent = httpsCallable(functions, 'cancelEventRegistration');
+
+      try {
+        await cancelEvent({
+          eventId: eventIdToCancel,
+          userId: uid,
+          phoneNumber: phoneNumber,
+          userPhoneNumber: phoneNumber,
+          gender: event?.genderType || userGender,
+          eventFormat: event?.eventFormat || 'in-person',
+          eventID: event?.eventID || null,
+        });
+        console.log('✅ CF cancellation succeeded');
+      } catch (cfErr) {
+        console.warn('CF cancel error (will do client-side cleanup):', cfErr);
+
+        // Client-side cleanup – try phone first, then uid
+        try {
+          await deleteDoc(doc(db, 'users', uid, 'signedUpEvents', eventIdToCancel));
+
+          const idsToTry = [phoneNumber, uid].filter(Boolean);
+          if (phoneNumber && phoneNumber.startsWith('+')) {
+            idsToTry.push(phoneNumber.substring(1));
+          }
+
+          for (const id of idsToTry) {
+            try {
+              await deleteDoc(doc(db, 'events', eventIdToCancel, 'signedUpUsers', id));
+              console.log(`✅ Deleted signedUpUsers/${id}`);
+            } catch (e) {
+              // ignore – doc might not exist
+            }
+          }
+          console.log('✅ Client-side cleanup done');
+        } catch (cleanupErr) {
+          console.warn('Client-side cleanup failed:', cleanupErr);
+        }
+      }
+
+      // 4. Close modal
+      setShowCancelModal(false);
+      setCancelEventId(null);
+
+    } catch (error) {
+      console.error('Cancel error:', error);
+
+      // Fallback – make sure UI is in sync
+      try {
+        await deleteDoc(doc(db, 'users', uid, 'signedUpEvents', eventIdToCancel));
+
+        const idsToTry = [phoneNumber, uid].filter(Boolean);
+        if (phoneNumber && phoneNumber.startsWith('+')) {
+          idsToTry.push(phoneNumber.substring(1));
+        }
+
+        for (const id of idsToTry) {
+          try {
+            await deleteDoc(doc(db, 'events', eventIdToCancel, 'signedUpUsers', id));
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (delErr) {
+        console.warn('Fallback cleanup failed:', delErr);
+      }
+
+      setCancelledEventIds(prev => {
+        const next = new Set(prev);
+        next.add(eventIdToCancel);
+        return next;
+      });
+      setSignedUpEventIds(prev => {
+        const next = new Set(prev);
+        next.delete(eventIdToCancel);
+        return next;
+      });
+
+      setShowCancelModal(false);
+      setCancelEventId(null);
+    }
+  };
+
   const [showSignUpSuccessModal, setShowSignUpSuccessModal] = useState(false);
 
-  // Handle message click to open chat
   const handleMessageClick = (connection) => {
     setSelectedConnection(connection);
   };
 
-  // Handle closing messages modal
   const handleCloseMessages = () => {
     setSelectedConnection(null);
   };
 
-  // Helper: fetch IDs of events the user has signed up for from their sub-collection
   const fetchUserSignedUpEventIds = async (userId) => {
     if (!userId) return new Set();
     try {
       const signedUpCol = collection(db, 'users', userId, 'signedUpEvents');
       const snap = await getDocs(signedUpCol);
       const idSet = new Set();
-      snap.forEach((d) => idSet.add(d.id)); // doc id matches event's firestoreID
+      snap.forEach((d) => idSet.add(d.id));
       return idSet;
     } catch (err) {
       console.error('Error fetching user signed-up events:', err);
@@ -267,12 +361,6 @@ const DashHome = () => {
     }
   };
 
-  /**
-   * Fetch participant user IDs for a Remo event.
-   * 1. Call CF getEventMembers → list of attendee objects.
-   * 2. Extract attendee.user.email → emails[]
-   * 3. Query Firestore users by email (batched 10 per 'in' query) → uid[]
-   */
   const fetchEventParticipantUserIds = async (eventId) => {
     if (!eventId) return [];
     try {
@@ -282,22 +370,16 @@ const DashHome = () => {
 
       const payload = res?.data;
 
-      // Case 1: Cloud function already returns array of attendee objects
       if (Array.isArray(payload)) {
-        const userIds = await emailsToUserIds(payload.map((att) => att?.user?.email).filter(Boolean));
-        return userIds;
+        return await emailsToUserIds(payload.map((att) => att?.user?.email).filter(Boolean));
       }
 
-      // Case 2: Object wrapper with attendees array
       if (payload && Array.isArray(payload.attendees)) {
-        const userIds = await emailsToUserIds(payload.attendees.map((att) => att?.user?.email).filter(Boolean));
-        return userIds;
+        return await emailsToUserIds(payload.attendees.map((att) => att?.user?.email).filter(Boolean));
       }
 
-      // Case 3: Object wrapper with precomputed emails array
       if (payload && Array.isArray(payload.emails)) {
-        const userIds = await emailsToUserIds(payload.emails.filter(Boolean));
-        return userIds;
+        return await emailsToUserIds(payload.emails.filter(Boolean));
       }
 
       console.warn('fetchEventParticipantEmails: Unexpected response format', payload);
@@ -308,21 +390,17 @@ const DashHome = () => {
     }
   };
 
-  /**
-   * Helper to map an array of emails → array of Firebase user document IDs
-   */
   const emailsToUserIds = async (emails) => {
     if (!Array.isArray(emails) || emails.length === 0) return [];
 
     const uidSet = new Set();
-    // Firestore 'in' queries accept max 10 values
     for (let i = 0; i < emails.length; i += 10) {
       const slice = emails.slice(i, i + 10);
       const q = query(collection(db, 'users'), where('email', 'in', slice));
       const snap = await getDocs(q);
       snap.forEach((docSnap) => {
         const uid = docSnap.id;
-        if (auth.currentUser && uid === auth.currentUser.uid) return; // skip self
+        if (auth.currentUser && uid === auth.currentUser.uid) return;
         uidSet.add(uid);
       });
     }
@@ -330,16 +408,35 @@ const DashHome = () => {
     return Array.from(uidSet);
   };
 
-  // Filter events to only show upcoming ones
   const getUpcomingEvents = (eventsList, userLocation) => {
     const filtered = eventsList.filter(event => isEventUpcoming(event, userLocation));
     console.log('Filtering events, input size:', eventsList.length, 'output size:', filtered.length);
     return filtered;
   };
 
-
-  // Fetch user gender and datesRemaining from Firestore
   useEffect(() => {
+    if (guestUid) {
+      (async () => {
+        try {
+          const userDocRef = doc(db, 'users', guestUid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserGender(data.gender || data.userGender);
+            const fetchedRemaining = typeof data.datesRemaining === 'number'
+              ? data.datesRemaining
+              : Number(data.datesRemaining);
+            setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
+            setUserProfile(data);
+            setShowSelectSparksCard(!!data.latestEventId);
+          }
+        } catch (err) {
+          console.error('Error loading guest data:', err);
+        }
+      })();
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
@@ -347,49 +444,32 @@ const DashHome = () => {
         if (userDoc.exists()) {
           const data = userDoc.data();
           setUserGender(data.gender);
-          // Ensure datesRemaining is a finite number; default to 0 otherwise
           const fetchedRemaining = typeof data.datesRemaining === 'number'
             ? data.datesRemaining
             : Number(data.datesRemaining);
           setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
-
-          // Show the 'Select my sparks' card if user has a latestEventId
           setShowSelectSparksCard(!!data.latestEventId);
-
-          // TEMPORARY: Disabled 48-hour check and polling (was using Remo API)
-          // const within48 = await isLatestEventWithin48Hours(user.uid);
-          // setShowSelectSparksCard(within48);
-          //
-          // const interval = setInterval(async () => {
-          //   const stillWithin48 = await isLatestEventWithin48Hours(user.uid);
-          //   setShowSelectSparksCard(stillWithin48);
-          // }, 60000);
-          // window.__selectSparksPoller && clearInterval(window.__selectSparksPoller);
-          // window.__selectSparksPoller = interval;
         }
       }
     });
-    return () => {
-      if (window.__selectSparksPoller) clearInterval(window.__selectSparksPoller);
-      unsubscribe();
-    };
-  }, []);
+    return () => unsubscribe();
+  }, [guestUid]);
 
   const fetchConnections = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const userId = guestUid || auth.currentUser?.uid;
+    if (!userId) return;
     setLoadingConnections(true);
     setCheckingNewSparks(true);
     try {
-      const connsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+      const connsSnap = await getDocs(collection(db, 'users', userId, 'connections'));
       const uids = connsSnap.docs.map(d => d.id);
       const profiles = await Promise.all(
         uids.map(async (uid) => {
           const userDoc = await getDoc(doc(db, 'users', uid));
           if (!userDoc.exists()) return null;
           const data = userDoc.data();
-          const connectionDoc = await getDoc(doc(db, 'users', user.uid, 'connections', uid));
+          const connectionDoc = await getDoc(doc(db, 'users', userId, 'connections', uid));
           const connectionData = connectionDoc.exists() ? connectionDoc.data() : {};
           if (connectionData.status !== 'mutual') return null;
           return {
@@ -405,7 +485,6 @@ const DashHome = () => {
       const filteredProfiles = profiles.filter(Boolean);
       setConnections(filteredProfiles);
 
-      // Check for new sparks using the notification manager
       const connectionsWithNewFlag = await Promise.all(
         filteredProfiles.map(async (conn) => {
           const isNew = await isSparkNew(conn.userId);
@@ -418,9 +497,6 @@ const DashHome = () => {
 
       setConnections(connectionsWithNewFlag);
       setHasNewSpark(connectionsWithNewFlag.some(conn => conn.isNewSpark));
-      
-      // Note: We don't hide the select sparks card here anymore
-      // The MAX_SELECTIONS limit is enforced during the selection process in SeeAllMatches
     } catch (err) {
       console.error('Error fetching connections:', err);
       setConnections([]);
@@ -430,95 +506,68 @@ const DashHome = () => {
       setCheckingNewSparks(false);
     }
   };
-
-  // Function to check for coupon request updates
-  const checkCouponRequestUpdates = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-    
-    setCheckingCouponRequests(true);
-    try {
-      // Get all coupons
-      const couponsRef = collection(db, 'coupons');
-      const couponsSnapshot = await getDocs(couponsRef);
-      
-      let hasUpdate = false;
-      
-      // Check each coupon for redemption requests involving this user (as requester or date partner)
-      for (const couponDoc of couponsSnapshot.docs) {
-        const redemptionsRef = collection(db, 'coupons', couponDoc.id, 'redemptions');
-        const redemptionsQuery = query(redemptionsRef, where('status', 'in', ['approved', 'rejected']));
-        const redemptionsSnapshot = await getDocs(redemptionsQuery);
-        
-        for (const redemptionDoc of redemptionsSnapshot.docs) {
-          const redemptionData = redemptionDoc.data();
-          
-          // Check if current user is either the requester or the date partner
-          const isRequester = redemptionData.redeemedBy === user.uid;
-          const isDatePartner = redemptionData.date1?.partnerId === user.uid || redemptionData.date2?.partnerId === user.uid;
-          
-          if (isRequester || isDatePartner) {
-            hasUpdate = true;
-            break;
-          }
-        }
-        
-        if (hasUpdate) break;
-      }
-      
-      setHasCouponRequestUpdate(hasUpdate);
-    } catch (error) {
-      console.error('Error checking coupon request updates:', error);
-      setHasCouponRequestUpdate(false);
-    } finally {
-      setCheckingCouponRequests(false);
+ 
+  useEffect(() => {
+    if (guestUid || auth.currentUser) {
+      fetchConnections();
     }
-  };
+  }, [guestUid, auth.currentUser]);
+  
+  useEffect(() => {
+    const userId = guestUid || auth.currentUser?.uid;
+    if (!userId) {
+      console.log('🔴 No user, skipping signedUpEvents listener');
+      return;
+    }
+    const signedUpRef = collection(db, 'users', userId, 'signedUpEvents');
+
+    const unsubscribe = onSnapshot(signedUpRef, (snapshot) => {
+      const idSet = new Set();
+      snapshot.forEach((doc) => {
+        idSet.add(doc.id);
+      });
+      setSignedUpEventIds(idSet);
+      setSignedUpEventsLoaded(true);
+    });
+
+    return () => unsubscribe();
+  }, [guestUid]);
 
   useEffect(() => {
-    fetchConnections();
-    checkCouponRequestUpdates();
-    
-    // Set up real-time listener for coupon request updates
-    const user = auth.currentUser;
-    if (!user) return;
-    
-    const unsubscribe = onSnapshot(collection(db, 'coupons'), async (snapshot) => {
-      // Check for updates when coupon data changes
-      await checkCouponRequestUpdates();
-    });
-    
-    return () => unsubscribe();
-  }, [auth.currentUser]);
+    if (!signedUpEventsLoaded || signedUpEventIds.size === 0) return;
 
-  // Check for congratulations modal on component mount
+    const allIds = new Set(allEvents.map(e => e.firestoreID));
+    const missing = Array.from(signedUpEventIds).some(id => !allIds.has(id));
+
+    if (missing) {
+      console.log('📦 Reloading events to include newly signed-up events...');
+      loadEvents();
+    }
+  }, [signedUpEventIds, signedUpEventsLoaded, allEvents]);
+
   useEffect(() => {
     const shouldShowCongratulations = localStorage.getItem('showCongratulationsModal');
     if (shouldShowCongratulations === 'true') {
       setShowCongratulationsModal(true);
-      localStorage.removeItem('showCongratulationsModal'); // Clear the flag
+      localStorage.removeItem('showCongratulationsModal');
     }
   }, []);
 
-
-
-  // Centralized event loader so we can reuse for initial mount and Refresh button
+  // ✅ loadEvents
   const loadEvents = async () => {
     setLoading(true);
     try {
-      // Pull all events from Firestore
       const querySnapshot = await getDocs(collection(db, "events"));
 
-      // Cloud Function to merge Remo data
       const functionsInst = getFunctions();
       const getEventDataCF = httpsCallable(functionsInst, "getEventData");
 
       const eventsList = await Promise.all(
         querySnapshot.docs.map(async (docSnapshot) => {
           const docData = docSnapshot.data() || {};
-          const eventId = docData.eventID || docSnapshot.id; // fallback
+          const eventId = docData.eventID || docSnapshot.id;
 
-          // In-person events: skip Remo API, build directly from Firestore fields
+          // In-person events: skip Remo API
           if (docData.eventFormat === 'in-person') {
             let date = null;
             let time = null;
@@ -531,7 +580,7 @@ const DashHome = () => {
                 timeZone = dt.zoneName;
               }
             }
-            const eventObj = {
+            return {
               ...docData,
               title: docData.title || 'Untitled',
               firestoreID: docSnapshot.id,
@@ -540,16 +589,14 @@ const DashHome = () => {
               time,
               timeZone,
             };
-            console.log('[ALL EVENTS] In-person event loaded:', eventObj);
-            return eventObj;
           }
 
+          // Virtual events: try Remo first
           try {
             const res = await getEventDataCF({ eventId });
             const remoEvent = res.data?.event;
             if (remoEvent) {
               const finalTitle = remoEvent.name || remoEvent.title || docData.title || docData.eventName || 'Untitled';
-              // If Remo's startTime is present, extract date, time, and timeZone from it
               let date = docData.date || null;
               let time = docData.time || null;
               let timeZone = docData.timeZone || null;
@@ -561,14 +608,13 @@ const DashHome = () => {
                   timeZone = dt.zoneName;
                 }
               } else {
-                // fallback to Remo's date/time/timeZone fields if present
                 date = remoEvent.date || date;
                 time = remoEvent.time || time;
                 timeZone = remoEvent.timeZone || timeZone;
               }
-              const eventObj = {
+              return {
                 ...remoEvent,
-                ...docData, // Firebase fields override Remo for all other fields
+                ...docData,
                 title: finalTitle,
                 eventType: docData.eventType || docData.type || remoEvent.eventType,
                 firestoreID: docSnapshot.id,
@@ -577,34 +623,46 @@ const DashHome = () => {
                 time,
                 timeZone,
               };
-              console.log('[ALL EVENTS] Event loaded:', eventObj);
-              return eventObj;
             }
           } catch (err) {
             console.error(`Failed fetching Remo event for ${eventId}:`, err);
           }
-          return null;
+
+          // Fallback: Firestore data only
+          let date = null;
+          let time = null;
+          let timeZone = null;
+          if (docData.startTime) {
+            const dt = DateTime.fromMillis(Number(docData.startTime));
+            if (dt.isValid) {
+              date = dt.toFormat('yyyy-MM-dd');
+              time = dt.toFormat('h:mma');
+              timeZone = dt.zoneName;
+            }
+          }
+          return {
+            ...docData,
+            title: docData.title || docData.eventName || 'Untitled',
+            firestoreID: docSnapshot.id,
+            eventID: eventId,
+            date,
+            time,
+            timeZone,
+          };
         })
       );
 
       const filteredEvents = eventsList.filter(Boolean);
-      console.log('[ALL EVENTS] Fetched events:', eventsList, 'events');
-      console.log('[ALL EVENTS] Filtered events:', filteredEvents);
-      // Sort events chronologically from newest to oldest
       const sortedEvents = sortEventsByDate(filteredEvents);
-      console.log('[ALL EVENTS] Sorted events:', sortedEvents);
       setAllEvents(sortedEvents);
 
-      // Upcoming-filter based on user location (already sorted)
       const upcoming = getUpcomingEvents(sortedEvents, userProfile?.location);
-      console.log('[ALL EVENTS] Upcoming events:', upcoming);
       setFirebaseEvents(upcoming);
       setEvents(upcoming);
 
-      // Signed-up IDs to highlight joined events
-      if (auth.currentUser) {
-        const signedUpIds = await fetchUserSignedUpEventIds(auth.currentUser.uid);
-        console.log('[ALL EVENTS] Signed up event IDs:', signedUpIds);
+      const uid = guestUid || auth.currentUser?.uid;
+      if (uid) {
+        const signedUpIds = await fetchUserSignedUpEventIds(uid);
         setSignedUpEventIds(signedUpIds);
       }
     } finally {
@@ -612,14 +670,57 @@ const DashHome = () => {
     }
   };
 
-  // Fetch events and signed-up status on page load and after sign-up
+  const fetchPendingSelections = async () => {
+    const uid = auth.currentUser?.uid || guestUid;
+    if (!uid) return;
+    setLoadingSelections(true);
+    try {
+      const pending = [];
+      for (const eventId of signedUpEventIds) {
+        const event = allEvents.find(e => e.firestoreID === eventId);
+        if (!event) continue;
+        if (event.status !== 'complete') continue;
+        const attendeeRef = doc(db, 'events', eventId, 'signedUpUsers', uid);
+        const attendeeSnap = await getDoc(attendeeRef);
+        if (attendeeSnap.exists()) {
+          const data = attendeeSnap.data();
+          if (!data.selectionSubmitted) {
+            pending.push({
+              eventId: eventId,
+              eventTitle: event.title || 'Event',
+            });
+          }
+        }
+      }
+      setPendingSelections(pending);
+    } catch (err) {
+      console.error('Error fetching pending selections:', err);
+    } finally {
+      setLoadingSelections(false);
+    }
+  };
+
+  useEffect(() => {
+    if (signedUpEventsLoaded && allEvents.length > 0) {
+      fetchPendingSelections();
+    }
+  }, [signedUpEventsLoaded, allEvents, signedUpEventIds]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loadEvents();
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (userProfile) {
       loadEvents();
     }
   }, [userProfile]);
 
-  // Manual refresh button now uses the same loader
   const fetchEventsFromFirebase = async () => {
     await loadEvents();
   };
@@ -635,21 +736,14 @@ const DashHome = () => {
         body: JSON.stringify(RemoEvent())
       });
 
-      // Check if the response was successful
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(`API error: ${response.status} - ${JSON.stringify(errorData)}`);
       }
 
-      // Parse the JSON response - this is an async operation
       const output = await response.json();
-      console.log('API Response:', output);
-
-      // Now you can safely access the fields
       const eventID = output.event._id;
-      console.log('Event ID:', eventID);
 
-      // Save to your database
       await setDoc(doc(db, 'events', eventID), {
         eventName: 'Test event 3',
         eventID: eventID,
@@ -657,74 +751,48 @@ const DashHome = () => {
         womenCapacity: 10,
       });
 
-      console.log('Event saved to database');
-      return eventID; // Return the event ID if needed elsewhere
+      return eventID;
     } catch (error) {
       console.error('Error creating event:', error);
-      throw error; // Re-throw to allow handling by caller
+      throw error;
     }
   };
 
-const getEventData = async (eventID) => {
-  try {
-    // Get Firestore data first
-    const eventInfo = await getDoc(doc(db, 'events', eventID));
-
-    if (eventInfo.exists()) {
-      return eventInfo.data();
-    } else {
-      console.warn(`No Firestore document for event ID: ${eventID}`);
+  const getEventData = async (eventID) => {
+    try {
+      const eventInfo = await getDoc(doc(db, 'events', eventID));
+      if (eventInfo.exists()) {
+        return eventInfo.data();
+      } else {
+        console.warn(`No Firestore document for event ID: ${eventID}`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error fetching event data for ${eventID}:`, error);
       return null;
     }
+  };
 
-    // Optional: fetch Remo data AFTER confirming Firestore
-    // const apiURL = `https://live.remo.co/api/v1/events/${eventID}`;
-    // const response = await fetch(apiURL, {
-    //   method: 'GET',
-    //   headers: {
-    //     accept: 'application/json',
-    //     Authorization: 'Token: 3d7eff4be16752f1a52f8ba059b810fa',
-    //   }
-    // });
-    // if (!response.ok) {
-    //   const errorData = await response.json();
-    //   throw new Error(`API error: ${response.status} - ${JSON.stringify(errorData)}`);
-    // }
-
-  } catch (error) {
-    console.error(`Error fetching event data for ${eventID}:`, error);
-    return null;
-  }
-};
-
-    // Handle sign up logic
   const handleSignUp = async (event) => {
-    console.log("[JOIN NOW] Event:", event);
-    console.log("[JOIN NOW] Event ID:", event.eventID);
-    console.log("[JOIN NOW] Current user:", auth.currentUser?.uid);
-    
     const currentRemaining = Number.isFinite(datesRemaining) ? datesRemaining : 0;
     if (currentRemaining <= 0) {
-      console.log('[JOIN NOW] No dates remaining - cannot sign up');
-      return { 
-        success: false, 
-        message: 'You have no date credits remaining. Please purchase date credits in the shop tab to register for date events.',
-        showError: true 
+      return {
+        success: false,
+        message: 'Please purchase a ticket to register for this event.',
+        showError: true
       };
     }
 
     const user = auth.currentUser;
     if (!user) {
-      console.error('[JOIN NOW] No authenticated user found');
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: 'Please log in to join events.',
-        showError: true 
+        showError: true
       };
     }
 
     try {
-      // Use combined transaction-based signup with dates update
       const userData = {
         userName: userProfile && userProfile.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : (user.displayName || null),
         userEmail: user.email || null,
@@ -734,9 +802,8 @@ const getEventData = async (eventID) => {
       };
 
       const result = await signUpForEventWithDates(event.firestoreID, user.uid, userData, -1);
-      
+
       if (result.success) {
-        // Add a document in the user's sub-collection
         await setDoc(
           doc(db, 'users', user.uid, 'signedUpEvents', event.firestoreID),
           {
@@ -752,20 +819,17 @@ const getEventData = async (eventID) => {
           { merge: true }
         );
 
-        // Add user to Remo event
         try {
           const functionsInst = getFunctions();
           const addUserToRemoEvent = httpsCallable(functionsInst, 'addUserToRemoEvent');
-          await addUserToRemoEvent({ 
-            eventId: event.eventID, 
-            userEmail: user.email 
+          await addUserToRemoEvent({
+            eventId: event.eventID,
+            userEmail: user.email
           });
-          console.log('✅ User added to Remo event successfully');
         } catch (error) {
           console.error('❌ Failed to add user to Remo event:', error);
         }
 
-        // Update local state with transaction results
         setDatesRemaining(result.newDates);
         setSignedUpEventIds(prev => {
           const next = new Set(prev);
@@ -773,13 +837,11 @@ const getEventData = async (eventID) => {
           return next;
         });
 
-        console.log('✅ Event signup completed successfully');
         setShowSignUpSuccessModal(true);
         return { success: true, message: 'Event signup completed successfully', showSuccess: true };
       } else {
-        console.log('❌ Signup failed - result.success is false:', result);
-        return { 
-          success: false, 
+        return {
+          success: false,
           message: result.message || 'Failed to sign up for event. Please try again.',
           showError: true,
           showSuccess: false
@@ -787,43 +849,81 @@ const getEventData = async (eventID) => {
       }
     } catch (error) {
       console.error('❌ Error during event signup:', error);
-      // Don't show alert for capacity errors since users should see waitlist button
       if (!error.message.includes('Event is full for')) {
-        // Return error details to EventCard instead of showing modal here
-        return { 
-          success: false, 
+        return {
+          success: false,
           message: error.message || 'Failed to sign up for event. Please try again.',
-          showError: true 
+          showError: true
         };
       }
       return { success: false, message: 'Failed to sign up for event. Please try again.' };
     }
   };
 
-  // Runs once to fix UI + Remo after waitlist promotion
   const reconcileUserEventState = async ({ force = false } = {}) => {
     const user = auth.currentUser;
     if (!user) return;
-  
+
     try {
-      // A) current signedUpEvents
-      const mySignedUpSnap = await getDocs(collection(db, 'users', user.uid, 'signedUpEvents'));
-      const mySignedUpSet = new Set(mySignedUpSnap.docs.map(d => d.id));
-  
-      // B) promotions across events via field filter (not documentId)
-      const cgQ = query(collectionGroup(db, 'signedUpUsers'), where('userID', '==', user.uid));
+      const mySignedUpSnap = await getDocs(
+        collection(db, 'users', user.uid, 'signedUpEvents')
+      );
+
+      const mySignedUpSet = new Set(
+        mySignedUpSnap.docs.map(d => d.id)
+      );
+
+      const userSnap = await getDoc(doc(db, 'users', user.uid));
+      const userData = userSnap.exists() ? userSnap.data() : {};
+
+      // ✅ Normalize tombstone – handle BOTH array and object
+      const rawCancelled = userData.cancelledEvents;
+      const cancelledEvents = {};
+      if (Array.isArray(rawCancelled)) {
+        rawCancelled.forEach(id => { cancelledEvents[id] = true; });
+      } else if (rawCancelled && typeof rawCancelled === 'object') {
+        Object.assign(cancelledEvents, rawCancelled);
+      }
+
+      const cgQ = query(
+        collectionGroup(db, 'signedUpUsers'),
+        where('userID', '==', user.uid)
+      );
       const cgSnap = await getDocs(cgQ);
-  
+
       for (const suDoc of cgSnap.docs) {
-        const eventRef = suDoc.ref.parent.parent; // events/{eventId}
+        const eventRef = suDoc.ref.parent.parent;
         if (!eventRef) continue;
         const eventFirestoreId = eventRef.id;
-  
+
+        // Do not recreate an event that the user explicitly cancelled.
+        if (cancelledEvents[eventFirestoreId] === true) {
+          const cancelledSignedUpRef = doc(
+            db,
+            'users',
+            user.uid,
+            'signedUpEvents',
+            eventFirestoreId
+          );
+
+          try {
+            await deleteDoc(cancelledSignedUpRef);
+          } catch (deleteError) {
+            console.warn(
+              'Could not clean up cancelled event:',
+              eventFirestoreId,
+              deleteError
+            );
+          }
+
+          continue;
+        }
+
         if (!mySignedUpSet.has(eventFirestoreId)) {
           const eventSnap = await getDoc(eventRef);
           if (!eventSnap.exists()) continue;
           const e = eventSnap.data() || {};
-  
+
           await setDoc(
             doc(db, 'users', user.uid, 'signedUpEvents', eventFirestoreId),
             {
@@ -838,9 +938,9 @@ const getEventData = async (eventID) => {
             },
             { merge: true }
           );
-  
+
           mySignedUpSet.add(eventFirestoreId);
-  
+
           await setDoc(
             doc(db, 'users', user.uid),
             { latestEventId: e.eventID || eventFirestoreId },
@@ -848,26 +948,25 @@ const getEventData = async (eventID) => {
           );
         }
       }
-  
-      // C) Ensure Remo enrollment (unchanged)
+
       const fn = getFunctions();
       const getEventMembers = httpsCallable(fn, 'getEventMembers');
       const addUserToRemoEvent = httpsCallable(fn, 'addUserToRemoEvent');
       const myEmail = (user.email || '').toLowerCase();
-  
+
       for (const eventFirestoreId of mySignedUpSet) {
         const evSnap = await getDoc(doc(db, 'events', eventFirestoreId));
         if (!evSnap.exists()) continue;
         const e = evSnap.data() || {};
         const remoEventId = e.eventID;
         if (!remoEventId || !myEmail) continue;
-  
+
         try {
           const res = await getEventMembers({ eventId: remoEventId });
           const payload = res?.data;
           const attendees = Array.isArray(payload) ? payload : (payload?.attendees || []);
           const emails = attendees.map(a => a?.user?.email).filter(Boolean).map(x => x.toLowerCase());
-  
+
           if (!emails.includes(myEmail)) {
             await addUserToRemoEvent({ eventId: remoEventId, userEmail: myEmail });
           }
@@ -875,67 +974,58 @@ const getEventData = async (eventID) => {
           console.warn('Remo reconcile failed for', remoEventId, err);
         }
       }
-  
+
       setSignedUpEventIds(new Set(mySignedUpSet));
     } catch (e) {
       console.warn('reconcileUserEventState error:', e);
     }
   };
-  
 
-useEffect(() => {
-  if (userProfile && auth.currentUser) {
-    // after profile is ready, fix any missing links + Remo
-    reconcileUserEventState();
-  }
-}, [userProfile]);
-
-
-useEffect(() => {
-  if (!auth.currentUser || !userProfile) return;
-
-  const q = query(
-    collectionGroup(db, 'signedUpUsers'),
-    where('userID', '==', auth.currentUser.uid) // 👈 field match
-  );
-
-  const unsub = onSnapshot(q, (snap) => {
-    if (!snap.empty) {
-      reconcileUserEventState({ force: true }); // run immediately
+  useEffect(() => {
+    if (userProfile && auth.currentUser) {
+      reconcileUserEventState();
     }
-  });
+  }, [userProfile]);
 
-  return () => unsub();
-}, [userProfile, auth.currentUser]);
+  useEffect(() => {
+    if (!auth.currentUser || !userProfile) return;
 
+    const q = query(
+      collectionGroup(db, 'signedUpUsers'),
+      where('userID', '==', auth.currentUser.uid)
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty) {
+        reconcileUserEventState({ force: true });
+      }
+    });
+
+    return () => unsub();
+  }, [userProfile, auth.currentUser]);
 
   const handleMatchesClick = async () => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
-      console.error('[DASHHOME] No authenticated user found');
       setSelectingMatches(false);
       return;
     }
 
     try {
-      console.log('[DASHHOME] handleMatchesClick started');
       setSelectingMatches(true);
 
-    // 1. Get latestEventId from user doc
-    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-    const latestEventId = userDoc.data()?.latestEventId;
-    if (!latestEventId) {
-      setErrorModal({
-        open: true,
-        title: "No Event Found",
-        message: "You have not joined any events yet, or the event you are trying to access does not exist.",
-      });
-      setSelectingMatches(false);
-      return;
-    }
-    console.log('[MATCHES] latestEventId:', latestEventId);
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      const latestEventId = userDoc.data()?.latestEventId;
+      if (!latestEventId) {
+        setErrorModal({
+          open: true,
+          title: "No Event Found",
+          message: "You have not joined any events yet, or the event you are trying to access does not exist.",
+        });
+        setSelectingMatches(false);
+        return;
+      }
 
-      // 2. Find the event doc where eventID === latestEventId
       const eventsSnapshot = await getDocs(collection(db, 'events'));
       let eventDocId = null;
       eventsSnapshot.forEach(docSnap => {
@@ -944,7 +1034,6 @@ useEffect(() => {
         }
       });
       if (!eventDocId) {
-        console.log('[DASHHOME] Event not found, showing error modal');
         setErrorModal({
           open: true,
           title: "Event Not Found",
@@ -953,15 +1042,11 @@ useEffect(() => {
         setSelectingMatches(false);
         return;
       }
-      console.log('[DASHHOME] Found event doc ID:', eventDocId);
 
-      // 3. Get signedUpUsers subcollection from that event doc
       const signedUpUsersCol = collection(db, 'events', eventDocId, 'signedUpUsers');
       const signedUpUsersSnap = await getDocs(signedUpUsersCol);
       const userIds = signedUpUsersSnap.docs.map(d => d.id);
-      console.log('[DASHHOME] User IDs from signedUpUsers:', userIds);
 
-      // 4. Get existing connections to preserve compatibility scores
       const existingConnectionsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'connections'));
       const existingConnections = {};
       existingConnectionsSnap.docs.forEach(doc => {
@@ -970,41 +1055,27 @@ useEffect(() => {
           existingConnections[doc.id] = data.matchScore;
         }
       });
-      console.log('[DASHHOME] Existing connections with scores:', existingConnections);
 
-      // 5. Fetch quiz responses and user profiles for each user ID
       const quizResponses = [];
       const userProfiles = [];
-      
+
       for (const uid of userIds) {
         const quizDocRef = doc(db, 'users', uid, 'quizResponses', 'latest');
         const userProfileRef = doc(db, 'users', uid);
-        
-        console.log(`[DASHHOME] Fetching quiz and profile for user ${uid}`);
-        
+
         const [quizDoc, userProfileDoc] = await Promise.all([
           getDoc(quizDocRef),
           getDoc(userProfileRef)
         ]);
-        
-        console.log(`[DASHHOME] Quiz exists for user ${uid}:`, quizDoc.exists());
-        console.log(`[DASHHOME] Profile exists for user ${uid}:`, userProfileDoc.exists());
-        
+
         if (quizDoc.exists()) {
-          const quizData = { userId: uid, answers: quizDoc.data().answers };
-          quizResponses.push(quizData);
-          
-          // Also store user profile data for gender preference filtering
+          quizResponses.push({ userId: uid, answers: quizDoc.data().answers });
           if (userProfileDoc.exists()) {
-            userProfiles.push({
-              userId: uid,
-              ...userProfileDoc.data()
-            });
+            userProfiles.push({ userId: uid, ...userProfileDoc.data() });
           }
         }
       }
 
-      // Always add current user's quiz and profile if not already present
       if (!quizResponses.find(q => q.userId === currentUser.uid)) {
         const myQuizDocRef = doc(db, 'users', currentUser.uid, 'quizResponses', 'latest');
         const myProfileRef = doc(db, 'users', currentUser.uid);
@@ -1020,92 +1091,55 @@ useEffect(() => {
         }
       }
 
-      // 6. Find current user's answers and profile
       const currentUserAnswers = quizResponses.find(q => q.userId === currentUser.uid)?.answers;
       const currentUserProfile = userProfiles.find(p => p.userId === currentUser.uid);
-      
+
       if (!currentUserAnswers) {
-  console.log('[DASHHOME] No quiz answers found for current user');
-  alert('You must complete your quiz to get matches.');
-  setSelectingMatches(false);
-  return;
+        alert('You must complete your quiz to get matches.');
+        setSelectingMatches(false);
+        return;
       }
 
       if (!currentUserProfile) {
-  console.log('[DASHHOME] No user profile found for current user');
-  alert('User profile not found. Please complete your profile setup.');
-  setSelectingMatches(false);
-  return;
+        alert('User profile not found. Please complete your profile setup.');
+        setSelectingMatches(false);
+        return;
       }
 
-      // 7. Filter other users by gender preference
       const otherUsers = quizResponses.filter(q => q.userId !== currentUser.uid);
       const otherUserProfiles = userProfiles.filter(p => p.userId !== currentUser.uid);
-      
-      console.log('[DASHHOME] Before gender filtering:', {
-        totalUsers: otherUsers.length,
-        currentUserProfile: {
-          gender: currentUserProfile.gender,
-          sexualPreference: currentUserProfile.sexualPreference
-        }
-      });
 
-      // Create combined user objects with both quiz answers and profile data
       const otherUsersWithProfiles = otherUsers.map(quizUser => {
         const profile = otherUserProfiles.find(p => p.userId === quizUser.userId);
-        return {
-          ...quizUser,
-          ...profile
-        };
+        return { ...quizUser, ...profile };
       });
 
-      // Apply gender preference filtering
       const filteredUsers = filterByGenderPreference(currentUserProfile, otherUsersWithProfiles);
-      
-      console.log('[DASHHOME] After gender filtering:', {
-        filteredUsers: filteredUsers.length,
-        filteredUserIds: filteredUsers.map(u => u.userId)
-      });
 
-      // 8. Run matchmaking algorithm only on filtered users
       const { getTopMatches } = await import('../../Matchmaking/Synergies.js');
-      const newMatches = getTopMatches(currentUserAnswers, filteredUsers); // [{ userId, score }]
+      const newMatches = getTopMatches(currentUserAnswers, filteredUsers);
 
-      console.log('[DASHHOME] New matches:', newMatches);
-
-      // 9. Merge new matches with existing connections, preserving existing scores
       const mergedMatches = [...newMatches];
-      
-      // Add existing connections that weren't in the new matches
+
       Object.keys(existingConnections).forEach(userId => {
         const existsInNewMatches = newMatches.some(match => match.userId === userId);
         if (!existsInNewMatches) {
-          mergedMatches.push({
-            userId: userId,
-            score: existingConnections[userId]
-          });
+          mergedMatches.push({ userId: userId, score: existingConnections[userId] });
         }
       });
 
-      console.log('[DASHHOME] Merged matches (preserving existing scores):', mergedMatches);
-
-      // 10. Save merged matches to Firestore
       await setDoc(doc(db, 'matches', currentUser.uid), {
         timestamp: serverTimestamp(),
         results: mergedMatches
       });
 
-    // 9. Redirect to MyMatches
-    navigate('myMatches');
+      navigate('myMatches');
     } catch (error) {
       console.error('[DASHHOME] Error in handleMatchesClick:', error);
       setSelectingMatches(false);
-      // Fallback: try to navigate directly even if matchmaking fails
       try {
-        console.log('[DASHHOME] Attempting fallback navigation to myMatches');
         navigate('/dashboard/myMatches');
       } catch (navError) {
-        console.error('[DASHHOME] Fallback navigation also failed:', navError);
         setErrorModal({
           open: true,
           title: "Error",
@@ -1115,9 +1149,7 @@ useEffect(() => {
     }
   };
 
-  // Simple direct navigation function as backup
   const handleDirectMatchesClick = () => {
-    console.log('[DASHHOME] Direct navigation to myMatches');
     navigate('/dashboard/myMatches');
   };
 
@@ -1125,81 +1157,71 @@ useEffect(() => {
     navigate('dashMyConnections');
   };
 
-  const handleCouponRequestsClick = () => {
-    navigate('dashMyCoupons');
-  };
-
   const handlePurchaseMoreDatesClick = () => {
     navigate('/dashboard/dashDateCalendar');
   };
 
-  // Use the same event limit for sign-up events
   const signUpEventLimit = useResponsiveEventLimit();
-  // Filter for upcoming and sign-up events (already sorted by date)
-  const upcomingEvents = useMemo(() => {
-    if (!userProfile?.location) return [];
-    const filtered = allEvents.filter(event =>
-      signedUpEventIds.has(event.firestoreID) && isEventUpcoming(event, userProfile.location)
-    );
-    // Ensure they remain sorted (should already be sorted from loadEvents)
-    return sortEventsByDate(filtered);
-  }, [allEvents, signedUpEventIds, userProfile?.location]);
 
-  // Show *all* events (regardless of date) that the user has not yet signed up for (sorted by date)
+  // ✅ Filter cancelled events + only upcoming events
+  const upcomingEvents = useMemo(() => {
+    const filtered = allEvents.filter(event => {
+      const isSigned = signedUpEventIds.has(event.firestoreID);
+      const wasCancelled = cancelledEventIds.has(event.firestoreID);
+      const isUpcoming = isEventUpcoming(event, userProfile?.location);
+      return isSigned && !wasCancelled && isUpcoming;
+    });
+    return sortEventsByDate(filtered);
+  }, [allEvents, signedUpEventIds, cancelledEventIds, userProfile?.location]);
+
   const upcomingSignupEvents = useMemo(() => {
     const filtered = allEvents.filter(event => {
-      // Exclude events the user has already signed up for
-      if (signedUpEventIds.has(event.firestoreID)) {
-        return false;
-      }
-
-      // Only show events in the user's city/location
+      if (signedUpEventIds.has(event.firestoreID)) return false;
       if (!event.location || !userProfile?.location) return false;
-      if (event.location.trim().toLowerCase() !== userProfile.location.trim().toLowerCase()) {
-        return false;
-      }
-
-      // Use isEventUpcoming for filtering
-      const isUpcoming = isEventUpcoming(event, userProfile.location);
-      console.log('[upcomingSignupEvents] Event:', event.title, '| isUpcoming:', isUpcoming);
-      if (!isUpcoming) {
-        return false;
-      }
-
-      // If we get here, the event is available for sign-up, upcoming, and in the user's city
-      return true;
+      if (event.location.trim().toLowerCase() !== userProfile.location.trim().toLowerCase()) return false;
+      return isEventUpcoming(event, userProfile.location);
     });
-    // Ensure they remain sorted (should already be sorted from loadEvents)
     return sortEventsByDate(filtered);
   }, [allEvents, signedUpEventIds, userProfile?.location]);
 
   return (
     <div>
       <div className="px-7 py-4 sm:px-7 sm:py-4 md:px-7 md:py-6 lg:px-7 lg:py-8 xl:px-7 xl:py-12 2xl:px-7 2xl:py-12 bg-white border border-[rgba(33,31,32,0.10)] border-solid max-sm:px-5 max-sm:py-4">
-        {/* Inner container with max-width and centering */}
         <div className="max-w-[1340px] mx-auto">
-          {/* Add responsive gaps between major sections */}
           <div className="flex flex-col gap-[18px] sm:gap-[24px] xl:gap-[32px] 2xl:gap-[50px]">
-            
-            {/* Welcome back heading */}
-            <h2
-              className="
-                font-semibold
-                text-[#211F20]
-                leading-[110%]
-                font-bricolage
-                text-[32px] sm:text-[40px] md:text-[48px]
-              "
-            >
+
+            <h2 className="font-semibold text-[#211F20] leading-[110%] font-bricolage text-[32px] sm:text-[40px] md:text-[48px]">
               Welcome back, {userProfile?.firstName}
             </h2>
 
-            {/* Select my sparks card */}
+            {pendingSelections.length > 0 && !loadingSelections && (
+              <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
+                <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
+                <div className="absolute inset-0 bg-[#211F20] bg-opacity-10" style={{ background: `linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%), linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%), linear-gradient(0deg, rgba(226,255,101,0.25) 0%, rgba(226,255,101,0.25) 100%)` }} />
+                <div className="relative z-10 flex flex-col items-start p-6">
+                  <span className="flex items-center font-medium text-white leading-[130%] font-bricolage text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px] mb-4">
+                    <SmallFlashIcon className="w-6 h-6 mr-2" />
+                    It's time to select your favourites! Choose up to 3 people from your event.
+                  </span>
+                  {pendingSelections.map((ps) => (
+                    <button
+                      key={ps.eventId}
+                      onClick={() => navigate(`/dashboard/event-selections/${ps.eventId}`)}
+                      className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition hover:bg-[#d4f85a] mr-2"
+                    >
+                      Select for {ps.eventTitle}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {showSelectSparksCard && (
-            <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
-              <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
-              <div className="absolute inset-0 bg-[#211F20] bg-opacity-10" 
+              <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
+                <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
+                <div className="absolute inset-0 bg-[#211F20] bg-opacity-10"
                   style={{
                     background: `
                       linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%),
@@ -1207,39 +1229,24 @@ useEffect(() => {
                       linear-gradient(0deg, rgba(226,255,101,0.25) 0%, rgba(226,255,101,0.25) 100%)
                     `
                   }}/>
-              <div className="relative z-10 flex flex-col items-start p-6">
-                <span
-                  className="
-                    flex items-center
-                    font-medium
-                    text-white
-                    leading-[130%]
-                    font-bricolage
-                    text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px]
-                    mb-4
-                  "
-                >
-                  <SmallFlashIcon className="w-6 h-6 mr-2" />
-                  You just went on a date! Choose up to 3 connections. We’ll let you know if the spark is mutual.
-                </span>
-                <button
-                  onClick={handleMatchesClick}
-                  disabled={selectingMatches}
-                  className={`bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition ${
-                    selectingMatches 
-                      ? 'opacity-60 cursor-not-allowed' 
-                      : 'hover:bg-[#d4f85a]'
-                  }`}
-                >
-                  {selectingMatches ? 'Loading…' : 'Select My Connections'}
-                </button>
-
+                <div className="relative z-10 flex flex-col items-start p-6">
+                  <span className="flex items-center font-medium text-white leading-[130%] font-bricolage text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px] mb-4">
+                    <SmallFlashIcon className="w-6 h-6 mr-2" />
+                    You just went on a date! Choose up to 3 connections. We'll let you know if the spark is mutual.
+                  </span>
+                  <button
+                    onClick={handleMatchesClick}
+                    disabled={selectingMatches}
+                    className={`bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition ${
+                      selectingMatches ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#d4f85a]'
+                    }`}
+                  >
+                    {selectingMatches ? 'Loading…' : 'Select My Connections'}
+                  </button>
+                </div>
               </div>
-            </div>
             )}
 
-
-            {/* See my sparks card */}
             {checkingNewSparks ? null : (hasNewSpark && !hideNewSparksNotification) && (
               <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center mb-6">
                 <img src={homeSeeMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -1253,14 +1260,11 @@ useEffect(() => {
                     `
                   }}
                 />
-                {/* X icon in top-right corner */}
                 <div className="absolute top-4 right-4 z-20 cursor-pointer" onClick={() => setHideNewSparksNotification(true)}>
                   <img src={xIcon} alt="Close" className="w-6 h-6 filter brightness-0 invert" />
                 </div>
                 <div className="relative z-10 flex flex-col items-start p-6">
-                  <span
-                    className="flex items-center font-medium text-white leading-[130%] font-bricolage text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px] mb-4"
-                  >
+                  <span className="flex items-center font-medium text-white leading-[130%] font-bricolage text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px] mb-4">
                     <SmallFlashIcon className="w-6 h-6 mr-2" />
                     You've got new sparks! Send them a quick message.
                   </span>
@@ -1274,90 +1278,26 @@ useEffect(() => {
               </div>
             )}
 
-            {/* Coupon Request Updates Notification */}
-            {checkingCouponRequests ? null : (hasCouponRequestUpdate && !hideCouponRequestNotification) && (
-              <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center mb-6">
-                <img src={homeSeeMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
-                <div className="absolute inset-0 bg-[#211F20] bg-opacity-10"
-                  style={{
-                    background: `
-                      linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%),
-                      linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%),
-                      linear-gradient(0deg, rgba(255,193,7,0.25) 0%, rgba(255,193,7,0.25) 100%)
-                    `
-                  }}
-                />
-                {/* X icon in top-right corner */}
-                <div className="absolute top-4 right-4 z-20 cursor-pointer" onClick={() => setHideCouponRequestNotification(true)}>
-                  <img src={xIcon} alt="Close" className="w-6 h-6 filter brightness-0 invert" />
-                </div>
-                <div className="relative z-10 flex flex-col items-start p-6">
-                  <span
-                    className="flex items-center font-medium text-white leading-[130%] font-bricolage text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px] mb-4"
-                  >
-                    <SmallFlashIcon className="w-6 h-6 mr-2" />
-                    Your coupon request has been updated! Check the status.
-                  </span>
-                  <button
-                    onClick={handleCouponRequestsClick}
-                    className="bg-[#FFC107] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#FFB300] transition"
-                  >
-                    View My Coupons
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Upcoming Events Section */}
             <div>
               <div className="flex bg-white justify-between items-center mb-6">
-                <h6
-                  className="
-                    font-medium
-                    text-[#211F20]
-                    leading-[100%]
-                    font-bricolage
-                    text-[18px] md:text-[20px] xl:text-[28px] 2xl:text-[32px] mt-4
-                  "
-                >
+                <h6 className="font-medium text-[#211F20] leading-[100%] font-bricolage text-[18px] md:text-[20px] xl:text-[28px] 2xl:text-[32px] mt-4">
                   Upcoming Events
                 </h6>
-                {/* See All button and filter icon for Upcoming Events */}
                 <div className="flex items-center gap-2 sm:gap-2 md:gap-3 lg:gap-4">
                   <button
-                    className="
-                      flex justify-center items-center
-                      px-5 py-2 sm:px-5 sm:py-2 md:px-6 md:py-2.5 lg:px-6 lg:py-2.5
-                      text-sm font-medium text-gray-800 bg-white
-                      border border-[rgba(33,31,32,0.50)] rounded
-                      hover:bg-gray-100 transition-colors
-                    "
+                    className="flex justify-center items-center px-5 py-2 sm:px-5 sm:py-2 md:px-6 md:py-2.5 lg:px-6 lg:py-2.5 text-sm font-medium text-gray-800 bg-white border border-[rgba(33,31,32,0.50)] rounded hover:bg-gray-100 transition-colors"
                     onClick={() => setShowAllUpcoming(true)}
                   >
                     See all
                   </button>
-                  <div className="
-                    flex justify-center items-center
-                    px-2 py-2 sm:px-2 sm:py-2 md:px-2 md:py-2 lg:px-2 lg:py-2
-                    border border-[rgba(33,31,32,0.25)] rounded
-                    bg-white
-                  ">
+                  <div className="flex justify-center items-center px-2 py-2 sm:px-2 sm:py-2 md:px-2 md:py-2 lg:px-2 lg:py-2 border border-[rgba(33,31,32,0.25)] rounded bg-white">
                     <img src={filterIcon} alt="Filter" className="w-5 h-5" />
                   </div>
                 </div>
               </div>
-              
-              {/* Responsive grid for upcoming events */}
-              <div className="
-                grid gap-4 sm:gap-4 md:gap-5 lg:gap-6 bg-white rounded-xl w-full
-                grid-cols-1 
-                md:grid-cols-1 
-                lg:grid-cols-3 
-                xl:grid-cols-3
-                auto-rows-fr
-              ">
-                {/* Show max 6 cards */}
+
+              <div className="grid gap-4 sm:gap-4 md:gap-5 lg:gap-6 bg-white rounded-xl w-full grid-cols-1 md:grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 auto-rows-fr">
                 {(upcomingEvents.slice(0, 6)).map((event) => (
                   <EventCard
                     key={event.firestoreID}
@@ -1365,6 +1305,8 @@ useEffect(() => {
                     type="upcoming"
                     userGender={userGender}
                     datesRemaining={datesRemaining}
+                    isSignedUp={true}
+                    onCancel={handleCancelClick}
                   />
                 ))}
                 {loading && (
@@ -1378,7 +1320,6 @@ useEffect(() => {
                   </div>
                 )}
               </div>
-              {/* Modal overlay for all upcoming events */}
               {showAllUpcoming && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                   <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowAllUpcoming(false)} />
@@ -1388,7 +1329,6 @@ useEffect(() => {
                       <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowAllUpcoming(false)}>&times;</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {/* Show ALL upcoming events (no slice limit) */}
                       {upcomingEvents.map((event) => (
                         <EventCard
                           key={event.firestoreID}
@@ -1396,6 +1336,7 @@ useEffect(() => {
                           type="upcoming"
                           userGender={userGender}
                           datesRemaining={datesRemaining}
+                          onCancel={handleCancelClick}
                         />
                       ))}
                     </div>
@@ -1407,67 +1348,34 @@ useEffect(() => {
             {/* Sign-Up for Dates Section */}
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h6
-                  className="
-                    font-medium
-                    text-[#211F20]
-                    leading-none
-                    font-bricolage
-                    text-[18px] md:text-[20px] xl:text-[28px] 2xl:text-[32px]
-                  "
-                >
+                <h6 className="font-medium text-[#211F20] leading-none font-bricolage text-[18px] md:text-[20px] xl:text-[28px] 2xl:text-[32px]">
                   Sign-Up for Dates
                 </h6>
                 <div className="flex items-center gap-2 sm:gap-2 md:gap-3 lg:gap-4">
                   <button
-                    className="
-                      flex justify-center items-center
-                      px-5 py-2 sm:px-5 sm:py-2 md:px-6 md:py-2.5 lg:px-6 lg:py-2.5
-                      text-sm font-medium text-gray-800 bg-white
-                      border border-[rgba(33,31,32,0.50)] rounded
-                      hover:bg-gray-100 transition-colors
-                    "
+                    className="flex justify-center items-center px-5 py-2 sm:px-5 sm:py-2 md:px-6 md:py-2.5 lg:px-6 lg:py-2.5 text-sm font-medium text-gray-800 bg-white border border-[rgba(33,31,32,0.50)] rounded hover:bg-gray-100 transition-colors"
                     onClick={() => setShowAllSignUp(true)}
                   >
                     See all
                   </button>
-                  <div className="
-                    flex justify-center items-center
-                    px-2 py-2 sm:px-2 sm:py-2 md:px-2 md:py-2 lg:px-2 lg:py-2
-                    border border-[rgba(33,31,32,0.25)] rounded
-                    bg-white
-                  ">
+                  <div className="flex justify-center items-center px-2 py-2 sm:px-2 sm:py-2 md:px-2 md:py-2 lg:px-2 lg:py-2 border border-[rgba(33,31,32,0.25)] rounded bg-white">
                     <img src={filterIcon} alt="Filter" className="w-5 h-5" />
                   </div>
                 </div>
               </div>
-              
-              {/* Purchase more dates card */}
+
               <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center mb-6">
                 <img src={homePurchaseMoreDates} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
-                <div className="absolute inset-0 bg-[#211F20] bg-opacity-10" 
-                    style={{
-                      background: `
-                        linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%),
-                        linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%),
-                        linear-gradient(0deg, rgba(226,255,101,0.25) 0%, rgba(226,255,101,0.25) 100%)
-                      `
-                    }}/>
+                <div className="absolute inset-0 bg-[#211F20] bg-opacity-10"
+                  style={{
+                    background: `
+                      linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%),
+                      linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%),
+                      linear-gradient(0deg, rgba(226,255,101,0.25) 0%, rgba(226,255,101,0.25) 100%)
+                    `
+                  }}/>
                 <div className="relative z-10 flex flex-col items-start p-6">
-                  <span
-                  className="
-                    flex items-center
-                    font-medium
-                    text-white
-                    leading-[130%]
-                    font-bricolage
-                    text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px]
-                    mb-4
-                  "
-                >
-                    Date credits remaining: {datesRemaining}
-                  </span>
                   <button
                     onClick={handlePurchaseMoreDatesClick}
                     className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#d4f85a] transition"
@@ -1476,16 +1384,8 @@ useEffect(() => {
                   </button>
                 </div>
               </div>
-              
-              {/* Responsive grid for sign-up events */}
-              <div className="
-                grid gap-4 sm:gap-4 md:gap-5 lg:gap-6 bg-white rounded-xl w-full
-                grid-cols-1 
-                md:grid-cols-1 
-                lg:grid-cols-3 
-                xl:grid-cols-3
-                auto-rows-fr
-              ">
+
+              <div className="grid gap-4 sm:gap-4 md:gap-5 lg:gap-6 bg-white rounded-xl w-full grid-cols-1 md:grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 auto-rows-fr">
                 {loading ? (
                   <div className="col-span-full flex items-center justify-center w-full p-8">
                     <div className="text-lg text-gray-600">Loading events...</div>
@@ -1507,7 +1407,6 @@ useEffect(() => {
                   </div>
                 )}
               </div>
-              {/* Modal overlay for all sign-up events */}
               {showAllSignUp && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                   <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowAllSignUp(false)} />
@@ -1517,7 +1416,6 @@ useEffect(() => {
                       <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowAllSignUp(false)}>&times;</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {/* Show ALL sign-up events (no slice limit) */}
                       {upcomingSignupEvents.map((event) => (
                         <EventCard
                           key={event.firestoreID}
@@ -1537,26 +1435,12 @@ useEffect(() => {
             {/* Current Sparks Section */}
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h6
-                  className="
-                    font-medium
-                    text-[#211F20]
-                    leading-none
-                    font-bricolage
-                    text-[18px] md:text-[20px] xl:text-[28px] 2xl:text-[32px]
-                  "
-                >
+                <h6 className="font-medium text-[#211F20] leading-none font-bricolage text-[18px] md:text-[20px] xl:text-[28px] 2xl:text-[32px]">
                   Current Sparks
                 </h6>
                 <div className="flex items-center gap-2 sm:gap-2 md:gap-3 lg:gap-4">
                   <button
-                    className="
-                      flex justify-center items-center
-                      px-5 py-2 sm:px-5 sm:py-2 md:px-6 md:py-2.5 lg:px-6 lg:py-2.5
-                      text-sm font-medium text-gray-800 bg-white
-                      border border-[rgba(33,31,32,0.50)] rounded
-                      hover:bg-gray-100 transition-colors
-                    "
+                    className="flex justify-center items-center px-5 py-2 sm:px-5 sm:py-2 md:px-6 md:py-2.5 lg:px-6 lg:py-2.5 text-sm font-medium text-gray-800 bg-white border border-[rgba(33,31,32,0.50)] rounded hover:bg-gray-100 transition-colors"
                     onClick={() => navigate('/dashboard/dashMyConnections')}
                   >
                     See all
@@ -1568,33 +1452,53 @@ useEffect(() => {
               ) : (
                 <ConnectionsTable connections={connections} onMessageClick={handleMessageClick} />
               )}
-              {/*              <button
-                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
-                onClick={() => fetchEventsFromFirebase()}
-              >
-                Refresh Events
-              </button>
-              <button
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors ml-2"
-                onClick={() => console.log('Firebase Events:', firebaseEvents)}
-              >
-                Log Events
-              </button> */}
             </div>
 
-          </div> {/* Close the flex container with responsive gaps */}
-        </div> {/* Close the inner container with max-width */}
-      </div> {/* Close the outer container with padding */}
+          </div>
+        </div>
+      </div>
 
-      {/* Error Modal Overlay */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowCancelModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-lg max-w-md w-full p-8 z-10">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-[#211F20]">Cancel Registration</h2>
+              <button
+                className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                onClick={() => setShowCancelModal(false)}
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to cancel your registration for this event? You will be removed from the attendee list and a spot will become available for someone else.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                onClick={() => setShowCancelModal(false)}
+              >
+                No, Keep Spot
+              </button>
+              <button
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                onClick={performCancelRegistration}
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {errorModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black opacity-50"
             onClick={() => setErrorModal(prev => ({ ...prev, open: false }))}
           />
-          {/* Modal content */}
           <div className="relative bg-white rounded-2xl shadow-lg max-w-md w-full p-8 z-10">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-indigo-950">{errorModal.title}</h2>
@@ -1619,15 +1523,14 @@ useEffect(() => {
         </div>
       )}
 
-      {/* DashMessages Modal */}
       {selectedConnection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black opacity-50" onClick={handleCloseMessages} />
           <div className="relative bg-white rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 z-10">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Message {selectedConnection.name}</h2>
-              <button 
-                className="text-gray-500 hover:text-gray-800 text-2xl" 
+              <button
+                className="text-gray-500 hover:text-gray-800 text-2xl"
                 onClick={handleCloseMessages}
               >
                 &times;
@@ -1638,7 +1541,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Sign-Up Success Modal */}
       {showSignUpSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowSignUpSuccessModal(false)} />

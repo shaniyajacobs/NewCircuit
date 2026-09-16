@@ -55,17 +55,31 @@ const Header = (props) => {
     });
     return () => unsubscribe();
   }, []);
-
   const getUserData = async () => {
-    if (!user) return;
+  if (!user) return;
+
+  try {
     const userTable = collection(db, "users");
     const userQuery = query(userTable, where("email", "==", user.email));
     const loggedInUserQuery = await getDocs(userQuery);
-    const loggedInUserData = loggedInUserQuery.docs.at(0);
+
+    if (loggedInUserQuery.empty) {
+      console.warn("No user document found for:", user.email);
+      setUserData(null);
+      setIsLoading(false);
+      return;
+    }
+
+    const loggedInUserData = loggedInUserQuery.docs[0];
+
     setUserData(loggedInUserData);
     localStorage.setItem("userData", JSON.stringify(loggedInUserData.data()));
     setIsLoading(false);
-  };
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    setIsLoading(false);
+  }
+};
 
   // Fetch cart count
   const getCartCount = async () => {

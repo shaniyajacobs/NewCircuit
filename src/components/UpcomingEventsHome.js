@@ -120,7 +120,7 @@ const UpcomingEventsHome = () => {
             <p className="text-lg text-gray-700 mb-8 max-w-2xl mx-auto">
               Create your account and start your journey to meaningful connections. Join our community of singles looking for genuine relationships.
             </p>
-            <Link to="/create-account">
+            <Link to="/events">
               <button className="bg-black text-white font-semibold px-8 py-3 rounded-lg hover:bg-gray-800 transition-colors text-lg">
                 Sign Up Now
               </button>

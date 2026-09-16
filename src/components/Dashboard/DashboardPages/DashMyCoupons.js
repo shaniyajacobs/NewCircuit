@@ -947,7 +947,7 @@ export default function DashMyCoupons() {
         <div className="mt-8 pt-6 border-t border-gray-200">
           <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-blue-800 text-sm leading-relaxed">
-              You're eligible for a Third Date On Us coupon. Chat with your spark to come to an agreement, and select your preferred coupon below.
+             // You're eligible for a Third Date On Us coupon. Chat with your spark to come to an agreement, and select your preferred coupon below.
             </p>
           </div>
           <button
@@ -981,8 +981,8 @@ export default function DashMyCoupons() {
               <div key={coupon.id} className="mb-4 last:mb-0">
                 <div className="text-yellow-800 font-medium mb-2">
                   {coupon.isRequester 
-                    ? "Third Date On Us coupon request submitted and pending approval"
-                    : `Third Date On Us coupon request submitted by ${coupon.requesterName} and pending approval`
+                   // ? "Third Date On Us coupon request submitted and pending approval"
+                   // : `Third Date On Us coupon request submitted by ${coupon.requesterName} and pending approval`
                   }
                 </div>
                 <div className="text-yellow-700 text-sm">

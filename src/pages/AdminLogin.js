@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+// src/pages/AdminLogin.js
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { httpsCallable } from 'firebase/functions';
-import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
+import styled from 'styled-components';
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth, db } from '../firebaseConfig';
+import { getDoc, doc } from 'firebase/firestore';
 import cirCrossPBlue from '../images/cir_cross_PWhite.svg';
 import cirHeartPBlue from '../images/cir_heart_PWhite.svg';
 import cirMinusPBlue from '../images/cir_minus_PWhite.svg';
-import { functions } from './firebaseConfig';
+import circuitLogo from '../images/Cir_Primary_RGB_Mixed White.PNG';
 
-// ---------- Styled Components ----------
+// ---------- Styled Components (copied from your Login.js) ----------
 const shapeOptions = [
   { src: cirCrossPBlue, alt: 'Cross' },
   { src: cirHeartPBlue, alt: 'Heart' },
@@ -32,7 +34,6 @@ const Logo = styled.h1`
   color: #000;
   margin-bottom: 2rem;
   text-decoration: none;
-
   img {
     height: 80px;
     width: auto;
@@ -66,52 +67,34 @@ const Input = styled.input`
   border-radius: 6px;
   font-size: 1rem;
   min-height: 42px;
-  box-sizing: border-box;
-
-  &:focus {
-    outline: none;
-    border-color: #7B9EFF;
-  }
 `;
 
 const Button = styled.button`
   width: 100%;
   padding: 0.75rem;
-  background-color: ${props => (props.secondary ? 'white' : '#211f20')};
-  color: ${props => (props.secondary ? '#000' : 'white')};
-  border: ${props => (props.secondary ? '1px solid #000' : 'none')};
+  background-color: ${props => props.secondary ? 'white' : '#211f20'};
+  color: ${props => props.secondary ? '#000' : 'white'};
+  border: ${props => props.secondary ? '1px solid #000' : 'none'};
   border-radius: 6px;
   font-size: 1rem;
   cursor: pointer;
   margin-bottom: 1rem;
-
   &:hover {
     opacity: 0.9;
   }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 `;
 
-const ErrorBox = styled.div`
-  background: #fff1f1;
-  color: #b00020;
-  padding: 10px 12px;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  text-align: center;
+const ForgotPassword = styled.a`
+  display: block;
+  text-align: right;
+  color: #000;
+  text-decoration: none;
   font-size: 0.9rem;
-`;
-
-const HelperText = styled.p`
-  color: #666;
-  font-size: 0.85rem;
-  text-align: center;
-  margin-top: 0.5rem;
-  margin-bottom: 1.25rem;
-  line-height: 1.4;
+  margin: -1rem 0 1.5rem;
+  cursor: pointer;
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const PatternContainer = styled.div`
@@ -135,6 +118,7 @@ const ContentWrapper = styled.div`
   position: relative;
   z-index: 1;
   width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -147,17 +131,16 @@ function seededRandom(seed) {
   return x - Math.floor(x);
 }
 
-// Kept for backwards compatibility — VerifyPhone.js and VerifyLoginOTP.js import this
 export const FooterShapes = () => {
   const SEED = 777;
   const rowCount = 8;
   const shapesPerRow = 12;
 
   const patternData = React.useMemo(() => {
-    const grid = Array(rowCount).fill().map(() =>
+    const grid = Array(rowCount).fill().map(() => 
       Array(shapesPerRow).fill(shapeOptions[0])
     );
-    const styles = Array(rowCount).fill().map((_, rowIndex) =>
+    const styles = Array(rowCount).fill().map((_, rowIndex) => 
       Array(shapesPerRow).fill().map((_, colIndex) => {
         const shapeSeed = SEED + (rowIndex * shapesPerRow + colIndex) * 10;
         return {
@@ -217,67 +200,45 @@ export const FooterShapes = () => {
   );
 };
 
-// ---------- Login Component (phone-only) ----------
-const Login = () => {
-  const navigate = useNavigate();
-  const [phoneNumber, setPhoneNumber] = useState('');
+// ---------- Admin Login Component ----------
+const AdminLogin = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [countryCode, setCountryCode] = useState('+1');
-
-  useEffect(() => {
-    // Small UX touch: default country code based on rough local guess.
-    // Never overrides a user's explicit choice.
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-      if (tz.includes('Maseru') || tz.includes('Africa')) setCountryCode('+266');
-    } catch {
-      /* noop */
-    }
-  }, []);
-
-  const normalizePhone = (raw, cc) => {
-    // Strip non-digits from the local part
-    const digits = raw.replace(/\D/g, '');
-    if (!digits) return '';
-    // If user typed a leading + themselves, respect it
-    if (raw.trim().startsWith('+')) {
-      return '+' + digits;
-    }
-    return `${cc}${digits}`;
-  };
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setError('');
 
-    const finalPhone = normalizePhone(phoneNumber, countryCode);
-
-    // Basic E.164-ish validation
-    if (!/^\+[1-9]\d{7,14}$/.test(finalPhone)) {
-      setError('Please enter a valid phone number.');
-      return;
-    }
-
-    setLoading(true);
-
     try {
-      const sendOTP = httpsCallable(functions, 'sendOTP');
-      await sendOTP({ phoneNumber: finalPhone });
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      // Move to OTP screen, passing the normalized phone
-      navigate('/verify-login-otp', {
-        state: { phoneNumber: finalPhone },
-      });
-    } catch (err) {
-      console.error('sendOTP error:', err);
-      setError(
-        err?.message?.includes('not found')
-          ? 'Login service is not available. Please try again later.'
-          : 'Could not send code. Please check your number and try again.'
-      );
+      // Check if admin
+      const adminDoc = await getDoc(doc(db, 'adminUsers', userCredential.user.uid));
+      if (adminDoc.exists()) {
+        navigate('/admin-dashboard');
+        return;
+      } else {
+        // Not admin – sign out and show error
+        await signOut(auth);
+        setError('You are not authorised as an admin.');
+        setLoading(false);
+        return;
+      }
+    } catch (error) {
+      console.error('Error signing in:', error);
+      setError('Failed to log in. Please check your credentials.');
+    } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
   };
 
   return (
@@ -288,64 +249,64 @@ const Login = () => {
           <img src={circuitLogo} alt="Circuit Logo" />
         </Logo>
         <LoginForm onSubmit={handleSubmit}>
-          {error && <ErrorBox>{error}</ErrorBox>}
-
-          <InputGroup>
-            <Label htmlFor="phone">Phone number</Label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-                disabled={loading}
-                style={{
-                  padding: '0.75rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                  minHeight: '42px',
-                  background: 'white',
-                }}
-              >
-                <option value="+1">+1 (US/CA)</option>
-                <option value="+266">+266 (LS)</option>
-                <option value="+27">+27 (ZA)</option>
-                <option value="+44">+44 (UK)</option>
-                <option value="+61">+61 (AU)</option>
-              </select>
-              <Input
-                id="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Phone number"
-                disabled={loading}
-                required
-              />
+          {error && (
+            <div style={{ 
+              color: 'red', 
+              marginBottom: '1rem', 
+              textAlign: 'center',
+              padding: '10px',
+              backgroundColor: '#fff1f1',
+              borderRadius: '4px'
+            }}>
+              {error}
             </div>
-            <HelperText>
-              We'll text you a 6-digit code to sign in.
-            </HelperText>
+          )}
+          <InputGroup>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+            />
           </InputGroup>
-
+          <InputGroup>
+            <Label htmlFor="password">
+              Password
+              <span 
+                style={{ float: 'right', cursor: 'pointer' }}
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </span>
+            </Label>
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </InputGroup>
+          <ForgotPassword 
+            href="#" 
+            onClick={(e) => {
+              e.preventDefault();
+              handleForgotPassword();
+            }}
+          >
+            Forgot your password?
+          </ForgotPassword>
           <Button type="submit" disabled={loading}>
-            {loading ? 'Sending code…' : 'Continue'}
+            {loading ? "Logging in..." : "Admin Log in"}
           </Button>
-
-          <HelperText style={{ marginTop: '0.5rem' }}>
-            New to Circuit?{' '}
-            <a
-              href="/events"
-              style={{ color: '#211f20', textDecoration: 'underline' }}
-            >
-              View Events
-            </a>
-          </HelperText>
         </LoginForm>
       </ContentWrapper>
     </LoginContainer>
   );
 };
 
-export default Login;
+export default AdminLogin;

@@ -31,8 +31,7 @@ const questions = [
     'How do sparks work?',
     'What are AI-powered spark suggestions?',
     'What happens if my event doesn’t fill up?',
-    'What’s the “Third Date On Us” program?',
-    'Are food and drinks included in the virtual brunch, happy hour, or dinner events?'
+    //'What’s the “Third Date On Us” program?',
   ],
   // Pricing
   [
@@ -60,8 +59,7 @@ const answers = [
     'After the event, you’ll choose up to 3 connections. If the other person selects you too, it’s a spark! You and your spark can start messaging right away.',
     'When you create your profile, you’ll take a short personality indicator. Our system uses those results to suggest your top 3 likely sparks from the event, but you’re always free to choose your own.',
     'To keep things balanced, we require a good attendance ratio. If fewer than 6 quality dates per participant can be guaranteed, your event will be rescheduled and your ticket will be valid for the new date.',
-    'If you and a spark go on 2 dates together and send us a quick photo proof, Circuit will treat you both to a free drink at one of our partnered restaurants.',
-    'No — the names are simply a fun way to set the vibe for each event. While food and drinks aren’t included, we encourage you to bring a snack, coffee, or cocktail to enjoy while you mingle.'
+    //'If you and a spark go on 2 dates together and send us a quick photo proof, Circuit will treat you both to a free drink at one of our partnered restaurants.',
   ],
   // Pricing answers
   [

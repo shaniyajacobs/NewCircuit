@@ -15,6 +15,7 @@
     "axios": "^1.12.2",
     "chart.js": "^4.5.0",
     "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
     "emailjs-com": "^3.2.0",
     "firebase": "^11.10.0",
     "firebase-admin": "^13.3.0",
@@ -39,7 +40,7 @@
     "web-vitals": "^2.1.2"
   },
   "scripts": {
-    "start": "CHOKIDAR_USEPOLLING=true react-scripts start",
+    "start": "react-scripts start",
     "build": "CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -65,6 +66,7 @@
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "autoprefixer": "^10.4.0",
+    "cross-env": "^10.1.0",
     "firebase-tools": "^14.9.0",
     "postcss": "^8.4.5",
     "tailwindcss": "^3.0.7"

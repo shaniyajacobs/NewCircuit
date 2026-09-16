@@ -51,6 +51,8 @@ const HIWDescription = () => {
                                     outside: "#E1FFD6"
                                 }}
                             />
+                            {/* PLACEHOLDER – Third Date on Us / Take It Offline (on hold per Section 1) */}
+                            {/*
                             <GradientDescription 
                                 headerText="Take It Offline"
                                 bodyText="Plan your first two in-person dates, then claim your free drinks or appetizers when you reach your third date together with our Third Date On Us offer."
@@ -59,6 +61,7 @@ const HIWDescription = () => {
                                     outside: "#D2FFD7"
                                 }}
                             />
+                            */}
                         </div>
                         <Link to="/create-account" className="inline-block mt-6 sm:mt-8 md:mt-12 lg:mt-[100px]">
                             <button
@@ -92,11 +95,11 @@ const HIWDescription = () => {
                 </div>
             </div>
             
-            {/* Full-width image component */}
+            {/* PLACEHOLDER – Third Date On Us banner (on hold per Section 1) */}
+            {/*
             <div className="w-full bg-[#FAFFE7] py-8 sm:py-12 md:py-16 lg:py-[100px]">
                 <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12">
                     <div className="relative">
-                        {/* Heart SVG Overlay */}
                         <div className="absolute -top-6 sm:-top-8 md:-top-10 lg:-top-12 left-4 sm:left-6 md:left-8 lg:left-8 z-20">
                             <img 
                                 src="/Heart (1).svg" 
@@ -104,18 +107,13 @@ const HIWDescription = () => {
                                 className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 transform rotate-6"
                             />
                         </div>
-                        
                         <div className="w-full h-80 sm:h-96 md:h-[456px] lg:h-[560px] relative overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl">
                             <img 
                                 src="/thirddate1.webp" 
                                 alt="Circuit Hero Animation"
                                 className="w-full h-full object-cover"
                             />
-                            
-                            {/* Black Gradient Overlay */}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl"></div>
-                            
-                            {/* Text Overlay */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
                                 <h2 
                                     style={{
@@ -144,8 +142,6 @@ const HIWDescription = () => {
                                 >
                                     Some connections are worth celebrating. We’ll treat you on date number three.
                                 </p>
-                                
-                                {/* Arrow SVG */}
                                 <div className="flex justify-center mt-7">
                                     <img 
                                         src="/thirddatearrow.svg" 
@@ -158,8 +154,9 @@ const HIWDescription = () => {
                     </div>
                 </div>
             </div>
+            */}
         </>
     );
 };
 
-export default HIWDescription; 
+export default HIWDescription;

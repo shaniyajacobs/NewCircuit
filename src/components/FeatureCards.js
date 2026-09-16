@@ -2,7 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './CircuitHowItWorks.module.css';
 
-// Feature data
+// PLACEHOLDER – Feature data (on hold per Section 1)
+// Uncomment this when re-enabling the Live E-Dates section
+/*
 const featureData = [
   {
     title: "Live E-Dates with Rooms",
@@ -20,6 +22,7 @@ const featureData = [
     image: "/Feature3.webp"
   }
 ];
+*/
 
 function FeatureCard({ stepNum, title, description, image, isFirst, isThird, index }) {
   return (
@@ -57,84 +60,9 @@ function FeatureCard({ stepNum, title, description, image, isFirst, isThird, ind
 }
 
 const FeatureCards = () => {
-  return (
-    <section
-      className="feature-cards-section"
-      style={{
-        background: '#FAFFE7',
-        paddingTop: 'var(--section-top, 48px)',
-        paddingBottom: 'var(--section-bottom, 48px)',
-        paddingLeft: 'var(--section-side, 16px)',
-        paddingRight: 'var(--section-side, 16px)',
-        width: '100%',
-        minHeight: 'var(--section-minheight, 0)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
-    >
-      {/* Responsive Cards Grid */}
-      <div
-        className="feature-cards-container"
-        style={{
-          width: '100%',
-          maxWidth: '1100px',
-          margin: '0 auto',
-          gap: '2rem',
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          // Responsive: 3 columns on desktop, 1 on mobile
-        }}
-      >
-        <style>{`
-          @media (min-width: 1024px) {
-            .feature-cards-container {
-              display: grid !important;
-              grid-template-columns: repeat(3, 1fr) !important;
-              gap: 2rem !important;
-            }
-          }
-        `}</style>
-        {featureData.map((feature, index) => (
-          <div
-            key={index}
-            className="feature-card-wrapper flex"
-            style={{
-              flexDirection: 'column',
-              maxWidth: '350px',
-              minWidth: '220px',
-              width: '100%',
-              margin: '0 auto',
-            }}
-          >
-            <FeatureCard
-              stepNum={feature.stepNum}
-              title={feature.title}
-              description={feature.description}
-              image={feature.image}
-              isFirst={index === 0}
-              isThird={index === 2}
-              index={index}
-            />
-          </div>
-        ))}
-      </div>
-      {/* Try out Circuit button */}
-      <Link to="/create-account">
-        <button className={styles.howitworksBtn}
-          style={{
-            padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
-            marginTop: 'var(--gap-xxl, 48px)',
-            marginBottom: 'var(--section-TopBottom-M, 100px)',
-            width: 'auto',
-            minWidth: 'fit-content',
-          }}
-        >
-          Try out Circuit
-        </button>
-      </Link>
-    </section>
-  );
+  // PLACEHOLDER – Live E-Dates section (on hold per Section 1)
+  // Return null to hide this component without breaking the app
+  return null;
 };
 
-export default FeatureCards; 
+export default FeatureCards;

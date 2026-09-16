@@ -185,7 +185,7 @@ export function HowItWorks() {
         ))}
       </div>
       {/* Learn more button */}
-      <Link to="/create-account">
+      <Link to="/events">
         <button className={styles.howitworksBtn}
           style={{
             padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',

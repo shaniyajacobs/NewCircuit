@@ -1,4 +1,9 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  signInWithCustomToken as firebaseSignInWithCustomToken,
+} from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebaseConfig';
 
@@ -40,6 +45,15 @@ export const logoutUser = async () => {
     return { success: true };
   } catch (error) {
     console.log('Error during sign out', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+export const signInWithCustomToken = async (token) => {
+  try {
+    const userCredential = await firebaseSignInWithCustomToken(auth, token);
+    return { success: true, user: userCredential.user };
+  } catch (error) {
     return { success: false, error: error.message };
   }
 };
