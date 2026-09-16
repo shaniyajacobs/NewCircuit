@@ -1,0 +1,1093 @@
+/* ==========================================================================
+   CIRCUIT — EVENT PAGE
+   Premium warm ticket wall. Amber + lime accents on cream canvas.
+   ========================================================================== */
+
+:root {
+  /* ---- Core ink & paper ---- */
+  --circuit-black: #111111;
+  --circuit-black-hover: #000000;
+  --circuit-ink-soft: #2A2A2A;
+
+  /* ---- Warm canvas ---- */
+  --bg-light: #FFFBE6;
+  --bg-warm-1: #FFF6C9;
+  --bg-warm-2: #FFF3B8;
+  --card-bg: #FFFFFF;
+  --card-soft: #FBF8EE;
+
+  /* ---- Borders ---- */
+  --border-dark: #111111;
+  --border-light: #EAE4D2;
+  --border-strong: #D9D1B7;
+
+  /* ---- Typography ---- */
+  --text-main: #111111;
+  --text-muted: #6B6862;
+  --text-faint: #8A8377;
+
+  /* ---- Brand accents ---- */
+  --circuit-amber: #FFC107;
+  --circuit-amber-deep: #F59E0B;
+  --circuit-lime: #E2FF65;
+  --circuit-lime-deep: #B8D936;
+  --circuit-lime-soft: #F1FBD3;
+
+  /* ---- Semantic ---- */
+  --spark-green: #16A34A;
+  --spark-green-bg: #ECFDF3;
+  --sold-red: #DC2626;
+  --sold-red-bg: #FDECEF;
+  --waitlist-dark: #3F3F46;
+
+  /* ---- Radii ---- */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  /* ---- Shadows ---- */
+  --shadow-card:
+    0 1px 2px rgba(17, 17, 17, 0.04),
+    0 12px 28px -12px rgba(17, 17, 17, 0.14),
+    0 40px 80px -40px rgba(17, 17, 17, 0.12);
+  --shadow-card-hover:
+    0 2px 4px rgba(17, 17, 17, 0.05),
+    0 24px 48px -16px rgba(17, 17, 17, 0.18),
+    0 60px 100px -50px rgba(17, 17, 17, 0.18);
+  --shadow-cta:
+    0 10px 24px -10px rgba(17, 17, 17, 0.45);
+  --shadow-lime-glow:
+    0 0 0 4px rgba(226, 255, 101, 0.55),
+    0 12px 28px -8px rgba(184, 217, 54, 0.55);
+}
+
+body {
+  background-color: var(--bg-light);
+  color: var(--text-main);
+  margin: 0;
+  font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   PAGE CANVAS
+   ========================================================================== */
+
+.container {
+  position: relative;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 44px 22px 80px;
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 600px at 12% 0%, var(--bg-warm-1) 0%, transparent 60%),
+    radial-gradient(760px 560px at 100% 100%, var(--bg-warm-2) 0%, transparent 58%),
+    var(--bg-light);
+  isolation: isolate;
+}
+
+/* ==========================================================================
+   BACK BUTTON
+   ========================================================================== */
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 10px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 28px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.backBtn::before {
+  content: '←';
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.backBtn:hover {
+  background: #FFFFFF;
+  border-color: var(--circuit-amber);
+  box-shadow: 0 8px 20px -10px rgba(255, 193, 7, 0.6);
+  transform: translateX(-2px);
+}
+
+.backBtn:hover::before {
+  transform: translateX(-3px);
+}
+
+.backBtn:focus-visible {
+  outline: 2px solid var(--circuit-amber);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   PAGE TITLE
+   ========================================================================== */
+
+.title {
+  position: relative;
+  margin: 0 0 40px;
+  font-family: 'Bricolage Grotesque', 'Poppins', sans-serif;
+  font-size: clamp(34px, 5.4vw, 56px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  color: var(--circuit-black);
+  max-width: 720px;
+}
+
+.title::before {
+  content: 'Circuit Speed Dating · Live Events';
+  display: block;
+  margin-bottom: 14px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--circuit-amber-deep);
+}
+
+.title::after {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 5px;
+  margin-top: 22px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--circuit-amber) 0%, var(--circuit-lime) 100%);
+  box-shadow: 0 0 24px rgba(255, 193, 7, 0.55);
+}
+
+/* ==========================================================================
+   FILTERS
+   ========================================================================== */
+
+.filters {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 12px 32px -20px rgba(17, 17, 17, 0.18);
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+  flex: 1;
+}
+
+.filterGroup label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--circuit-black);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding-left: 2px;
+}
+
+.filterSelect {
+  position: relative;
+  padding: 13px 42px 13px 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-md);
+  background-color: #FFFFFF;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--circuit-black) 50%),
+    linear-gradient(135deg, var(--circuit-black) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) center,
+    calc(100% - 14px) center;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.2s ease,
+    transform 0.12s ease;
+}
+
+.filterSelect:hover {
+  border-color: var(--circuit-amber);
+}
+
+.filterSelect:focus {
+  border-color: var(--circuit-amber);
+  box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.22);
+}
+
+/* ==========================================================================
+   EVENT GRID
+   ========================================================================== */
+
+.eventsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+/* ==========================================================================
+   EVENT CARD — premium ticket
+   ========================================================================== */
+
+.eventCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 26px 26px 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease;
+  animation: cardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Amber → Lime accent bar */
+.eventCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--circuit-amber) 0%, var(--circuit-lime) 100%);
+}
+
+/* Perforated ticket seam on the left edge */
+.eventCard::after {
+  content: '';
+  position: absolute;
+  top: 26px;
+  bottom: 26px;
+  left: 0;
+  width: 2px;
+  background-image: linear-gradient(
+    to bottom,
+    var(--border-strong) 0,
+    var(--border-strong) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  background-size: 2px 12px;
+  opacity: 0.7;
+}
+
+.eventCard:hover {
+  transform: translateY(-6px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.eventCard:hover::before {
+  height: 5px;
+  box-shadow: 0 0 24px rgba(255, 193, 7, 0.55);
+}
+
+/* ==========================================================================
+   CARD HEAD
+   ========================================================================== */
+
+.cardSubHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  padding: 7px 12px 7px 10px;
+  background: var(--card-soft);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.cardSubHeader span,
+.cardSubHeader p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.locationIcon {
+  color: var(--circuit-amber-deep);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   RECURRING BADGE
+   ========================================================================== */
+
+.recurringBadge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  padding: 5px 12px;
+  background: linear-gradient(180deg, var(--circuit-lime) 0%, var(--circuit-lime-deep) 100%);
+  color: #2A3606;
+  border: 1px solid #C9DD6A;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px -6px rgba(184, 217, 54, 0.7);
+}
+
+/* ==========================================================================
+   TITLE + DETAILS
+   ========================================================================== */
+
+.eventTitle {
+  margin: 4px 0 16px;
+  padding-right: 92px;
+  font-family: 'Bricolage Grotesque', 'Poppins', sans-serif;
+  font-size: clamp(20px, 2.3vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--circuit-black);
+}
+
+.eventDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 14.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.eventDetails p {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.eventDetails p strong {
+  color: var(--circuit-black);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+.recurringText {
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-style: normal;
+  font-weight: 500;
+  color: #4A5D0E;
+  background: var(--circuit-lime-soft);
+  border: 1px dashed #C9DD6A;
+  border-radius: var(--r-sm);
+}
+
+/* ==========================================================================
+   GENDER TICKET BUTTONS — THE STAR
+   ========================================================================== */
+
+.genderButtons {
+  display: flex;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.genderBtn {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 18px 12px 16px;
+  background:
+    linear-gradient(180deg, #1A1A1A 0%, #111111 100%);
+  border: 1.5px solid var(--circuit-black);
+  border-radius: var(--r-md);
+  color: #FFFFFF;
+  cursor: pointer;
+  min-height: 96px;
+  overflow: hidden;
+  font-family: inherit;
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  box-shadow: var(--shadow-cta);
+}
+
+/* Top hairline accent */
+.genderBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--circuit-amber) 0%, var(--circuit-lime) 100%);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+/* Lime glow sweep */
+.genderBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    120% 100% at 50% -10%,
+    rgba(226, 255, 101, 0.28) 0%,
+    transparent 55%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.genderBtn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--circuit-lime-deep);
+  box-shadow: var(--shadow-lime-glow);
+}
+
+.genderBtn:hover:not(:disabled)::before,
+.genderBtn:hover:not(:disabled)::after {
+  opacity: 1;
+}
+
+.genderBtn:active:not(:disabled) {
+  transform: translateY(-1px) scale(0.985);
+}
+
+.genderBtn:focus-visible {
+  outline: 2px solid var(--circuit-amber);
+  outline-offset: 3px;
+}
+
+.genderBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #EDEAE2;
+  border-color: var(--border-strong);
+  color: #7A756B;
+  box-shadow: none;
+}
+
+.genderBtn:disabled::before,
+.genderBtn:disabled::after {
+  display: none;
+}
+
+/* ---- Inner labels ---- */
+
+.genderLabel {
+  font-family: 'Bricolage Grotesque', 'Poppins', sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.registerLabel {
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.spotInfo {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: inherit;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  opacity: 0.85;
+}
+
+.price {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: var(--circuit-lime);
+  color: #2A3606;
+  border-radius: 999px;
+  font-family: 'Bricolage Grotesque', 'Poppins', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  box-shadow: 0 3px 10px -4px rgba(184, 217, 54, 0.8);
+  transition: transform 0.18s ease;
+}
+
+.genderBtn:hover:not(:disabled) .price {
+  transform: translateY(-1px) scale(1.04);
+}
+
+.genderBtn:disabled .price {
+  background: #D4D0C6;
+  color: #6B6862;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   WAITLIST + SOLD OUT
+   ========================================================================== */
+
+.waitlistBtn {
+  background: linear-gradient(180deg, #52525B 0%, var(--waitlist-dark) 100%);
+  border-color: var(--waitlist-dark);
+  color: #FFFFFF;
+  box-shadow: 0 10px 24px -10px rgba(63, 63, 70, 0.55);
+}
+
+.waitlistBtn::before {
+  background: linear-gradient(90deg, var(--circuit-amber) 0%, #FFD45E 100%);
+  opacity: 0.85;
+}
+
+.waitlistBtn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #3F3F46 0%, #2A2A2E 100%);
+  border-color: var(--circuit-black);
+  box-shadow: 0 14px 28px -10px rgba(17, 17, 17, 0.55);
+}
+
+.waitlistLabel {
+  font-weight: 800;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.soldOutBtn {
+  opacity: 0.9;
+  cursor: not-allowed;
+  background: repeating-linear-gradient(
+    135deg,
+    #EDEAE2 0,
+    #EDEAE2 8px,
+    #E4E0D6 8px,
+    #E4E0D6 16px
+  );
+  color: #7A756B;
+  border: 1.5px solid var(--border-strong);
+  box-shadow: none;
+}
+
+.soldOutBtn::before,
+.soldOutBtn::after {
+  display: none;
+}
+
+.soldOutBtn:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   BUY BUTTON (fallback CTA)
+   ========================================================================== */
+
+.buyBtn {
+  width: 100%;
+  padding: 16px 20px;
+  margin-top: auto;
+  background: var(--circuit-black);
+  color: #FFFFFF;
+  border: 1.5px solid var(--circuit-black);
+  border-radius: var(--r-md);
+  font-family: 'Bricolage Grotesque', 'Poppins', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.22s ease;
+  box-shadow: var(--shadow-cta);
+}
+
+.buyBtn:hover:not(:disabled) {
+  background: var(--circuit-black-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px -12px rgba(17, 17, 17, 0.6);
+}
+
+.buyBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.buyBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   MODAL — warm premium panel
+   ========================================================================== */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(17, 17, 17, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: overlayIn 0.25s ease both;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modalBox {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  padding: 34px 32px 30px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-xl);
+  text-align: center;
+  box-shadow:
+    0 2px 8px rgba(17, 17, 17, 0.08),
+    0 40px 80px -30px rgba(17, 17, 17, 0.4);
+  animation: modalIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modalBox::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 4px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, var(--circuit-amber) 0%, var(--circuit-lime) 100%);
+}
+
+.modalTitle {
+  margin: 4px 0 10px;
+  font-family: 'Bricolage Grotesque', 'Poppins', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--circuit-black);
+}
+
+.modalMessage {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.modalBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 32px;
+  background: var(--circuit-black);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--r-md);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: var(--shadow-cta);
+}
+
+.modalBtn:hover {
+  background: var(--circuit-black-hover);
+  transform: translateY(-1px);
+}
+
+.modalBtn:focus-visible {
+  outline: 2px solid var(--circuit-amber);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   WAITLIST FORM (inside modal)
+   ========================================================================== */
+
+.waitlistForm {
+  margin: 18px 0 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.waitlistLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 6px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.waitlistInput {
+  width: 100%;
+  padding: 13px 15px;
+  background: var(--card-soft);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 15.5px;
+  box-sizing: border-box;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.2s ease,
+    background 0.18s ease;
+}
+
+.waitlistInput::placeholder {
+  color: var(--text-faint);
+}
+
+.waitlistInput:focus {
+  outline: none;
+  background: #FFFFFF;
+  border-color: var(--circuit-lime-deep);
+  box-shadow: 0 0 0 4px rgba(226, 255, 101, 0.55);
+}
+
+.waitlistInput:disabled {
+  background: #F2EFE6;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.modalCancelBtn {
+  flex: 1;
+  padding: 13px 20px;
+  background: transparent;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.12s ease;
+}
+
+.modalCancelBtn:hover:not(:disabled) {
+  background: var(--card-soft);
+  border-color: var(--circuit-black);
+  color: var(--circuit-black);
+}
+
+.modalCancelBtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.modalCancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modalConfirmBtn {
+  flex: 2;
+  padding: 13px 20px;
+  background: linear-gradient(180deg, #FFD24A 0%, var(--circuit-amber) 100%);
+  color: #2A3606;
+  border: 1px solid #E5AF08;
+  border-radius: var(--r-md);
+  font-family: 'Bricolage Grotesque', 'Poppins', sans-serif;
+  font-size: 15.5px;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    transform 0.12s ease,
+    box-shadow 0.2s ease;
+  box-shadow: 0 10px 22px -10px rgba(255, 193, 7, 0.75);
+}
+
+.modalConfirmBtn:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--circuit-amber) 0%, var(--circuit-amber-deep) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px -10px rgba(245, 158, 11, 0.8);
+}
+
+.modalConfirmBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.modalConfirmBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.modalConfirmBtn:focus-visible,
+.modalCancelBtn:focus-visible {
+  outline: 2px solid var(--circuit-amber);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   ERROR
+   ========================================================================== */
+
+.error {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--sold-red-bg);
+  border: 1px solid #F5C2CD;
+  border-radius: var(--r-sm);
+  color: var(--sold-red);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  width: 100%;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .title {
+    margin-bottom: 32px;
+  }
+  .eventsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 32px 18px 60px;
+  }
+
+  .filters {
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .filterGroup {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filterSelect {
+    width: 100%;
+  }
+
+  .eventsGrid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .eventCard {
+    padding: 22px 20px;
+    border-radius: 20px;
+  }
+
+  .eventCard::after {
+    display: none;
+  }
+
+  .eventTitle {
+    padding-right: 84px;
+  }
+
+  .genderBtn {
+    min-height: 90px;
+    padding: 16px 10px 14px;
+  }
+
+  .genderLabel {
+    font-size: 16px;
+  }
+
+  .modalBox {
+    padding: 28px 22px 24px;
+  }
+
+  .modalActions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .modalCancelBtn,
+  .modalConfirmBtn {
+    flex: 1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .container {
+    padding: 26px 14px 50px;
+  }
+
+  .title {
+    font-size: 32px;
+  }
+
+  .eventCard {
+    padding: 20px 18px;
+  }
+
+  .eventTitle {
+    font-size: 20px;
+    padding-right: 76px;
+  }
+
+  .recurringBadge {
+    top: 16px;
+    right: 14px;
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+
+  .genderButtons {
+    gap: 10px;
+  }
+
+  .genderBtn {
+    padding: 14px 8px 12px;
+    min-height: 86px;
+  }
+
+  .genderLabel {
+    font-size: 15px;
+  }
+
+  .registerLabel {
+    font-size: 10.5px;
+  }
+
+  .price {
+    font-size: 12.5px;
+    padding: 3px 9px;
+  }
+
+  .cardSubHeader {
+    font-size: 12.5px;
+    padding: 6px 10px 6px 8px;
+  }
+}
+
+@media (max-width: 360px) {
+  .genderButtons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .genderBtn {
+    min-height: 0;
+    padding: 14px 12px;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .eventCard,
+  .modalBox,
+  .modalOverlay {
+    animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .eventCard:hover,
+  .genderBtn:hover:not(:disabled) {
+    transform: none;
+  }
+}

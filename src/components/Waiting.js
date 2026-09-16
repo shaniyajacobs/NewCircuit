@@ -51,7 +51,7 @@ const Waiting = ({ imagePath = "/Lasthook_BG.webp" }) => {
             >
               Sign up now to meeting other singles around your area. Circuit Sparks have a 43x chance to meet their significant others compared to other apps.
             </p>
-            <Link to="/create-account" className="inline-block">
+            <Link to="/events" className="inline-block">
               <button
                 className="flex items-center justify-center gap-3 px-4 rounded-[4px] bg-[#E2FF65] text-black font-poppins leading-normal transition-all hover:scale-105 hover:opacity-60 w-[114px] md:w-[127px] lg:w-[147px] h-[34px] lg:h-[48px] text-[12px] md:text-[14px] lg:text-[16px] md:rounded-[6px] lg:rounded-[8px] whitespace-nowrap"
               >

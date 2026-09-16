@@ -21,7 +21,6 @@ function getDateParts(dateString, timeString, timeZone) {
   };
   const zone = zoneMap[timeZone] || timeZone || 'UTC';
 
-  // Build candidate format strings.
   const withTime = [
     'yyyy-MM-dd h:mma',
     'yyyy-MM-dd H:mm',
@@ -54,7 +53,6 @@ function getDateParts(dateString, timeString, timeZone) {
       );
       if (dt.isValid) break;
     }
-    // As a last resort, let Luxon try ISO parsing.
     if (!dt || !dt.isValid) {
       dt = DateTime.fromISO(cleanDate, { zone });
     }
@@ -71,7 +69,6 @@ function getDateParts(dateString, timeString, timeZone) {
   };
 }
 
-// Helper for Remo epoch timestamps
 function getDatePartsFromMillis(millis) {
   if (!millis) return { dayOfWeek: '', day: '', month: '' };
   const dt = DateTime.fromMillis(Number(millis));
@@ -83,7 +80,7 @@ function getDatePartsFromMillis(millis) {
   };
 }
 
-const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
+const EventCard = ({ event, type, userGender, onSignUp, datesRemaining, onCancel }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
   const [showMapsMenu, setShowMapsMenu] = useState(false);
   const [joining, setJoining] = useState(false);
@@ -94,11 +91,10 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   const [spotsData, setSpotsData] = useState({ menCount: 0, womenCount: 0, menSpots: 0, womenSpots: 0 });
   const [isEventActive, setIsEventActive] = useState(false);
   const [hasJoinedEvent, setHasJoinedEvent] = useState(false);
-  // Prefer Remo timestamp if available
+  
   const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
   const { dayOfWeek, day, month, timeLabel } = dateParts;
   
-  // Fetch reliable spot data
   useEffect(() => {
     const fetchSpots = async () => {
       if (event?.firestoreID) {
@@ -109,7 +105,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
     fetchSpots();
   }, [event?.firestoreID]);
 
-  // Check if event is currently active using actual endTime
   useEffect(() => {
     const checkEventStatus = () => {
       if (event.startTime && event.endTime) {
@@ -121,11 +116,10 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
     };
     
     checkEventStatus();
-    const interval = setInterval(checkEventStatus, 30000); // Check every 30 seconds
+    const interval = setInterval(checkEventStatus, 30000);
     return () => clearInterval(interval);
   }, [event.startTime, event.endTime]);
 
-  // Check if user has previously joined this event (persisted in Firebase)
   useEffect(() => {
     const checkJoinedEventStatus = async () => {
       if (!auth.currentUser || !event.eventID) return;
@@ -137,7 +131,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
           const joinedEvents = userData.joinedEvents || [];
           const hasJoinedThisEvent = joinedEvents.includes(event.eventID);
           setHasJoinedEvent(hasJoinedThisEvent);
-          console.log('[EventCard] User has joined this event:', hasJoinedThisEvent, 'Event ID:', event.eventID);
         }
       } catch (error) {
         console.error('[EventCard] Error checking joined event status:', error);
@@ -147,8 +140,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
     checkJoinedEventStatus();
   }, [event.eventID]);
 
-
-  // Calculate time range for display
   const getTimeRange = () => {
     if (event.startTime && event.endTime) {
       const startDt = DateTime.fromMillis(Number(event.startTime));
@@ -164,7 +155,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   
   const timeRange = getTimeRange();
   
-  // Check if there are 0 available spots for the user's gender
   const hasNoSpotsForUser = () => {
     if (!userGender || !spotsData) return false;
     
@@ -179,7 +169,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
   
   const shouldShowWaitlist = hasNoSpotsForUser();
   
-  // Check if user is already on waitlist when component loads
   useEffect(() => {
     const checkIfUserOnWaitlist = async () => {
       if (event?.firestoreID && auth.currentUser && shouldShowWaitlist) {
@@ -187,7 +176,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
           const waitlistDoc = await getDoc(doc(db, 'events', event.firestoreID, 'waitlist', auth.currentUser.uid));
           if (waitlistDoc.exists()) {
             setWaitlistClicked(true);
-            console.log('✅ User already on waitlist for this event');
           }
         } catch (error) {
           console.error('Error checking waitlist status:', error);
@@ -198,16 +186,13 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
     checkIfUserOnWaitlist();
   }, [event?.firestoreID, auth.currentUser, shouldShowWaitlist]);
   
-  // Function to add user to waitlist in Firebase
   const addToWaitlist = async (eventId, userId) => {
     try {
-      // Get current user data to store comprehensive information
       const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error('No authenticated user found');
       }
 
-      // Get user profile data from Firestore to match signup process
       let userProfile = null;
       try {
         const userProfileDoc = await getDoc(doc(db, 'users', userId));
@@ -218,7 +203,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
         console.log('Could not fetch user profile, using fallback data');
       }
 
-      // Add user to waitlist subcollection with the exact same fields as signup
       await setDoc(
         doc(db, 'events', eventId, 'waitlist', userId),
         {
@@ -231,7 +215,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
           signUpTime: serverTimestamp(),
         }
       );
-      console.log('✅ User added to waitlist successfully with comprehensive data');
+      console.log('✅ User added to waitlist successfully');
     } catch (error) {
       console.error('❌ Failed to add user to waitlist:', error);
       throw error;
@@ -258,9 +242,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               }
         }
       >
-
-
-        {/* Remo Event Title - above age range */}
         <div className="border-3 border-black p-2 rounded mb-[-20px]">
             {event.title && (
               <div className="font-medium text-[#211F20] font-bricolage leading-[130%] text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px]">
@@ -269,7 +250,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
             )}
           </div>
 
-        {/* Age Range + Format Badge - inline */}
         {(event.ageRange || event.eventFormat) && (
           <div className="border-3 border-black p-2 rounded">
             <div className="flex items-center gap-2">
@@ -302,10 +282,8 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
           </div>
         )}
 
-        {/* Main Content with Date and Event Info */}
         <div className="border-3 border-black p-2 rounded w-full">
           <div className="flex gap-4 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-6 w-full">
-            {/* Date Box */}
             <div className="
               flex-shrink-0 
               border border-[#211F20] 
@@ -340,9 +318,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               </div>
             </div>
 
-            {/* Event Info */}
             <div className="flex-1 flex flex-col gap-2 sm:gap-2 md:gap-[10px] lg:gap-3">
-              {/* Location — for signed-up in-person events, show venue with maps picker */}
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-2 relative">
                   <LocationIcon className="w-4 h-4 text-gray-600 shrink-0" />
@@ -397,7 +373,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 )}
               </div>
 
-              {/* Time */}
               <div className="flex items-center gap-2">
                 <TimerIcon className="w-4 h-4 text-gray-600" />
                 <span className="
@@ -412,7 +387,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 </span>
               </div>
               
-              {/* Open Spots Group */}
               <div className="flex flex-col gap-0">
                 <div className="text-sm text-gray-600">
                   Open Spots for Men: {Math.max(spotsData.menSpots - spotsData.menCount, 0)}/{spotsData.menSpots}
@@ -425,185 +399,15 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
           </div>
         </div>
 
-        {/* Sign Up / Wait List Button or Join Now for Upcoming */}
+        {/* Button Logic – Upcoming shows Cancel Registration */}
         {type === 'upcoming' ? (
           <button
-            disabled={joining}
-            onClick={async () => {
-              if (!event?.eventID) {
-                alert('Missing event ID');
-                return;
-              }
-              
-              // Prevent multiple clicks
-              if (joining) return;
-              
-              try {
-                setJoining(true);
-                console.log('[JOIN NOW] Starting join process for event:', event.eventID);
-                
-                // Step 1: Handle onSignUp if provided (non-blocking with timeout)
-                if (onSignUp) {
-                  console.log('[JOIN NOW] Calling onSignUp for event:', event);
-                  try {
-                    // Add a timeout for the onSignUp function to prevent hanging
-                    const signUpPromise = onSignUp(event);
-                    const timeoutPromise = new Promise((_, reject) => 
-                      setTimeout(() => reject(new Error('SignUp timeout')), 15000) // 15 second timeout
-                    );
-                    
-                    await Promise.race([signUpPromise, timeoutPromise]);
-                    console.log('[JOIN NOW] onSignUp finished successfully');
-                  } catch (signUpError) {
-                    console.error('[JOIN NOW] onSignUp failed or timed out:', signUpError);
-                    // Continue anyway - don't fail the entire process
-                  }
-                }
-                
-                // Step 2: Get event data from Remo
-                console.log('[JOIN NOW] Fetching event data from Remo...');
-                const functions = getFunctions();
-                const getEventData = httpsCallable(functions, 'getEventData');
-                const res = await getEventData({ eventId: event.eventID });
-                console.log('[JOIN NOW] getEventData response:', res);
-                
-                const { event: remoEvent } = res.data || {};
-                if (!remoEvent || !remoEvent.code) {
-                  throw new Error('Event data not available yet or missing event code.');
-                }
-                
-                // Step 3: Record the latest event this user joined (non-blocking)
-                if (auth.currentUser) {
-                  try {
-                    // Don't await this - make it non-blocking
-                    setDoc(
-                      doc(db, 'users', auth.currentUser.uid),
-                      {
-                        latestEventId: event.eventID,
-                      },
-                      { merge: true }
-                    ).then(() => {
-                      console.log('[JOIN NOW] Recorded latest event ID');
-                    }).catch((recordError) => {
-                      console.error('[JOIN NOW] Failed to record latest event ID:', recordError);
-                    });
-                  } catch (recordError) {
-                    console.error('[JOIN NOW] Failed to record latest event ID:', recordError);
-                    // Continue anyway
-                  }
-                }
-                
-                // TEMPORARY: Disable Remo redirect for in-person events
-                // To re-enable virtual events, uncomment the block below
-                /*
-                // Step 4: Build and open join URL
-                const joinUrl = `https://live.remo.co/e/${remoEvent.code}`;
-                console.log('[JOIN NOW] Join URL:', joinUrl);
-
-                // Mobile-friendly approach for opening URLs
-                const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                console.log('[JOIN NOW] Is mobile device:', isMobile);
-
-                if (isMobile) {
-                  // For mobile devices, try multiple approaches
-                  let success = false;
-
-                  // Approach 1: Try using window.location.href (most reliable for mobile)
-                  try {
-                    console.log('[JOIN NOW] Mobile: Trying window.location.href');
-                    window.location.href = joinUrl;
-                    success = true;
-                  } catch (error1) {
-                    console.error('[JOIN NOW] Mobile: window.location.href failed:', error1);
-                  }
-
-                  // Approach 2: If Approach 1 failed, try creating and clicking a link
-                  if (!success) {
-                    try {
-                      console.log('[JOIN NOW] Mobile: Trying programmatic link click');
-                      const link = document.createElement('a');
-                      link.href = joinUrl;
-                      link.target = '_blank';
-                      link.rel = 'noopener noreferrer';
-                      link.style.display = 'none';
-                      document.body.appendChild(link);
-                      link.click();
-
-                      // Clean up the link after a short delay
-                      setTimeout(() => {
-                        if (document.body.contains(link)) {
-                          document.body.removeChild(link);
-                        }
-                      }, 1000);
-
-                      success = true;
-                    } catch (error2) {
-                      console.error('[JOIN NOW] Mobile: Programmatic link click failed:', error2);
-                    }
-                  }
-
-                  // Approach 3: If both failed, show URL to copy
-                  if (!success) {
-                    console.log('[JOIN NOW] Mobile: All navigation methods failed, showing URL to copy');
-                    alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
-                  }
-                } else {
-                  // For desktop, try to open in new tab/window
-                  try {
-                    console.log('[JOIN NOW] Desktop: Trying window.open');
-                    const newWindow = window.open(joinUrl, '_blank');
-
-                    // Check if the window was blocked or failed to open
-                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                      console.log('[JOIN NOW] Desktop: window.open failed, showing URL to copy');
-                      alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
-                    }
-                  } catch (windowError) {
-                    console.error('[JOIN NOW] Desktop: Error opening window:', windowError);
-                    alert(`Please copy and paste this URL into your browser:\n${joinUrl}`);
-                  }
-                }
-                */
-                
-                console.log('[JOIN NOW] Join process completed successfully');
-                setHasJoinedEvent(true);
-                
-                // Persist joined event to Firebase
-                if (auth.currentUser) {
-                  try {
-                    const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-                    if (userDoc.exists()) {
-                      const userData = userDoc.data();
-                      const joinedEvents = userData.joinedEvents || [];
-                      
-                      // Add this event to joined events if not already present
-                      if (!joinedEvents.includes(event.eventID)) {
-                        joinedEvents.push(event.eventID);
-                        await setDoc(
-                          doc(db, 'users', auth.currentUser.uid),
-                          { joinedEvents: joinedEvents },
-                          { merge: true }
-                        );
-                        console.log('[JOIN NOW] Added event to joined events list:', event.eventID);
-                      }
-                    }
-                  } catch (error) {
-                    console.error('[JOIN NOW] Error updating joined events:', error);
-                  }
-                }
-              } catch (err) {
-                console.error('[JOIN NOW] Error in join process:', err);
-                alert(`Error: ${err.message || 'Unable to fetch join link. Please try again later.'}`);
-              } finally {
-                console.log('[JOIN NOW] Setting joining to false');
-                setJoining(false);
-              }
-            }}
-            className={`
-              bg-[#211F20] 
+            onClick={() => onCancel && onCancel(event.firestoreID)}
+            className="
+              bg-red-500 
               text-white 
               font-medium 
-              hover:bg-gray-800 
+              hover:bg-red-600 
               transition-colors 
               text-left
               rounded-lg
@@ -612,10 +416,9 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
               font-poppins
               leading-normal
               text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
-              ${joining ? 'opacity-60 cursor-not-allowed' : ''}
-            `}
+            "
           >
-            {joining ? 'Loading…' : (isEventActive && hasJoinedEvent) ? 'Rejoin Event' : 'Join Now'}
+            Cancel Registration
           </button>
         ) : (
           <button
@@ -625,10 +428,10 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 setErrorMessage('Missing event ID');
                 setShowErrorModal(true);
                 return;
-                }
-                try {
-                  setJoining(true);
-                  if (shouldShowWaitlist) {
+              }
+              try {
+                setJoining(true);
+                if (shouldShowWaitlist) {
                   try {
                     if (!auth.currentUser) {
                       setErrorMessage('Please log in to join the waitlist.');
@@ -643,7 +446,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     setErrorMessage('Failed to add to waitlist. Please try again.');
                     setShowErrorModal(true);
                   }
-                  return; // ✅ stop here, do NOT run signup flow
+                  return;
                 }
 
                 if (onSignUp) {
@@ -655,7 +458,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     return;
                   } else {
                     console.error('[JOIN NOW] onSignUp failed:', signUpResult);
-                    // Use the specific error message from DashHome if available
                     const errorMsg = signUpResult?.message || 'Failed to sign up for event. Please try again.';
                     setErrorMessage(errorMsg);
                     setShowErrorModal(true);
@@ -664,7 +466,7 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                 }
                 const functions = getFunctions();
                 console.log('About to call getEventData');
-                const getEventData = httpsCallable(functions, 'getEventData'); // returns full event
+                const getEventData = httpsCallable(functions, 'getEventData');
                 const res = await getEventData({ eventId: event.eventID });
                 console.log('getEventData response:', res);
                 const { event: remoEvent } = res.data || {};
@@ -673,7 +475,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                   setShowErrorModal(true);
                   return;
                 }
-                // Record the latest event this user joined
                 if (auth.currentUser) {
                   await setDoc(
                     doc(db, 'users', auth.currentUser.uid),
@@ -683,8 +484,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
                     { merge: true }
                   );
                 }
-                
-                // Sign-up completed successfully
                 console.log('[SIGNUP] All operations completed successfully');
               } catch (err) {
                 console.error('Error fetching join URL:', err);
@@ -717,8 +516,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
         )}
       </div>
 
-
-      {/* Waitlist Modal */}
       <PopUp
         isOpen={showWaitlistModal}
         onClose={() => setShowWaitlistModal(false)}
@@ -732,7 +529,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
         }}
       />
 
-      {/* Error Modal */}
       <PopUp
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
@@ -745,7 +541,6 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining }) => {
           onClick: () => setShowErrorModal(false)
         }}
       />
-
     </>
   );
 };

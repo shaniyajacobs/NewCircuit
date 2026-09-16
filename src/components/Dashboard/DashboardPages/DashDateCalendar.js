@@ -387,8 +387,14 @@ const DashDateCalendar = () => {
       if (firebaseUser) {
         setUser(firebaseUser);
         try {
-          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-          const data = userDoc.data();
+const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+if (!userDoc.exists()) {
+  console.warn('User document not found for:', firebaseUser.uid);
+  // Set default cart or skip loading
+  setCart([]); // or whatever default
+  return;
+}
+const data = userDoc.data();
           
           // Load saved cart
           const savedCart = data?.cart;

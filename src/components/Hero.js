@@ -21,7 +21,6 @@ const Hero = () => {
     <div className={styles['testimonial-card']}>
       <div className={styles['testimonial-message']}>{t.message}</div>
       <div className={styles['testimonial-profile']}>
-        {/* Avatar removed per request */}
         <div className={styles['testimonial-info']}>
           <div className={styles['testimonial-name']}>{t.name}</div>
           <div className={styles['testimonial-location']}>{t.city}, {t.age}</div>
@@ -36,7 +35,6 @@ const Hero = () => {
       const containerWidth = marqueeContainerRef.current.offsetWidth;
       const contentWidth = marqueeContentRef.current.offsetWidth;
       if (contentWidth === 0) return;
-      // Ensure at least 2x container width for seamless looping
       const minWidth = containerWidth * 2;
       const count = Math.ceil(minWidth / contentWidth) + 1;
       setRepeatCount(count);
@@ -90,9 +88,8 @@ const Hero = () => {
               }}
             >
               We bring singles together for face-to-face first impressions and genuine connections.
-
             </p>
-            <Link to="/create-account" className="inline-block">
+            <Link to="/events" className="inline-block">
               <button
                 style={{
                   background: '#E2FF65',
@@ -130,28 +127,27 @@ const Hero = () => {
       </div>
       <Info />
       <HowItWorks />
-            {/* Testimonials Section */}
-            <section className={styles['testimonials-section']}>
-                <div className={styles['testimonials-container']}>
-                    <h2 className={styles['testimonials-heading']}>What They're Saying</h2>
-                    <div className={styles['testimonials-list-marquee']} ref={marqueeContainerRef}>
-                      {/* Hidden for measurement only */}
-                      <div style={{ display: 'inline-block', visibility: 'hidden', position: 'absolute', left: 0, top: 0 }} ref={marqueeContentRef}>
-                        {renderCard(testimonials[0])}
-                      </div>
-                      <div className={styles['marquee-track']}>
-                        {Array.from({ length: repeatCount }).map((_, i) => (
-                          <React.Fragment key={i}>
-                            {testimonials.map((t, idx) => (
-                              <React.Fragment key={`${i}-${idx}`}>{renderCard(t)}</React.Fragment>
-                            ))}
-                          </React.Fragment>
-                        ))}
-                      </div>
-                    </div>
-                </div>
-                <div className={styles['testimonials-bottom-gap']}></div>
-            </section>
+      {/* Testimonials Section */}
+      <section className={styles['testimonials-section']}>
+        <div className={styles['testimonials-container']}>
+          <h2 className={styles['testimonials-heading']}>What They're Saying</h2>
+          <div className={styles['testimonials-list-marquee']} ref={marqueeContainerRef}>
+            <div style={{ display: 'inline-block', visibility: 'hidden', position: 'absolute', left: 0, top: 0 }} ref={marqueeContentRef}>
+              {renderCard(testimonials[0])}
+            </div>
+            <div className={styles['marquee-track']}>
+              {Array.from({ length: repeatCount }).map((_, i) => (
+                <React.Fragment key={i}>
+                  {testimonials.map((t, idx) => (
+                    <React.Fragment key={`${i}-${idx}`}>{renderCard(t)}</React.Fragment>
+                  ))}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className={styles['testimonials-bottom-gap']}></div>
+      </section>
     </div>
   );
 };

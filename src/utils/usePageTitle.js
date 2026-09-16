@@ -28,28 +28,17 @@ const usePageTitle = () => {
         '/admin-dashboard/users': 'Admin Users',
         '/admin-dashboard/businesses': 'Admin Businesses',
         '/admin-dashboard/coupons': 'Admin Coupons',
-        '/enterprise-dash': 'Business Dashboard',
-        '/enterprise-dash/analytics': 'Business Analytics',
-        '/enterprise-dash/coupons': 'Business Coupons',
-        '/enterprise-dash/profile': 'Business Profile',
-        '/enterprise-dash/settings': 'Business Settings',
         '/contact': 'Contact',
         '/faq': 'FAQ',
-        '/pricing': 'Pricing',
         '/how-it-works': 'How It Works',
         '/map': 'Map',
         '/preferencePage': 'Preferences',
         '/personality-quiz': 'Personality Quiz',
-        '/verify-email': 'Verify Email',
         '/verify-phone': 'Verify Phone',
         '/forgot-password': 'Forgot Password',
         '/reactivate': 'Reactivate Account',
         '/legal': 'Legal',
         '/about': 'About',
-        '/enterprise-create-account': 'Business Sign Up',
-        '/enterprise-login': 'Business Login',
-        '/enterprise-verify-email': 'Business Email Verification',
-        '/enterprise-profile': 'Business Profile'
       };
 
       // Find the best matching route

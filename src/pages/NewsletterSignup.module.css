@@ -1,0 +1,549 @@
+/* ==========================================================================
+   CIRCUIT — PROFILE / PREFERENCES
+   Warm amber-gold · premium card · editorial typography
+   ========================================================================== */
+
+.container {
+  --text-dark: #1c1917;
+  --text-soft: #4a4540;
+  --text-muted: #7a736b;
+
+  --amber: #f59e0b;
+  --amber-deep: #d97706;
+  --amber-darker: #a85e02;
+  --amber-bright: #ffd24a;
+
+  --line: rgba(28, 25, 23, 0.08);
+  --line-strong: rgba(28, 25, 23, 0.16);
+  --border-input: #e0dbd0;
+
+  --bg-1: #fdfaf3;
+  --bg-2: #f4ecd9;
+
+  --danger: #c7385a;
+  --danger-bg: #fdecef;
+  --danger-border: #f5c2cd;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 44px 20px 80px;
+  color: var(--text-dark);
+  font-family: 'Calibri', 'Candara', 'Segoe UI', optima, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  isolation: isolate;
+}
+
+/* Atmospheric cream canvas */
+.container::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(900px 620px at 12% 6%, #fff5d6 0%, transparent 60%),
+    radial-gradient(800px 620px at 92% 94%, #f0e2bd 0%, transparent 58%),
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 100%);
+  pointer-events: none;
+}
+
+/* Faint blueprint grid, masked to fade */
+.container::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(120, 90, 40, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 90, 40, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 20%, transparent 78%);
+          mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 20%, transparent 78%);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   CARD
+   ========================================================================== */
+
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+  padding: 48px 44px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow:
+    0 1px 2px rgba(28, 25, 23, 0.04),
+    0 20px 44px -20px rgba(28, 25, 23, 0.16),
+    0 60px 100px -50px rgba(28, 25, 23, 0.14);
+  overflow: hidden;
+  animation: cardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Amber → lime accent bar */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--amber) 0%, var(--amber-bright) 55%, #d9f55c 100%);
+}
+
+/* ==========================================================================
+   BACK BUTTON
+   ========================================================================== */
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-soft);
+  margin-bottom: 28px;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.backBtn::before {
+  content: '←';
+  font-size: 15px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.backBtn:hover {
+  background: #fff8e1;
+  border-color: var(--amber);
+  color: var(--text-dark);
+  transform: translateX(-2px);
+}
+
+.backBtn:hover::before {
+  transform: translateX(-3px);
+}
+
+.backBtn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   TITLE + SUBTITLE
+   ========================================================================== */
+
+.title {
+  margin: 0 0 10px;
+  font-family: 'Bricolage Grotesque', 'Calibri', 'Candara', sans-serif;
+  font-size: clamp(28px, 4.4vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--text-dark);
+}
+
+.title::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  margin-top: 16px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--amber) 0%, var(--amber-bright) 100%);
+}
+
+.subtitle {
+  margin: 18px 0 32px;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+
+/* ==========================================================================
+   FORM
+   ========================================================================== */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.inputGroup label {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+/* ==========================================================================
+   INPUTS
+   ========================================================================== */
+
+.input,
+.select {
+  width: 100%;
+  padding: 14px 16px;
+  background: #fffdf7;
+  border: 1.5px solid var(--border-input);
+  border-radius: 12px;
+  color: var(--text-dark);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.35;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.22s ease,
+    background 0.18s ease;
+}
+
+.input::placeholder {
+  color: #a8a29e;
+}
+
+.input:hover:not(:focus),
+.select:hover:not(:focus) {
+  border-color: #cfc7b6;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: var(--amber);
+  box-shadow: 0 0 0 4px rgba(255, 210, 74, 0.4);
+}
+
+/* Custom select chevron (kept as data-URI so no JSX change) */
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a85e02' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 14px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 46px;
+  cursor: pointer;
+}
+
+.select:focus {
+  /* Re-declared because the base focus rule sets background back to white */
+  background-color: #ffffff;
+}
+
+/* ==========================================================================
+   CITY CHECKBOXES
+   ========================================================================== */
+
+.cityGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.cityCheckbox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fffdf7;
+  border: 1.5px solid var(--border-input);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--text-dark);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.22s ease,
+    transform 0.15s ease;
+  user-select: none;
+}
+
+.cityCheckbox:hover {
+  background: #fff8e1;
+  border-color: #d9c9a0;
+  transform: translateY(-1px);
+}
+
+.cityCheckbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--amber-deep);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.cityCheckbox input[type="checkbox"]:checked + span {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+/* Checked state — amber glow ring on the label */
+.cityCheckbox:has(input:checked) {
+  background: linear-gradient(180deg, #fff8e1 0%, #ffefc2 100%);
+  border-color: var(--amber-deep);
+  box-shadow:
+    0 0 0 3px rgba(255, 210, 74, 0.35),
+    0 6px 14px -6px rgba(168, 94, 2, 0.35);
+}
+
+.cityCheckbox:focus-within {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   HINT / HELP TEXT
+   ========================================================================== */
+
+.hint {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   ERROR
+   ========================================================================== */
+
+.error {
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 12px;
+  color: var(--danger);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* ==========================================================================
+   PRIMARY BUTTON
+   ========================================================================== */
+
+.primaryBtn {
+  position: relative;
+  width: 100%;
+  margin-top: 12px;
+  padding: 17px 24px;
+  background: linear-gradient(180deg, #1c1917 0%, #0d0a09 100%);
+  color: #fffaf0;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Bricolage Grotesque', 'Calibri', sans-serif;
+  font-size: 16.5px;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 10px 26px -8px rgba(0, 0, 0, 0.5),
+    0 22px 44px -16px rgba(0, 0, 0, 0.4);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #2b2724 0%, #1a1614 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 14px 32px -8px rgba(0, 0, 0, 0.55),
+    0 34px 66px -20px rgba(255, 180, 60, 0.4);
+}
+
+.primaryBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.primaryBtn:focus-visible {
+  outline: 3px solid rgba(255, 210, 74, 0.75);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   SUCCESS STATE
+   ========================================================================== */
+
+.successContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 0 8px;
+  animation: successIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes successIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.successIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 20px;
+  background: linear-gradient(180deg, #fff8e1 0%, #ffe9a3 100%);
+  border-radius: 50%;
+  font-size: 44px;
+  line-height: 1;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 12px 26px -8px rgba(217, 119, 6, 0.45),
+    0 0 0 8px rgba(255, 210, 74, 0.15);
+}
+
+.successTitle {
+  margin: 0 0 12px;
+  font-family: 'Bricolage Grotesque', 'Calibri', sans-serif;
+  font-size: clamp(24px, 3.6vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text-dark);
+}
+
+.successMessage {
+  margin: 0 0 28px;
+  max-width: 420px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .container {
+    padding: 32px 16px 64px;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 24px 14px 56px;
+  }
+
+  .card {
+    padding: 28px 22px;
+    border-radius: 22px;
+  }
+
+  .title {
+    font-size: 26px;
+  }
+
+  .title::after {
+    margin-top: 12px;
+  }
+
+  .subtitle {
+    font-size: 14.5px;
+    margin-bottom: 26px;
+  }
+
+  .form {
+    gap: 18px;
+  }
+
+  .input,
+  .select {
+    padding: 13px 14px;
+    font-size: 15.5px;
+  }
+
+  .cityGrid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .cityCheckbox {
+    padding: 11px 12px;
+    font-size: 14px;
+  }
+
+  .primaryBtn {
+    font-size: 16px;
+    padding: 15px 20px;
+  }
+
+  .successIcon {
+    width: 72px;
+    height: 72px;
+    font-size: 38px;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .successContainer {
+    animation: none;
+  }
+
+  .container *,
+  .container *::before,
+  .container *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+
+  .cityCheckbox:hover,
+  .primaryBtn:hover:not(:disabled),
+  .backBtn:hover {
+    transform: none;
+  }
+}

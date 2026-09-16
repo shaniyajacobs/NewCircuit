@@ -213,7 +213,7 @@ const HomeEventCard = ({ event }) => {
       </div>
 
       {/* Sign Up Button */}
-      <Link to="/create-account" className="w-full">
+      <Link to="/events" className="w-full">
         <button
           className="
             bg-[#211F20] 

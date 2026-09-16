@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../../pages/firebaseConfig';
 import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, query, where, getDoc, increment } from 'firebase/firestore';
-import { FaSearch, FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
+import { FaSearch, FaTrash, FaPlus, FaEdit, FaHeart, FaClock } from 'react-icons/fa'; // ✅ NEW: added FaClock
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { DateTime } from 'luxon';
 import { signOutFromEvent, calculateActualCounts, reconcileCounts, clearLatestEventIdIfNeeded } from '../../../utils/eventSpotsUtils';
@@ -9,7 +9,6 @@ import { formatUserName } from '../../../utils/nameFormatter';
 import { sortEventsByDate } from '../../../utils/eventSorter';
 
 // Convert Unix ms timestamp to local datetime string for datetime-local inputs
-// toISOString() returns UTC, which would show the wrong time in the input
 const toLocalDatetimeInput = (ms) => {
   const d = new Date(ms);
   const offset = d.getTimezoneOffset() * 60000;
@@ -23,29 +22,36 @@ const AdminEvents = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [hoverEventId, setHoverEventId] = useState(null); // for ID tooltip on hover
+  const [hoverEventId, setHoverEventId] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newEvent, setNewEvent] = useState({
     eventID: '',
     location: '',
     menSpots: '',
     womenSpots: '',
+    totalSpots: '',
     ageRange: '',
-    eventType: '',
+    audience: '',
     eventFormat: 'virtual',
     venue: '',
     title: '',
     startTime: '',
-    endTime: ''
+    endTime: '',
+    capacity: '',
+    status: 'upcoming',
+    roundDurationSeconds: 360,
+    breakDurationSeconds: 240, // ✅ Step 1 fix
+    noShowBreakSeconds: 540,
+    icebreakers: ['', '', '', '', '', '', '', ''],
   });
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [eventUsers, setEventUsers] = useState([]);
-  const [maleUsers, setMaleUsers] = useState([]);
-  const [femaleUsers, setFemaleUsers] = useState([]);
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [selectedUserToDelete, setSelectedUserToDelete] = useState(null);
   const [deletingUser, setDeletingUser] = useState(false);
+  const [computingEventId, setComputingEventId] = useState(null);
+  const [generatingRounds, setGeneratingRounds] = useState(null); // ✅ NEW: state for generate rounds
 
   const LOCATION_OPTIONS = [
     'Atlanta',
@@ -60,6 +66,19 @@ const AdminEvents = () => {
     'Washington D.C.'
   ];
 
+  const AUDIENCE_OPTIONS = [
+    'Men & Women',
+    'Queer Women',
+    'Queer Men',
+    'Queer Men & Women'
+  ];
+
+  const STATUS_OPTIONS = ['upcoming', 'live', 'complete'];
+
+  const isQueerAudience = (audience) => {
+    return audience && (audience === 'Queer Women' || audience === 'Queer Men' || audience === 'Queer Men & Women');
+  };
+
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -73,7 +92,6 @@ const AdminEvents = () => {
       const eventsList = await Promise.all(
         eventsSnapshot.docs.map(async (d) => {
           const meta = d.data();
-          // In-person events are not Remo events — skip the CF call entirely
           if (meta.eventFormat === 'in-person') {
             return { id: d.id, ...meta };
           }
@@ -81,8 +99,6 @@ const AdminEvents = () => {
           try {
             const res = await getEventDataCF({ eventId });
             const remo = res.data?.event || {};
-            // Strip empty/null meta fields so they don't overwrite valid Remo values
-            // (e.g. empty startTime/endTime/title stored in Firestore for virtual events)
             const metaFiltered = Object.fromEntries(
               Object.entries(meta).filter(([, v]) => v !== '' && v !== null && v !== undefined)
             );
@@ -108,16 +124,75 @@ const AdminEvents = () => {
   };
 
   const handleEditEvent = (event) => {
-    setSelectedEvent(event);
+    const eventWithDefaults = {
+      ...event,
+      capacity: event.capacity || '',
+      status: event.status || 'upcoming',
+      roundDurationSeconds: event.roundDurationSeconds || 360,
+      breakDurationSeconds: event.breakDurationSeconds || 240, // ✅ Step 1 fix
+      noShowBreakSeconds: event.noShowBreakSeconds || 540,
+      icebreakers: Array.isArray(event.icebreakers) && event.icebreakers.length === 8
+        ? event.icebreakers
+        : ['', '', '', '', '', '', '', ''],
+    };
+    setSelectedEvent(eventWithDefaults);
     setShowEditModal(true);
   };
 
+  const handleComputeMatches = async (eventId) => {
+    try {
+      setComputingEventId(eventId);
+      const functionsInst = getFunctions();
+      const computeMatches = httpsCallable(functionsInst, 'computeMatches');
+      await computeMatches({ eventId });
+      alert('✅ Matches computed successfully!');
+    } catch (error) {
+      console.error('Error computing matches:', error);
+      alert('❌ Failed to compute matches. Check console for details.');
+    } finally {
+      setComputingEventId(null);
+    }
+  };
+
+  // ✅ NEW: Handler for generating rounds
+const handleGenerateRounds = async (eventId) => {
+  try {
+    setGeneratingRounds(eventId);
+    const response = await fetch(
+      'https://us-central1-circuit-eb73c.cloudfunctions.net/generateRounds',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ eventId }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to generate rounds');
+    }
+
+    if (result.success) {
+      alert(`✅ ${result.message}`);
+      fetchEvents();
+    } else {
+      alert(`⚠️ ${result.message}`);
+    }
+  } catch (error) {
+    console.error('Error generating rounds:', error);
+    alert('❌ Failed to generate rounds. Check console.');
+  } finally {
+    setGeneratingRounds(null);
+  }
+};
   const handleShowUsers = async (event) => {
     setSelectedEvent(event);
     setShowUsersModal(true);
     setLoadingUsers(true);
     try {
-      // In-person events have no Remo attendees — fetch Circuit signups only
       if (event.eventFormat === 'in-person') {
         const signedUpUsersRef = collection(db, 'events', event.id, 'signedUpUsers');
         const signedUpUsersSnapshot = await getDocs(signedUpUsersRef);
@@ -145,12 +220,10 @@ const AdminEvents = () => {
 
       const functionsInst = getFunctions();
       const getMembers = httpsCallable(functionsInst, 'getEventMembers');
-      // The Callable result comes back as an object: { data: <actualArray> }
       const res = await getMembers({ eventId: event.eventID });
 
       const attendees = Array.isArray(res?.data) ? res.data : [];
 
-      // Normalize Remo attendees and fetch Firebase information
       const remoUsers = await Promise.all(attendees.map(async (a) => {
         const profile = a.user?.profile || {};
         const nameCombined = profile.name || formatUserName(profile);
@@ -160,7 +233,6 @@ const AdminEvents = () => {
         const status = a.status || a.invite?.status || '-';
         const accepted = (a.invite?.isAccepted ?? (status === 'accepted')) ? 'Yes' : 'No';
 
-        // Try to find Firebase profile for this Remo user
         let firebaseUserName = null;
         let firebaseUserGender = null;
         let firebaseProfileId = null;
@@ -173,7 +245,6 @@ const AdminEvents = () => {
               const firebaseUserData = userSnap.docs[0].data();
               firebaseProfileId = userSnap.docs[0].id;
               
-              // Comprehensive name construction - check all possible fields
               if (firebaseUserData.firstName && firebaseUserData.firstName.trim()) {
                 firebaseUserName = `${firebaseUserData.firstName} ${firebaseUserData.lastName || ''}`.trim();
               } else if (firebaseUserData.userName && firebaseUserData.userName.trim()) {
@@ -186,12 +257,9 @@ const AdminEvents = () => {
               
               firebaseUserGender = firebaseUserData.userGender || firebaseUserData.gender || null;
             }
-          } catch (error) {
-            // Could not find Firebase user for Remo user
-          }
+          } catch (error) {}
         }
 
-        // Ensure we have a valid name - check all possible sources
         let finalName = 'Unknown';
         if (firebaseUserName && firebaseUserName.trim()) {
           finalName = firebaseUserName.trim();
@@ -206,22 +274,19 @@ const AdminEvents = () => {
         }
 
         return {
-          // Prefer explicit IDs; fall back to invite _id or email for table key
           id: a.user?.id || a.user?._id || a.invite?._id || a._id || email,
-          name: finalName, // Use the final constructed name
+          name: finalName,
           email,
-          userGender: firebaseUserGender || profile.gender || 'Unknown', // Prefer Firebase gender, fallback to Remo
-          // Use createdAt from root or invite object as sign-up timestamp
+          userGender: firebaseUserGender || profile.gender || 'Unknown',
           signedUpAt: a.createdAt || a.invite?.createdAt || a.invite?.updatedAt || '',
           status,
           accepted,
-          source: 'remo', // Mark as Remo user
-          firebaseProfileId, // Store Firebase profile ID if found
-          hasCircuitSignup: false // Will be updated later if they have Circuit signup
+          source: 'remo',
+          firebaseProfileId,
+          hasCircuitSignup: false
         };
       }));
 
-      // Fetch Firebase users from the event's signedUpUsers subcollection
       const firebaseUsers = [];
       try {
         const signedUpUsersRef = collection(db, 'events', event.id, 'signedUpUsers');
@@ -230,10 +295,7 @@ const AdminEvents = () => {
         signedUpUsersSnapshot.docs.forEach(doc => {
           const userData = doc.data();
           
-          // Comprehensive name construction for Firebase users
           let userName = 'Unknown';
-          
-          // Check all possible name fields
           if (userData.userName && userData.userName.trim()) {
             userName = userData.userName.trim();
           } else if (userData.firstName && userData.firstName.trim()) {
@@ -247,26 +309,24 @@ const AdminEvents = () => {
           }
           
           firebaseUsers.push({
-            id: doc.id, // This is the user ID
-            name: userName, // Use constructed userName
+            id: doc.id,
+            name: userName,
             email: userData.userEmail || 'N/A',
-            userGender: userData.userGender || 'Unknown', // Add gender information
+            userGender: userData.userGender || 'Unknown',
             signedUpAt: userData.signUpTime ? userData.signUpTime.toDate().toLocaleString() : 'N/A',
             status: 'Signed Up',
             accepted: 'Yes',
-            source: 'firebase', // Mark as Firebase user
-            firebaseProfileId: doc.id, // Store Firebase profile ID
-            hasCircuitSignup: true // Firebase users are always from Circuit
+            source: 'firebase',
+            firebaseProfileId: doc.id,
+            hasCircuitSignup: true
           });
         });
       } catch (error) {
         console.error('Error fetching Firebase signed up users:', error);
       }
 
-      // Check if Remo users also have Circuit signups
       const remoEmails = new Set(remoUsers.map(user => user.email.toLowerCase()).filter(email => email !== '-'));
       
-      // Update Remo users to check if they also have Circuit signups
       const updatedRemoUsers = await Promise.all(remoUsers.map(async (user) => {
         if (user.email && user.email !== '-') {
           try {
@@ -275,19 +335,15 @@ const AdminEvents = () => {
             if (signedUpUserSnap.exists()) {
               user.hasCircuitSignup = true;
             }
-          } catch (error) {
-            // Could not check Circuit signup status
-          }
+          } catch (error) {}
         }
         return user;
       }));
       
-      // Filter Firebase users to exclude those with emails that exist in Remo
       const filteredFirebaseUsers = firebaseUsers.filter(user => {
         return !remoEmails.has(user.email.toLowerCase());
       });
 
-      // Combine users - Remo users take priority
       const combinedUsers = [...updatedRemoUsers, ...filteredFirebaseUsers];
       
       setEventUsers(combinedUsers);
@@ -302,35 +358,28 @@ const AdminEvents = () => {
     try {
       setLoading(true);
       
-      // First, get all users signed up for this event
       const signedUpUsersRef = collection(db, 'events', selectedEvent.id, 'signedUpUsers');
       const signedUpUsersSnapshot = await getDocs(signedUpUsersRef);
       
-      // Update datesRemaining and remove event from signedUpEvents for all signed up users
       const updatePromises = signedUpUsersSnapshot.docs.map(async (userDoc) => {
         const userId = userDoc.id;
         const userDocRef = doc(db, 'users', userId);
         
         try {
-          // Update datesRemaining (+1 date back)
           await updateDoc(userDocRef, {
-            datesRemaining: increment(1) // Increase available dates by 1
+            datesRemaining: increment(1)
           });
           
-          // Remove event from user's signedUpEvents collection
           await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', selectedEvent.id));
           
-          // Clear latestEventId if this was the user's latest event
           await clearLatestEventIdIfNeeded(userId, selectedEvent.id);
         } catch (error) {
           console.log(`⚠️ Could not update user ${userId}:`, error.message);
         }
       });
       
-      // Wait for all user updates to complete
       await Promise.all(updatePromises);
       
-      // Now delete the event
       await deleteDoc(doc(db, 'events', selectedEvent.id));
       setEvents(events.filter(evt => evt.id !== selectedEvent.id));
       setShowDeleteModal(false);
@@ -343,38 +392,82 @@ const AdminEvents = () => {
     }
   };
 
+  // ✅ UPDATED: handleAddEvent with parseInt for spots and breakDuration 240
   const handleAddEvent = async (e) => {
     e.preventDefault();
     try {
-      // Convert datetime-local string to Unix ms for in-person events
       const eventData = { ...newEvent };
       if (eventData.eventFormat === 'in-person') {
         if (eventData.startTime) eventData.startTime = new Date(eventData.startTime).getTime();
         if (eventData.endTime) eventData.endTime = new Date(eventData.endTime).getTime();
       }
 
-      // 1️⃣ Create the doc first to obtain its ID
+      // Parse spots to numbers
+      const menSpots = parseInt(eventData.menSpots, 10) || 0;
+      const womenSpots = parseInt(eventData.womenSpots, 10) || 0;
+
       const docRef = await addDoc(collection(db, 'events'), {
         ...eventData,
+        menSpots,
+        womenSpots,
         menSignupCount: 0,
         womenSignupCount: 0,
+        capacity: parseInt(newEvent.capacity) || 0,
+        status: newEvent.status || 'upcoming',
+        roundDurationSeconds: newEvent.roundDurationSeconds || 360,
+        breakDurationSeconds: newEvent.breakDurationSeconds || 240, // ✅ Step 1 fix
+        noShowBreakSeconds: newEvent.noShowBreakSeconds || 540,
+        icebreakers: newEvent.icebreakers || ['', '', '', '', '', '', '', ''],
+        roundStartTimes: [],
       });
-
-      // 2️⃣ Immediately write the Firestore ID inside the document for easy querying later
       await updateDoc(docRef, { id: docRef.id });
 
       setShowAddModal(false);
-      setNewEvent({ eventID: '', location: '', menSpots: '', womenSpots: '', ageRange: '', eventType: '', eventFormat: 'virtual', venue: '', title: '', startTime: '', endTime: '' });
+      setNewEvent({
+        eventID: '',
+        location: '',
+        menSpots: '',
+        womenSpots: '',
+        totalSpots: '',
+        ageRange: '',
+        audience: '',
+        eventFormat: 'virtual',
+        venue: '',
+        title: '',
+        startTime: '',
+        endTime: '',
+        capacity: '',
+        status: 'upcoming',
+        roundDurationSeconds: 360,
+        breakDurationSeconds: 240, // ✅ Step 1 fix
+        noShowBreakSeconds: 540,
+        icebreakers: ['', '', '', '', '', '', '', ''],
+      });
       fetchEvents();
     } catch (error) {
       console.error('Error adding event:', error);
     }
   };
 
+  // ✅ UPDATED: handleUpdateEvent with parseInt and breakDuration 240
   const handleUpdateEvent = async (e) => {
     e.preventDefault();
     try {
-      await updateDoc(doc(db, 'events', selectedEvent.id), selectedEvent);
+      // Parse spots to numbers
+      const menSpots = parseInt(selectedEvent.menSpots, 10) || 0;
+      const womenSpots = parseInt(selectedEvent.womenSpots, 10) || 0;
+
+      await updateDoc(doc(db, 'events', selectedEvent.id), {
+        ...selectedEvent,
+        menSpots,
+        womenSpots,
+        capacity: parseInt(selectedEvent.capacity) || 0,
+        status: selectedEvent.status || 'upcoming',
+        roundDurationSeconds: selectedEvent.roundDurationSeconds || 360,
+        breakDurationSeconds: selectedEvent.breakDurationSeconds || 240, // ✅ Step 1 fix
+        noShowBreakSeconds: selectedEvent.noShowBreakSeconds || 540,
+        icebreakers: selectedEvent.icebreakers || ['', '', '', '', '', '', '', ''],
+      });
       setShowEditModal(false);
       fetchEvents();
     } catch (error) {
@@ -393,27 +486,21 @@ const AdminEvents = () => {
     try {
       setDeletingUser(true);
       
-      // For Firebase users, we have the actual user ID
-      // For Remo users, we need to find them in Firebase if they exist
       let userId = selectedUserToDelete.id;
       let eventId = selectedEvent.id;
       
       if (selectedUserToDelete.source === 'remo') {
-        // For Remo users, try to find their Firebase entry by email
         if (selectedUserToDelete.email && selectedUserToDelete.email !== '-') {
           try {
             const q = query(collection(db, 'users'), where('email', '==', selectedUserToDelete.email));
             const userSnap = await getDocs(q);
             if (!userSnap.empty) {
-              userId = userSnap.docs[0].id; // Use the actual Firebase user ID
+              userId = userSnap.docs[0].id;
             }
-          } catch (error) {
-            // Could not find Firebase user for Remo user
-          }
+          } catch (error) {}
         }
       }
       
-      // Try to delete from both sides, but don't fail if one doesn't exist
       try {
         await deleteDoc(doc(db, 'events', eventId, 'signedUpUsers', userId));
       } catch (error) {
@@ -422,14 +509,11 @@ const AdminEvents = () => {
       
       try {
         await deleteDoc(doc(db, 'users', userId, 'signedUpEvents', eventId));
-        
-        // Clear latestEventId if this was the user's latest event
         await clearLatestEventIdIfNeeded(userId, eventId);
       } catch (error) {
         console.log('⚠️ Could not delete from user signedUpEvents (might not exist):', error.message);
       }
       
-      // Update signup counts for all users (both Firebase and Remo)
       try {
         const eventDocRef = doc(db, 'events', eventId);
         const eventDoc = await getDoc(eventDocRef);
@@ -437,7 +521,6 @@ const AdminEvents = () => {
           const data = eventDoc.data();
           let userGender = selectedUserToDelete.userGender?.toLowerCase();
           
-          // If gender is unknown, try to find it from Firebase user data
           if (!userGender || userGender === 'unknown') {
             if (selectedUserToDelete.email && selectedUserToDelete.email !== '-') {
               try {
@@ -447,19 +530,15 @@ const AdminEvents = () => {
                   const firebaseUserData = userSnap.docs[0].data();
                   userGender = firebaseUserData.gender?.toLowerCase();
                 }
-              } catch (error) {
-                console.log('⚠️ Could not find Firebase user for gender lookup:', error.message);
-              }
+              } catch (error) {}
             }
           }
           
-          // Use transaction-based signout for reliable count updates
           if (userGender === 'male' || userGender === 'female') {
             try {
               await signOutFromEvent(eventId, userId, userGender);
             } catch (error) {
               console.log('⚠️ Transaction-based removal failed, falling back to manual count update:', error.message);
-              // Fallback: manually update counts
               const actualCounts = await calculateActualCounts(eventId);
               await reconcileCounts(eventId, actualCounts);
             }
@@ -467,32 +546,23 @@ const AdminEvents = () => {
             const actualCounts = await calculateActualCounts(eventId);
             await reconcileCounts(eventId, actualCounts);
           }
-        } else {
-          // Event document does not exist
         }
       } catch (error) {
         console.log('⚠️ Could not update signup counts:', error.message);
       }
       
-      // Update user's datesRemaining count (for both Firebase and Remo users)
       try {
         const userDocRef = doc(db, 'users', userId);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const currentDatesRemaining = userData.datesRemaining || 0;
-          
           await updateDoc(userDocRef, {
-            datesRemaining: increment(1) // Increase available dates by 1
+            datesRemaining: increment(1)
           });
-        } else {
-          // User document does not exist
         }
       } catch (error) {
         console.log('⚠️ Could not update user datesRemaining:', error.message);
       }
       
-      // Update local state
       setEventUsers(prev => prev.filter(u => u.id !== selectedUserToDelete.id));
       
       setShowDeleteUserModal(false);
@@ -549,10 +619,10 @@ const AdminEvents = () => {
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">End Time</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[120px]">Location</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[80px]">Sign Ups</th>
-                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Type</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Audience</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Age Range</th>
                 <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Format</th>
-                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[100px]">Actions</th>
+                <th className="px-3 py-3 sm:px-6 sm:py-4 text-left font-medium text-gray-600 min-w-[140px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -574,7 +644,7 @@ const AdminEvents = () => {
                       const startTimeStr = startDt ? startDt.toFormat('h:mm a') : (evt.time || '');
                       const endTimeStr = endDt ? endDt.toFormat('h:mm a') : '-';
                       return (
-                        <> 
+                        <>
                           <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <span
@@ -600,73 +670,73 @@ const AdminEvents = () => {
                             </div>
                           </td>
                           <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                            <div className="truncate max-w-[100px]" title={dateStr}>
-                              {dateStr}
-                            </div>
+                            <div className="truncate max-w-[100px]" title={dateStr}>{dateStr}</div>
                           </td>
                           <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                            <div className="truncate max-w-[100px]" title={startTimeStr}>
-                              {startTimeStr}
-                            </div>
+                            <div className="truncate max-w-[100px]" title={startTimeStr}>{startTimeStr}</div>
                           </td>
                           <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                            <div className="truncate max-w-[100px]" title={endTimeStr}>
-                              {endTimeStr}
+                            <div className="truncate max-w-[100px]" title={endTimeStr}>{endTimeStr}</div>
+                          </td>
+                          <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <div className="truncate max-w-[120px]" title={evt.location || '-'}>{evt.location || '-'}</div>
+                          </td>
+                          <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <button
+                              onClick={() => handleShowUsers(evt)}
+                              className="px-3 py-1 bg-[#0043F1] text-white text-sm rounded-lg hover:bg-[#0034BD] transition-colors hover:shadow-md"
+                            >
+                              Users
+                            </button>
+                          </td>
+                          <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <div className="truncate max-w-[100px]" title={evt.audience || '-'}>{evt.audience || '-'}</div>
+                          </td>
+                          <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <div className="truncate max-w-[100px]" title={evt.ageRange || '-'}>{evt.ageRange || '-'}</div>
+                          </td>
+                          <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <span className={`font-semibold rounded-full px-2 py-0.5 text-xs ${evt.eventFormat === 'in-person' ? 'bg-purple-200 text-purple-800' : 'bg-blue-200 text-blue-800'}`}>
+                              {evt.eventFormat === 'in-person' ? 'In-Person' : 'Virtual'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditEvent(evt)}
+                                className="text-yellow-600 hover:text-yellow-900 transition-colors p-1 rounded hover:bg-yellow-50"
+                                title="Edit Event"
+                              >
+                                <FaEdit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteEvent(evt)}
+                                className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
+                                title="Delete Event"
+                              >
+                                <FaTrash className="w-4 h-4" />
+                              </button>
+                              {/* ✅ NEW: Generate Rounds button */}
+                              <button
+                                onClick={() => handleGenerateRounds(evt.id)}
+                                disabled={generatingRounds === evt.id}
+                                className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded hover:bg-blue-50 disabled:opacity-50"
+                                title="Generate Rounds"
+                              >
+                                <FaClock className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleComputeMatches(evt.id)}
+                                className="text-green-600 hover:text-green-900 transition-colors p-1 rounded hover:bg-green-50"
+                                title="Compute Matches"
+                              >
+                                <FaHeart className="w-4 h-4" />
+                              </button>
                             </div>
                           </td>
                         </>
                       );
                     })()}
-                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                      <div className="truncate max-w-[120px]" title={evt.location || '-'}>
-                        {evt.location || '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleShowUsers(evt)}
-                        className="px-3 py-1 bg-[#0043F1] text-white text-sm rounded-lg hover:bg-[#0034BD] transition-colors hover:shadow-md"
-                      >
-                        Users
-                      </button>
-                    </td>
-                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                      <div className="truncate max-w-[100px]" title={evt.eventType || '-'}>
-                        {evt.eventType || '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                      <div className="truncate max-w-[100px]" title={evt.ageRange || '-'}>
-                        {evt.ageRange || '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                      <span className={`font-semibold rounded-full px-2 py-0.5 text-xs ${
-                        evt.eventFormat === 'in-person'
-                          ? 'bg-purple-200 text-purple-800'
-                          : 'bg-blue-200 text-blue-800'
-                      }`}>
-                        {evt.eventFormat === 'in-person' ? 'In-Person' : 'Virtual'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEditEvent(evt)}
-                          className="text-yellow-600 hover:text-yellow-900 transition-colors p-1 rounded hover:bg-yellow-50"
-                          title="Edit Event"
-                        >
-                          <FaEdit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteEvent(evt)}
-                          className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
-                          title="Delete Event"
-                        >
-                          <FaTrash className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
                   </tr>
                 ))
               )}
@@ -675,6 +745,7 @@ const AdminEvents = () => {
         </div>
       </div>
 
+      {/* Delete Event Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-md w-full mx-4">
@@ -719,111 +790,137 @@ const AdminEvents = () => {
                 </select>
               </div>
               {newEvent.eventFormat === 'virtual' && (
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event ID</label>
-                <input
-                  type="text"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={newEvent.eventID}
-                  onChange={(e) => setNewEvent({ ...newEvent, eventID: e.target.value })}
-                  required
-                />
-              </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700">Event ID</label>
+                  <input
+                    type="text"
+                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={newEvent.eventID}
+                    onChange={(e) => setNewEvent({ ...newEvent, eventID: e.target.value })}
+                    required
+                  />
+                </div>
               )}
               {newEvent.eventFormat === 'in-person' && (
-              <>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. NYC In-Person Mixer"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Start Date & Time</label>
-                <input
-                  type="datetime-local"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={newEvent.startTime}
-                  onChange={(e) => {
-                    const start = e.target.value;
-                    const autoEnd = start ? toLocalDatetimeInput(new Date(start).getTime() + 2 * 60 * 60 * 1000) : '';
-                    setNewEvent({ ...newEvent, startTime: start, endTime: autoEnd });
-                  }}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">End Date & Time</label>
-                <input
-                  type="datetime-local"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={newEvent.endTime}
-                  onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">Venue</label>
-                  <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer">
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Event Name</label>
                     <input
-                      type="checkbox"
-                      checked={newEvent.venue === 'TBD'}
-                      onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.checked ? 'TBD' : '' })}
+                      type="text"
+                      placeholder="e.g. NYC In-Person Mixer"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newEvent.title}
+                      onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                      required
                     />
-                    TBD
-                  </label>
-                </div>
-                <input
-                  type="text"
-                  placeholder="e.g. The Standard, 848 Washington St"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
-                  value={newEvent.venue === 'TBD' ? '' : newEvent.venue}
-                  disabled={newEvent.venue === 'TBD'}
-                  onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.value })}
-                />
-              </div>
-              </>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Start Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newEvent.startTime}
+                      onChange={(e) => {
+                        const start = e.target.value;
+                        const autoEnd = start ? toLocalDatetimeInput(new Date(start).getTime() + 2 * 60 * 60 * 1000) : '';
+                        setNewEvent({ ...newEvent, startTime: start, endTime: autoEnd });
+                      }}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">End Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newEvent.endTime}
+                      onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-gray-700">Venue</label>
+                      <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newEvent.venue === 'TBD'}
+                          onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.checked ? 'TBD' : '' })}
+                        />
+                        TBD
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="e.g. The Standard, 848 Washington St"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                      value={newEvent.venue === 'TBD' ? '' : newEvent.venue}
+                      disabled={newEvent.venue === 'TBD'}
+                      onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.value })}
+                    />
+                  </div>
+                </>
               )}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Location</label>
                 <select
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={newEvent.location}
-                  onChange={(e)=>setNewEvent({...newEvent, location:e.target.value})}
+                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
                   required
                 >
                   <option value="" disabled>Select location</option>
                   {LOCATION_OPTIONS.map(loc => (<option key={loc} value={loc}>{loc}</option>))}
                 </select>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Men Spots</label>
+
+              {/* Spots Section – conditional based on audience */}
+              {isQueerAudience(newEvent.audience) ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700">Total Spots</label>
                   <input
                     type="number"
                     className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                    value={newEvent.menSpots}
-                    onChange={(e) => setNewEvent({ ...newEvent, menSpots: e.target.value })}
+                    value={newEvent.totalSpots || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewEvent({ 
+                        ...newEvent, 
+                        totalSpots: val,
+                        menSpots: val,
+                        womenSpots: val,
+                      });
+                    }}
                     required
+                    placeholder="e.g. 20"
                   />
+                  <p className="text-xs text-gray-500">This is a queer event – spots are not gender-separated.</p>
                 </div>
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Women Spots</label>
-                  <input
-                    type="number"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                    value={newEvent.womenSpots}
-                    onChange={(e) => setNewEvent({ ...newEvent, womenSpots: e.target.value })}
-                    required
-                  />
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-col gap-1 flex-1">
+                    <label className="text-sm font-medium text-gray-700">Men Spots</label>
+                    <input
+                      type="number"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                      value={newEvent.menSpots}
+                      onChange={(e) => setNewEvent({ ...newEvent, menSpots: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 flex-1">
+                    <label className="text-sm font-medium text-gray-700">Women Spots</label>
+                    <input
+                      type="number"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                      value={newEvent.womenSpots}
+                      onChange={(e) => setNewEvent({ ...newEvent, womenSpots: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
+
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Age Range (e.g., 25-35)</label>
                 <input
@@ -835,17 +932,89 @@ const AdminEvents = () => {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event Type</label>
+                <label className="text-sm font-medium text-gray-700">Event Audience</label>
                 <select
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={newEvent.eventType}
-                  onChange={(e) => setNewEvent({ ...newEvent, eventType: e.target.value })}
+                  value={newEvent.audience}
+                  onChange={(e) => setNewEvent({ ...newEvent, audience: e.target.value })}
                   required
                 >
-                  <option value="" disabled>Select type</option>
-                  {['Brunch','Happy Hour','Dinner'].map(t=>(<option key={t} value={t}>{t}</option>))}
+                  <option value="" disabled>Select audience</option>
+                  {AUDIENCE_OPTIONS.map(audience => (<option key={audience} value={audience}>{audience}</option>))}
                 </select>
               </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Total Capacity</label>
+                <input
+                  type="number"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newEvent.capacity}
+                  onChange={(e) => setNewEvent({ ...newEvent, capacity: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Status</label>
+                <select
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newEvent.status}
+                  onChange={(e) => setNewEvent({ ...newEvent, status: e.target.value })}
+                >
+                  {STATUS_OPTIONS.map(status => (<option key={status} value={status}>{status}</option>))}
+                </select>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">Round Duration (seconds)</label>
+                  <input
+                    type="number"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={newEvent.roundDurationSeconds}
+                    onChange={(e) => setNewEvent({ ...newEvent, roundDurationSeconds: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">Break Duration (seconds)</label>
+                  <input
+                    type="number"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={newEvent.breakDurationSeconds}
+                    onChange={(e) => setNewEvent({ ...newEvent, breakDurationSeconds: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">No‑Show Break (seconds)</label>
+                <input
+                  type="number"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={newEvent.noShowBreakSeconds}
+                  onChange={(e) => setNewEvent({ ...newEvent, noShowBreakSeconds: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Icebreakers (8 questions)</label>
+                {[0,1,2,3,4,5,6,7].map((i) => (
+                  <input
+                    key={i}
+                    type="text"
+                    placeholder={`Icebreaker ${i+1}`}
+                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={newEvent.icebreakers[i] || ''}
+                    onChange={(e) => {
+                      const updated = [...newEvent.icebreakers];
+                      updated[i] = e.target.value;
+                      setNewEvent({ ...newEvent, icebreakers: updated });
+                    }}
+                  />
+                ))}
+              </div>
+
               <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-4 pt-4 border-t border-gray-200">
                 <button
                   type="button"
@@ -872,171 +1041,253 @@ const AdminEvents = () => {
           <div className="bg-white rounded-lg p-4 sm:p-6 lg:p-8 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl sm:text-2xl font-semibold mb-4">Edit Event</h2>
             <form onSubmit={handleUpdateEvent} className="flex flex-col gap-4">
-              {/* Event Format */}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Event Format</label>
                 <select
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={selectedEvent.eventFormat || 'virtual'}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,eventFormat:e.target.value})}
+                  onChange={(e) => setSelectedEvent({ ...selectedEvent, eventFormat: e.target.value })}
                   required
                 >
                   <option value="virtual">Virtual</option>
                   <option value="in-person">In-Person</option>
                 </select>
               </div>
-              {/* Event ID — virtual only */}
               {(selectedEvent.eventFormat || 'virtual') !== 'in-person' && (
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event ID</label>
-                <input
-                  type="text"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedEvent.eventID}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,eventID:e.target.value})}
-                  required
-                />
-              </div>
-              )}
-              {/* In-person only fields */}
-              {selectedEvent.eventFormat === 'in-person' && (
-              <>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. NYC In-Person Mixer"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedEvent.title || ''}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,title:e.target.value})}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Start Date & Time</label>
-                <input
-                  type="datetime-local"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedEvent.startTime
-                    ? toLocalDatetimeInput(Number(selectedEvent.startTime))
-                    : (selectedEvent._startTimeLocal || '')}
-                  onChange={(e) => {
-                    const start = e.target.value;
-                    const startMs = new Date(start).getTime();
-                    const autoEndMs = startMs + 2 * 60 * 60 * 1000;
-                    setSelectedEvent({ ...selectedEvent, _startTimeLocal: start, startTime: startMs, _endTimeLocal: toLocalDatetimeInput(autoEndMs), endTime: autoEndMs });
-                  }}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">End Date & Time</label>
-                <input
-                  type="datetime-local"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedEvent.endTime
-                    ? toLocalDatetimeInput(Number(selectedEvent.endTime))
-                    : (selectedEvent._endTimeLocal || '')}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent, _endTimeLocal: e.target.value, endTime: new Date(e.target.value).getTime()})}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">Venue</label>
-                  <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedEvent.venue === 'TBD'}
-                      onChange={(e)=>setSelectedEvent({...selectedEvent, venue: e.target.checked ? 'TBD' : ''})}
-                    />
-                    TBD
-                  </label>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700">Event ID</label>
+                  <input
+                    type="text"
+                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedEvent.eventID || ''}
+                    onChange={(e) => setSelectedEvent({ ...selectedEvent, eventID: e.target.value })}
+                    required
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="e.g. The Standard, 848 Washington St"
-                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
-                  value={selectedEvent.venue === 'TBD' ? '' : (selectedEvent.venue || '')}
-                  disabled={selectedEvent.venue === 'TBD'}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,venue:e.target.value})}
-                />
-              </div>
-              </>
               )}
-
-              {/* Location */}
+              {selectedEvent.eventFormat === 'in-person' && (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Event Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. NYC In-Person Mixer"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={selectedEvent.title || ''}
+                      onChange={(e) => setSelectedEvent({ ...selectedEvent, title: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Start Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={selectedEvent.startTime ? toLocalDatetimeInput(Number(selectedEvent.startTime)) : (selectedEvent._startTimeLocal || '')}
+                      onChange={(e) => {
+                        const start = e.target.value;
+                        const startMs = new Date(start).getTime();
+                        const autoEndMs = startMs + 2 * 60 * 60 * 1000;
+                        setSelectedEvent({ ...selectedEvent, _startTimeLocal: start, startTime: startMs, _endTimeLocal: toLocalDatetimeInput(autoEndMs), endTime: autoEndMs });
+                      }}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">End Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={selectedEvent.endTime ? toLocalDatetimeInput(Number(selectedEvent.endTime)) : (selectedEvent._endTimeLocal || '')}
+                      onChange={(e) => setSelectedEvent({ ...selectedEvent, _endTimeLocal: e.target.value, endTime: new Date(e.target.value).getTime() })}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-gray-700">Venue</label>
+                      <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedEvent.venue === 'TBD'}
+                          onChange={(e) => setSelectedEvent({ ...selectedEvent, venue: e.target.checked ? 'TBD' : '' })}
+                        />
+                        TBD
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="e.g. The Standard, 848 Washington St"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                      value={selectedEvent.venue === 'TBD' ? '' : (selectedEvent.venue || '')}
+                      disabled={selectedEvent.venue === 'TBD'}
+                      onChange={(e) => setSelectedEvent({ ...selectedEvent, venue: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Location</label>
                 <select
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedEvent.location}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,location:e.target.value})}
+                  value={selectedEvent.location || ''}
+                  onChange={(e) => setSelectedEvent({ ...selectedEvent, location: e.target.value })}
                   required
                 >
-                  {LOCATION_OPTIONS.map(loc=>(<option key={loc} value={loc}>{loc}</option>))}
+                  {LOCATION_OPTIONS.map(loc => (<option key={loc} value={loc}>{loc}</option>))}
                 </select>
               </div>
 
-              {/* Men & Women Spots Row */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Men Spots</label>
+              {/* Spots Section – conditional based on audience */}
+              {isQueerAudience(selectedEvent.audience) ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700">Total Spots</label>
                   <input
                     type="number"
                     className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                    value={selectedEvent.menSpots}
-                    onChange={(e)=>setSelectedEvent({...selectedEvent, menSpots:e.target.value})}
+                    value={selectedEvent.menSpots || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedEvent({ 
+                        ...selectedEvent, 
+                        menSpots: val,
+                        womenSpots: val,
+                      });
+                    }}
                     required
+                    placeholder="e.g. 20"
                   />
+                  <p className="text-xs text-gray-500">This is a queer event – spots are not gender-separated.</p>
                 </div>
-                <div className="flex flex-col gap-1 flex-1">
-                  <label className="text-sm font-medium text-gray-700">Women Spots</label>
-                  <input
-                    type="number"
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                    value={selectedEvent.womenSpots}
-                    onChange={(e)=>setSelectedEvent({...selectedEvent, womenSpots:e.target.value})}
-                    required
-                  />
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-col gap-1 flex-1">
+                    <label className="text-sm font-medium text-gray-700">Men Spots</label>
+                    <input
+                      type="number"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                      value={selectedEvent.menSpots || ''}
+                      onChange={(e) => setSelectedEvent({ ...selectedEvent, menSpots: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 flex-1">
+                    <label className="text-sm font-medium text-gray-700">Women Spots</label>
+                    <input
+                      type="number"
+                      className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                      value={selectedEvent.womenSpots || ''}
+                      onChange={(e) => setSelectedEvent({ ...selectedEvent, womenSpots: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Age Range */}
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Age Range</label>
                 <input
                   type="text"
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedEvent.ageRange}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,ageRange:e.target.value})}
+                  value={selectedEvent.ageRange || ''}
+                  onChange={(e) => setSelectedEvent({ ...selectedEvent, ageRange: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Event Audience</label>
+                <select
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedEvent.audience || ''}
+                  onChange={(e) => setSelectedEvent({ ...selectedEvent, audience: e.target.value })}
+                  required
+                >
+                  <option value="" disabled>Select audience</option>
+                  {AUDIENCE_OPTIONS.map(audience => (<option key={audience} value={audience}>{audience}</option>))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Total Capacity</label>
+                <input
+                  type="number"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedEvent.capacity || ''}
+                  onChange={(e) => setSelectedEvent({ ...selectedEvent, capacity: e.target.value })}
                   required
                 />
               </div>
 
-              {/* Event Type */}
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Event Type</label>
+                <label className="text-sm font-medium text-gray-700">Status</label>
                 <select
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedEvent.eventType}
-                  onChange={(e)=>setSelectedEvent({...selectedEvent,eventType:e.target.value})}
-                  required
+                  value={selectedEvent.status || 'upcoming'}
+                  onChange={(e) => setSelectedEvent({ ...selectedEvent, status: e.target.value })}
                 >
-                  {['Brunch','Happy Hour','Dinner'].map(t=>(<option key={t} value={t}>{t}</option>))}
+                  {STATUS_OPTIONS.map(status => (<option key={status} value={status}>{status}</option>))}
                 </select>
               </div>
 
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">Round Duration (seconds)</label>
+                  <input
+                    type="number"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedEvent.roundDurationSeconds || 0}
+                    onChange={(e) => setSelectedEvent({ ...selectedEvent, roundDurationSeconds: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">Break Duration (seconds)</label>
+                  <input
+                    type="number"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedEvent.breakDurationSeconds || 0}
+                    onChange={(e) => setSelectedEvent({ ...selectedEvent, breakDurationSeconds: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">No‑Show Break (seconds)</label>
+                <input
+                  type="number"
+                  className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedEvent.noShowBreakSeconds || 0}
+                  onChange={(e) => setSelectedEvent({ ...selectedEvent, noShowBreakSeconds: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Icebreakers (8 questions)</label>
+                {[0,1,2,3,4,5,6,7].map((i) => (
+                  <input
+                    key={i}
+                    type="text"
+                    placeholder={`Icebreaker ${i+1}`}
+                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedEvent.icebreakers?.[i] || ''}
+                    onChange={(e) => {
+                      const updated = [...(selectedEvent.icebreakers || ['', '', '', '', '', '', '', ''])];
+                      updated[i] = e.target.value;
+                      setSelectedEvent({ ...selectedEvent, icebreakers: updated });
+                    }}
+                  />
+                ))}
+              </div>
+
               <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-4 pt-4 border-t border-gray-200">
-                <button 
-                  type="button" 
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1" 
-                  onClick={()=>setShowEditModal(false)}
+                <button
+                  type="button"
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
+                  onClick={() => setShowEditModal(false)}
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="px-4 py-2 bg-[#0043F1] text-white rounded-lg hover:bg-[#0034BD] transition-colors order-1 sm:order-2"
                 >
                   Update Event
@@ -1095,17 +1346,16 @@ const AdminEvents = () => {
                   </div>
                   
                   {(() => {
-                    // Pre-filter users by gender and source for better performance
                     const maleUsers = eventUsers.filter(u => 
                       (u.userGender?.toLowerCase() === 'male' || u.userGender?.toLowerCase() === 'm') &&
-                      (u.source === 'firebase' || u.hasCircuitSignup) // Only Circuit users (Circuit-only or Circuit+Remo)
+                      (u.source === 'firebase' || u.hasCircuitSignup)
                     );
                     const femaleUsers = eventUsers.filter(u => 
                       (u.userGender?.toLowerCase() === 'female' || u.userGender?.toLowerCase() === 'f') &&
-                      (u.source === 'firebase' || u.hasCircuitSignup) // Only Circuit users (Circuit-only or Circuit+Remo)
+                      (u.source === 'firebase' || u.hasCircuitSignup)
                     );
                     const otherUsers = eventUsers.filter(u => 
-                      u.source === 'remo' && !u.hasCircuitSignup // Remo Only users
+                      u.source === 'remo' && !u.hasCircuitSignup
                     );
 
                     return (
@@ -1134,9 +1384,7 @@ const AdminEvents = () => {
                                   {maleUsers.map(u => (
                                     <tr key={u.id} className="hover:bg-gray-50">
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
-                                        <div className="truncate max-w-[120px] sm:max-w-[200px]" title={u.name}>
-                                          {u.name}
-                                        </div>
+                                        <div className="truncate max-w-[120px] sm:max-w-[200px]" title={u.name}>{u.name}</div>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap capitalize">{u.userGender}</td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
@@ -1145,26 +1393,13 @@ const AdminEvents = () => {
                                         </div>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
-                                        <div className="truncate max-w-[200px]" title={u.email}>
-                                          {u.email}
-                                        </div>
+                                        <div className="truncate max-w-[200px]" title={u.email}>{u.email}</div>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap capitalize">{u.status}</td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">{u.accepted}</td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                          u.source === 'remo' 
-                                            ? u.hasCircuitSignup 
-                                              ? 'bg-purple-100 text-purple-800' 
-                                              : 'bg-blue-100 text-blue-800'
-                                            : 'bg-green-100 text-green-800'
-                                        }`}>
-                                          {u.source === 'remo' 
-                                            ? u.hasCircuitSignup 
-                                              ? 'Circuit + Remo' 
-                                              : 'Remo Only'
-                                            : 'Circuit Only'
-                                          }
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.source === 'remo' ? u.hasCircuitSignup ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                                          {u.source === 'remo' ? u.hasCircuitSignup ? 'Circuit + Remo' : 'Remo Only' : 'Circuit Only'}
                                         </span>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
@@ -1208,9 +1443,7 @@ const AdminEvents = () => {
                                   {femaleUsers.map(u => (
                                     <tr key={u.id} className="hover:bg-gray-50">
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
-                                        <div className="truncate max-w-[120px] sm:max-w-[200px]" title={u.name}>
-                                          {u.name}
-                                        </div>
+                                        <div className="truncate max-w-[120px] sm:max-w-[200px]" title={u.name}>{u.name}</div>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap capitalize">{u.userGender}</td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
@@ -1219,26 +1452,13 @@ const AdminEvents = () => {
                                         </div>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
-                                        <div className="truncate max-w-[200px]" title={u.email}>
-                                          {u.email}
-                                        </div>
+                                        <div className="truncate max-w-[200px]" title={u.email}>{u.email}</div>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap capitalize">{u.status}</td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">{u.accepted}</td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                          u.source === 'remo' 
-                                            ? u.hasCircuitSignup 
-                                              ? 'bg-purple-100 text-purple-800' 
-                                              : 'bg-blue-100 text-blue-800'
-                                            : 'bg-green-100 text-green-800'
-                                        }`}>
-                                          {u.source === 'remo' 
-                                            ? u.hasCircuitSignup 
-                                              ? 'Circuit + Remo' 
-                                              : 'Remo Only'
-                                            : 'Circuit Only'
-                                          }
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.source === 'remo' ? u.hasCircuitSignup ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                                          {u.source === 'remo' ? u.hasCircuitSignup ? 'Circuit + Remo' : 'Remo Only' : 'Circuit Only'}
                                         </span>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
@@ -1282,9 +1502,7 @@ const AdminEvents = () => {
                                   {otherUsers.map(u => (
                                     <tr key={u.id} className="hover:bg-gray-50">
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
-                                        <div className="truncate max-w-[120px] sm:max-w-[200px]" title={u.name}>
-                                          {u.name}
-                                        </div>
+                                        <div className="truncate max-w-[120px] sm:max-w-[200px]" title={u.name}>{u.name}</div>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap capitalize">{u.userGender || 'Unknown'}</td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
@@ -1293,26 +1511,13 @@ const AdminEvents = () => {
                                         </div>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
-                                        <div className="truncate max-w-[200px]" title={u.email}>
-                                          {u.email}
-                                        </div>
+                                        <div className="truncate max-w-[200px]" title={u.email}>{u.email}</div>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap capitalize">{u.status}</td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">{u.accepted}</td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                          u.source === 'remo' 
-                                            ? u.hasCircuitSignup 
-                                              ? 'bg-purple-100 text-purple-800' 
-                                              : 'bg-blue-100 text-blue-800'
-                                            : 'bg-green-100 text-green-800'
-                                        }`}>
-                                          {u.source === 'remo' 
-                                            ? u.hasCircuitSignup 
-                                              ? 'Circuit + Remo' 
-                                              : 'Remo Only'
-                                            : 'Circuit Only'
-                                          }
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.source === 'remo' ? u.hasCircuitSignup ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                                          {u.source === 'remo' ? u.hasCircuitSignup ? 'Circuit + Remo' : 'Remo Only' : 'Circuit Only'}
                                         </span>
                                       </td>
                                       <td className="px-3 py-2 sm:px-4 sm:py-3 whitespace-nowrap">
@@ -1388,4 +1593,4 @@ const AdminEvents = () => {
   );
 };
 
-export default AdminEvents; 
+export default AdminEvents;

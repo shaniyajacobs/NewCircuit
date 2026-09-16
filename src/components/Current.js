@@ -40,7 +40,7 @@ const Current = () => {
                         <p className="text-[16px] md:text-[20px] lg:text-[24px] text-black font-poppins font-light leading-normal pb-[2px] sm:pb-[4px] md:pb-[8px] lg:pb-[18px]">
                         From the instant you connect to the moment you meet in person, Circuit keeps the energy alive and turns first impressions into unforgettable experiences.
                         </p>
-                        <Link to="/create-account">
+                        <Link to="/events">
                             <button className="w-[114px] h-[34px] sm:w-[114px] sm:h-[34px] md:w-[127px] md:h-[41px] lg:w-[147px] lg:h-[48px] flex items-center justify-center rounded-[4px] sm:rounded-[6px] md:rounded-[6px] lg:rounded-[8px] bg-black text-mindaro-light font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-normal transition-transform hover:scale-105 hover:opacity-60">
                                 Sign up now
                             </button>
