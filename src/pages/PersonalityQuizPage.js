@@ -106,18 +106,18 @@ const PersonalityQuizPage = () => {
         await updateDoc(userDocRef, { quizComplete: true });
         console.log("User quiz completion status updated");
         
-        console.log("Navigating to final quiz page...");
-        navigate("/finalQuizPage");
+        console.log("Navigating to dashboard...");
+        navigate("/dashboard");
       } catch (error) {
         console.error("Error saving quiz answers:", error);
-        // Even if there's an error, let's still navigate to the final page
-        console.log("Error occurred, but navigating to final page anyway...");
-        navigate("/finalQuizPage");
+        // Even if there's an error, let's still navigate to the dashboard
+        console.log("Error occurred, but navigating to dashboard anyway...");
+        navigate("/dashboard");
       }
     } else {
       console.warn("User is not authenticated! Navigating anyway...");
-      // If user is not authenticated, still navigate to final page
-      navigate("/finalQuizPage");
+      // If user is not authenticated, still navigate to dashboard
+      navigate("/dashboard");
     }
   };
 

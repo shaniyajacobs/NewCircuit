@@ -147,71 +147,93 @@ const AdminUserManagement = () => {
   };
 
   // Show events for a user – fetch live Remo details via Cloud Function
-  const handleShowEvents = async (user) => {
-    setSelectedUser(user);
-    setShowEventsModal(true);
-    setLoadingEvents(true);
+  // Show events for a user – fetch live Remo details via Cloud Function
+const handleShowEvents = async (user) => {
+  setSelectedUser(user);
+  setShowEventsModal(true);
+  setLoadingEvents(true);
 
-    try {
-      // 1️⃣ Fetch signed-up event IDs from Firestore
-      const eventsSnap = await getDocs(collection(db, 'users', user.id, 'signedUpEvents'));
+  try {
+    // 1️⃣ Fetch signed-up event IDs from Firestore
+    const eventsSnap = await getDocs(collection(db, 'users', user.id, 'signedUpEvents'));
 
-      if (eventsSnap.empty) {
-        setUserEvents([]);
-        return;
-      }
+    if (eventsSnap.empty) {
+      setUserEvents([]);
+      setLoadingEvents(false);
+      return;
+    }
 
-      // 2️⃣ Prepare callable
-      const functionsInst = getFunctions();
-      const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
+    // 2️⃣ Prepare callable
+    const functionsInst = getFunctions();
+    const getEventDataCF = httpsCallable(functionsInst, 'getEventData');
 
-      // 3️⃣ For each event, call the CF to fetch Remo metadata
-      const enriched = await Promise.all(
-        eventsSnap.docs.map(async (docSnap) => {
-          const data = docSnap.data() || {};
-          const eventId = docSnap.id; // Use the document ID consistently for deletion
+    // 3️⃣ Enrich each event
+    const enriched = await Promise.all(
+      eventsSnap.docs.map(async (docSnap) => {
+        const data = docSnap.data() || {};
+        const eventId = docSnap.id;
 
-          let remo = {};
+        // 🔥 Try Firestore event first
+        let firestoreEvent = null;
+        try {
+          const evSnap = await getDoc(doc(db, 'events', eventId));
+          if (evSnap.exists()) {
+            firestoreEvent = evSnap.data();
+          }
+        } catch (err) {
+          console.warn('Firestore event fetch failed:', err);
+        }
+
+        // Only hit Remo if the event is virtual
+        let remo = {};
+        if (firestoreEvent?.eventFormat !== 'in-person') {
           try {
             const res = await getEventDataCF({ eventId });
             remo = res.data?.event || {};
           } catch (err) {
-            console.error('getEventData error:', err);
+            console.warn('getEventData error:', err);
           }
+        }
 
-          // Extract date/time using Luxon
-          const dt = remo.startTime
-            ? DateTime.fromMillis(Number(remo.startTime))
-            : (remo.start_date_time ? DateTime.fromISO(remo.start_date_time) : null);
+        // Extract date/time
+        const dt = remo.startTime
+          ? DateTime.fromMillis(Number(remo.startTime))
+          : (firestoreEvent?.startTime
+              ? DateTime.fromMillis(Number(firestoreEvent.startTime))
+              : null);
 
-          const dateStr = dt ? dt.toFormat('MM/dd/yyyy') : (data.eventDate ? DateTime.fromISO(data.eventDate).toFormat('MM/dd/yyyy') : '-');
-          const timeStr = dt ? dt.toFormat('h:mm a') : (data.eventTime || '-');
+        const dateStr = dt
+          ? dt.toFormat('MM/dd/yyyy')
+          : (data.eventDate ? DateTime.fromISO(data.eventDate).toFormat('MM/dd/yyyy') : '-');
 
-          const signUpJS = data.signUpTime?.toDate?.();
-          const signUpStr = signUpJS ? DateTime.fromJSDate(signUpJS).toFormat('MM/dd/yyyy') : '-';
+        const timeStr = dt
+          ? dt.toFormat('h:mm a')
+          : (data.eventTime || '-');
 
-          return {
-            id: eventId,
-            title: remo.name || remo.title || data.eventTitle || 'Unknown',
-            date: dateStr,
-            time: timeStr,
-            signUp: signUpStr,
-            // Add timestamp for sorting
-            timestamp: dt ? dt.toMillis() : (data.eventDate ? DateTime.fromISO(data.eventDate).toMillis() : 0),
-          };
-        })
-      );
+        const signUpJS = data.signUpTime?.toDate?.();
+        const signUpStr = signUpJS ? DateTime.fromJSDate(signUpJS).toFormat('MM/dd/yyyy') : '-';
 
-      // Sort events chronologically from newest to oldest
-      const sortedEvents = sortEventsByDate(enriched);
-      setUserEvents(sortedEvents);
-    } catch (error) {
-      console.error('Error fetching user events:', error);
-      setUserEvents([]);
-    } finally {
-      setLoadingEvents(false);
-    }
-  };
+        return {
+          id: eventId,
+          title: remo.name || remo.title || firestoreEvent?.title || data.eventTitle || 'Unknown',
+          date: dateStr,
+          time: timeStr,
+          signUp: signUpStr,
+          timestamp: dt ? dt.toMillis() : 0,
+        };
+      })
+    );
+
+    // Sort events chronologically from newest to oldest
+    const sortedEvents = sortEventsByDate(enriched);
+    setUserEvents(sortedEvents);
+  } catch (error) {
+    console.error('Error fetching user events:', error);
+    setUserEvents([]);
+  } finally {
+    setLoadingEvents(false);
+  }
+};
 
   // Show sparks (connections) for a user
   const handleShowConnections = async (user) => {
@@ -484,12 +506,12 @@ const AdminUserManagement = () => {
                       </div>
                     </td>
                     <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.isActive ? <IoMdCheckmark className="mr-1" /> : <IoMdClose className="mr-1" />}
-                        {user.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+  user.isActive === false ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+}`}>
+  {user.isActive === false ? <IoMdClose className="mr-1" /> : <IoMdCheckmark className="mr-1" />}
+  {user.isActive === false ? 'Inactive' : 'Active'}
+</span> 
                     </td>
                     <td className="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

@@ -171,6 +171,14 @@ const MySparks = () => {
       >
         <div className="mx-auto max-w-3xl">
 
+          {/* 🔥 Back to Dashboard button */}
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="mb-6 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-[#1c1917] bg-white border border-[#eae4d2] hover:bg-[#fff8e1] transition-colors"
+          >
+            ← Back to Dashboard
+          </button>
+
           {/* Header */}
           <header className="circuit-sparks-in mb-8 sm:mb-10">
             <p className="m-0 mb-3 text-[11px] font-extrabold uppercase tracking-[0.28em] text-[#a85e02]">
