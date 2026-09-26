@@ -3,9 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db, functions } from '../firebaseConfig';
 import {
   collection,
+  collectionGroup,
   query,
   where,
   getDocs,
+  getDoc,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import styles from './MyWaitlist.module.css';
@@ -44,167 +46,258 @@ const MyWaitlist = () => {
           return;
         }
 
-        const eventsRef = collection(db, 'events');
-        const eventsSnapshot = await getDocs(eventsRef);
+        // ==========================================================
+        // 🔥 FAST: One collectionGroup query for ALL waitlist entries
+        // for this email, across every event
+        // ==========================================================
+        const waitlistGroupQuery = query(
+          collectionGroup(db, 'waitlist'),
+          where('email', '==', userEmail)
+        );
 
-        const entries = [];
+        let waitlistSnapshot;
+        try {
+          waitlistSnapshot = await getDocs(waitlistGroupQuery);
+        } catch (cgErr) {
+          console.warn('collectionGroup query failed, falling back to per-event scan', cgErr);
+          waitlistSnapshot = null;
+        }
 
-        const getPosition = httpsCallable(functions, 'getWaitlistPosition');
-
-        for (const eventDoc of eventsSnapshot.docs) {
-          const waitlistRef = collection(eventDoc.ref, 'waitlist');
-
-          // Query by email (primary key)
-          const emailQuery = query(waitlistRef, where('email', '==', userEmail));
-          let waitlistSnapshot = await getDocs(emailQuery);
-
-          // Fallback to userId if email not found
-          if (waitlistSnapshot.empty && userId) {
-            console.log('⚠️ No entries found by email, trying userId...');
-            const userIdQuery = query(waitlistRef, where('userId', '==', userId));
-            waitlistSnapshot = await getDocs(userIdQuery);
+        // If collectionGroup returned no results, try userId fallback
+        let userIdSnapshot = null;
+        if ((!waitlistSnapshot || waitlistSnapshot.empty) && userId) {
+          try {
+            const userGroupQuery = query(
+              collectionGroup(db, 'waitlist'),
+              where('userId', '==', userId)
+            );
+            userIdSnapshot = await getDocs(userGroupQuery);
+          } catch (cgErr) {
+            console.warn('collectionGroup by userId failed:', cgErr);
           }
+        }
 
-          if (waitlistSnapshot.empty) {
-            continue;
-          }
+        // ==========================================================
+        // 🔥 FALLBACK: If collectionGroup isn't available (no index)
+        // fall back to the old per-event loop so the page still works
+        // ==========================================================
+        if (!waitlistSnapshot && !userIdSnapshot) {
+          console.log('⚠️ collectionGroup unavailable, falling back to per-event scan');
 
-          const waitlistDoc = waitlistSnapshot.docs[0];
-          const data = waitlistDoc.data();
+          const eventsRef = collection(db, 'events');
+          const eventsSnapshot = await getDocs(eventsRef);
 
-          console.log('🔍 Waitlist entry found for event:', eventDoc.id);
-          console.log('🔍 Waitlist email from document:', data.email);
-          console.log('🔍 Waitlist userId from document:', data.userId);
+          const getPositionCF = httpsCallable(functions, 'getWaitlistPosition');
+          const eventFetches = eventsSnapshot.docs.map(async (eventDoc) => {
+            const waitlistRef = collection(eventDoc.ref, 'waitlist');
 
-          const eventData = eventDoc.data();
+            const emailQuery = query(waitlistRef, where('email', '==', userEmail));
+            let waitlistSnapLocal = await getDocs(emailQuery);
 
-          // Calculate position
-          let position = 0;
+            if (waitlistSnapLocal.empty && userId) {
+              const userIdQuery = query(waitlistRef, where('userId', '==', userId));
+              waitlistSnapLocal = await getDocs(userIdQuery);
+            }
 
-          if (data.status === 'waiting') {
-            try {
-              const result = await getPosition({
-                eventId: eventDoc.id,
-                email: data.email || userEmail,
-              });
-              position = result.data?.position || 0;
-            } catch (positionError) {
-              console.warn(`Could not get position for ${eventDoc.id}:`, positionError);
-              // Fallback: calculate manually
+            if (waitlistSnapLocal.empty) return null;
+
+            const waitlistDoc = waitlistSnapLocal.docs[0];
+            const data = waitlistDoc.data();
+            const eventData = eventDoc.data();
+
+            // Position
+            let position = 0;
+            if (data.status === 'waiting') {
               try {
-                const gender = data.gender;
-                if (gender) {
-                  const allWaitlistSnapshot = await getDocs(
-                    query(
-                      waitlistRef,
-                      where('gender', '==', gender),
-                      where('status', '==', 'waiting')
-                    )
-                  );
-                  const waitingEntries = allWaitlistSnapshot.docs
-                    .map((doc) => ({ id: doc.id, ...doc.data() }))
-                    .filter((entry) => entry.joinedAt)
-                    .sort((a, b) => {
-                      const aTime = a.joinedAt?.toMillis?.() || 0;
-                      const bTime = b.joinedAt?.toMillis?.() || 0;
-                      return aTime - bTime;
-                    });
-                  const userIndex = waitingEntries.findIndex(
-                    (entry) => entry.email === userEmail || (userId && entry.userId === userId)
-                  );
-                  if (userIndex !== -1) {
-                    position = userIndex + 1;
-                  }
-                }
-              } catch (fallbackError) {
-                console.warn('Fallback position calculation failed:', fallbackError);
+                const result = await getPositionCF({
+                  eventId: eventDoc.id,
+                  email: data.email || userEmail,
+                });
+                position = result.data?.position || 0;
+              } catch (posErr) {
+                console.warn(`Position fetch failed for ${eventDoc.id}:`, posErr);
               }
             }
-          }
 
-          // Check claim deadline
+            // Claim deadline
+            let claimDeadline = null;
+            if (data.claimDeadline?.toDate) claimDeadline = data.claimDeadline.toDate();
+            else if (data.claimDeadline) claimDeadline = new Date(data.claimDeadline);
+
+            const isClaimValid =
+              data.status === 'promoted' &&
+              claimDeadline &&
+              new Date() < claimDeadline;
+
+            // Date/time display
+            let eventDateDisplay = 'TBD';
+            let eventTimeDisplay = '';
+            if (eventData.startTime) {
+              const date = new Date(eventData.startTime);
+              if (!isNaN(date.getTime())) {
+                eventDateDisplay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                eventTimeDisplay = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+              }
+            } else if (eventData.date) {
+              const date = new Date(eventData.date);
+              if (!isNaN(date.getTime())) {
+                eventDateDisplay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              }
+              if (eventData.time) eventTimeDisplay = eventData.time;
+            }
+
+            let joinedAt = new Date();
+            if (data.joinedAt?.toDate) joinedAt = data.joinedAt.toDate();
+            else if (data.joinedAt) {
+              const parsed = new Date(data.joinedAt);
+              if (!isNaN(parsed.getTime())) joinedAt = parsed;
+            }
+
+            // Ticket label
+            const getTicketLabel = (gender) => {
+              if (!gender) return 'Ticket';
+              const g = gender.toLowerCase();
+              if (g === 'male' || g === 'men') return "Men's Ticket";
+              if (g === 'female' || g === 'women') return "Women's Ticket";
+              if (g === 'queer men') return "Queer Men's Ticket";
+              if (g === 'queer women') return "Queer Women's Ticket";
+              if (g === 'queer') return "Queer Ticket";
+              return `${gender} Ticket`;
+            };
+
+            return {
+              eventId: eventDoc.id,
+              eventTitle: eventData.title || 'Untitled Event',
+              eventDate: eventDateDisplay,
+              eventTime: eventTimeDisplay,
+              email: data.email || userEmail,
+              phoneNumber: data.phoneNumber || 'Not provided',
+              gender: data.gender || '',
+              ticketLabel: getTicketLabel(data.gender),
+              position: position,
+              status: data.status || 'waiting',
+              joinedAt: joinedAt,
+              claimDeadline: claimDeadline,
+              claimToken: data.claimToken || null,
+              isClaimValid: isClaimValid,
+            };
+          });
+
+          const results = await Promise.all(eventFetches);
+          const entries = results.filter(Boolean);
+          entries.sort((a, b) => b.joinedAt.getTime() - a.joinedAt.getTime());
+
+          console.log('✅ My Waitlist entries (fallback):', entries);
+          setWaitlistEntries(entries);
+          return;
+        }
+
+        // ==========================================================
+        // ✅ FAST PATH: We got a collectionGroup snapshot
+        // Combine email + userId results if both exist
+        // ==========================================================
+        const docsById = new Map();
+
+        if (waitlistSnapshot) {
+          waitlistSnapshot.docs.forEach((d) => docsById.set(d.ref.path, d));
+        }
+        if (userIdSnapshot) {
+          userIdSnapshot.docs.forEach((d) => docsById.set(d.ref.path, d));
+        }
+
+        const allDocs = Array.from(docsById.values());
+
+        const getPositionCF = httpsCallable(functions, 'getWaitlistPosition');
+
+        const eventFetches = allDocs.map(async (waitlistDoc) => {
+          const data = waitlistDoc.data();
+          const eventRef = waitlistDoc.ref.parent.parent;
+          if (!eventRef) return null;
+          const eventId = eventRef.id;
+
+          // 🔥 Parallel: fetch event doc + compute position at same time
+          const [eventSnap, positionResult] = await Promise.all([
+            getDoc(eventRef),
+            data.status === 'waiting'
+              ? getPositionCF({ eventId, email: data.email || userEmail })
+                  .catch((posErr) => {
+                    console.warn(`Position fetch failed for ${eventId}:`, posErr);
+                    return { data: { position: 0 } };
+                  })
+              : Promise.resolve({ data: { position: 0 } }),
+          ]);
+
+          if (!eventSnap.exists()) return null;
+          const eventData = eventSnap.data();
+
+          const position = positionResult?.data?.position || 0;
+
+          // Claim deadline
           let claimDeadline = null;
-          if (data.claimDeadline?.toDate) {
-            claimDeadline = data.claimDeadline.toDate();
-          } else if (data.claimDeadline) {
-            claimDeadline = new Date(data.claimDeadline);
-          }
+          if (data.claimDeadline?.toDate) claimDeadline = data.claimDeadline.toDate();
+          else if (data.claimDeadline) claimDeadline = new Date(data.claimDeadline);
 
           const isClaimValid =
             data.status === 'promoted' &&
             claimDeadline &&
             new Date() < claimDeadline;
 
-          // Format event date/time
+          // Date/time display
           let eventDateDisplay = 'TBD';
           let eventTimeDisplay = '';
-
           if (eventData.startTime) {
             const date = new Date(eventData.startTime);
             if (!isNaN(date.getTime())) {
-              eventDateDisplay = date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              });
-              eventTimeDisplay = date.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-              });
+              eventDateDisplay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              eventTimeDisplay = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
             }
           } else if (eventData.date) {
             const date = new Date(eventData.date);
             if (!isNaN(date.getTime())) {
-              eventDateDisplay = date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              });
+              eventDateDisplay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             }
-            if (eventData.time) {
-              eventTimeDisplay = eventData.time;
-            }
+            if (eventData.time) eventTimeDisplay = eventData.time;
           }
 
           let joinedAt = new Date();
-          if (data.joinedAt?.toDate) {
-            joinedAt = data.joinedAt.toDate();
-          } else if (data.joinedAt) {
-            const parsedJoinedAt = new Date(data.joinedAt);
-            if (!isNaN(parsedJoinedAt.getTime())) {
-              joinedAt = parsedJoinedAt;
-            }
+          if (data.joinedAt?.toDate) joinedAt = data.joinedAt.toDate();
+          else if (data.joinedAt) {
+            const parsed = new Date(data.joinedAt);
+            if (!isNaN(parsed.getTime())) joinedAt = parsed;
           }
 
-          // ==========================================================
-          // 🔥 NEW: Build ticket label from gender
-          // ==========================================================
+          // Ticket label
           const getTicketLabel = (gender) => {
             if (!gender) return 'Ticket';
             const g = gender.toLowerCase();
             if (g === 'male' || g === 'men') return "Men's Ticket";
             if (g === 'female' || g === 'women') return "Women's Ticket";
+            if (g === 'queer men') return "Queer Men's Ticket";
+            if (g === 'queer women') return "Queer Women's Ticket";
+            if (g === 'queer') return "Queer Ticket";
             return `${gender} Ticket`;
           };
 
-          entries.push({
-            eventId: eventDoc.id,
+          return {
+            eventId,
             eventTitle: eventData.title || 'Untitled Event',
             eventDate: eventDateDisplay,
             eventTime: eventTimeDisplay,
             email: data.email || userEmail,
-            phoneNumber: data.phoneNumber || 'Not provided', // 🔥 added phone
+            phoneNumber: data.phoneNumber || 'Not provided',
             gender: data.gender || '',
-            ticketLabel: getTicketLabel(data.gender), // 🔥 new field
+            ticketLabel: getTicketLabel(data.gender),
             position: position,
             status: data.status || 'waiting',
             joinedAt: joinedAt,
             claimDeadline: claimDeadline,
             claimToken: data.claimToken || null,
             isClaimValid: isClaimValid,
-          });
-        }
+          };
+        });
 
+        const results = await Promise.all(eventFetches);
+        const entries = results.filter(Boolean);
         entries.sort((a, b) => b.joinedAt.getTime() - a.joinedAt.getTime());
 
         console.log('✅ My Waitlist entries:', entries);

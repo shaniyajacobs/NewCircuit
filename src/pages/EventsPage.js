@@ -100,6 +100,19 @@ const EventsPage = () => {
     return map[code] || code;
   };
 
+  // 🔥 NEW: Queer audience detection
+  const isQueerAudience = (audience) => {
+    return audience && (audience === 'Queer Women' || audience === 'Queer Men' || audience === 'Queer Men & Women');
+  };
+
+  // 🔥 NEW: Get button label for queer events
+  const getQueerLabel = (audience) => {
+    if (audience === 'Queer Women') return 'Queer Women';
+    if (audience === 'Queer Men') return 'Queer Men';
+    if (audience === 'Queer Men & Women') return 'Queer';
+    return 'Queer';
+  };
+
   const filteredEvents = events.filter(event => {
     const cityMatch = selectedCity === 'All' || event.location === selectedCity;
     const ageMatch = selectedAgeGroup === 'All' || event.ageRange === selectedAgeGroup || event.ageGroup === selectedAgeGroup;
@@ -324,53 +337,93 @@ const EventsPage = () => {
                 )}
               </div>
 
+              {/* 🔥 UPDATED: Queer event support */}
               <div className={styles.genderButtons}>
-                {/* Women Button */}
-                {womenSpots > 0 ? (
-                  <button onClick={() => handleBuyTicket(event, 'Women')} className={styles.genderBtn}>
-                    <span className={styles.genderLabel}>Women</span>
-                    <span className={styles.registerLabel}>Register</span>
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => {
-                      setSelectedEventForWaitlist(event.id);
-                      setSelectedGenderForWaitlist('Female');
-                      setShowWaitlistModal(true);
-                      setWaitlistEmail('');
-                      setWaitlistPhone('');
-                      setWaitlistSuccess(false);
-                      setError('');
-                    }} 
-                    className={`${styles.genderBtn} ${styles.waitlistBtn}`}
-                  >
-                    <span className={styles.genderLabel}>Women</span>
-                    <span className={styles.waitlistLabel}>Join Waitlist</span>
-                  </button>
-                )}
+                {isQueerAudience(event.audience) ? (
+                  /* Queer event – single button */
+                  (() => {
+                    const totalSpots = (event.menSpots || 0) + (event.womenSpots || 0);
+                    const totalSignups = (event.menSignupCount || 0) + (event.womenSignupCount || 0);
+                    const available = totalSpots - totalSignups;
+                    const queerLabel = getQueerLabel(event.audience);
 
-                {/* Men Button */}
-                {menSpots > 0 ? (
-                  <button onClick={() => handleBuyTicket(event, 'Men')} className={styles.genderBtn}>
-                    <span className={styles.genderLabel}>Men</span>
-                    <span className={styles.registerLabel}>Register</span>
-                  </button>
+                    return available > 0 ? (
+                      <button
+                        onClick={() => handleBuyTicket(event, queerLabel)}
+                        className={styles.genderBtn}
+                      >
+                        <span className={styles.genderLabel}>{queerLabel}</span>
+                        <span className={styles.registerLabel}>Register</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedEventForWaitlist(event.id);
+                          setSelectedGenderForWaitlist(queerLabel);
+                          setShowWaitlistModal(true);
+                          setWaitlistEmail('');
+                          setWaitlistPhone('');
+                          setWaitlistSuccess(false);
+                          setError('');
+                        }}
+                        className={`${styles.genderBtn} ${styles.waitlistBtn}`}
+                      >
+                        <span className={styles.genderLabel}>{queerLabel}</span>
+                        <span className={styles.waitlistLabel}>Join Waitlist</span>
+                      </button>
+                    );
+                  })()
                 ) : (
-                  <button 
-                    onClick={() => {
-                      setSelectedEventForWaitlist(event.id);
-                      setSelectedGenderForWaitlist('Male');
-                      setShowWaitlistModal(true);
-                      setWaitlistEmail('');
-                      setWaitlistPhone('');
-                      setWaitlistSuccess(false);
-                      setError('');
-                    }} 
-                    className={`${styles.genderBtn} ${styles.waitlistBtn}`}
-                  >
-                    <span className={styles.genderLabel}>Men</span>
-                    <span className={styles.waitlistLabel}>Join Waitlist</span>
-                  </button>
+                  /* Standard event – Women + Men buttons (existing behavior) */
+                  <>
+                    {/* Women Button */}
+                    {womenSpots > 0 ? (
+                      <button onClick={() => handleBuyTicket(event, 'Women')} className={styles.genderBtn}>
+                        <span className={styles.genderLabel}>Women</span>
+                        <span className={styles.registerLabel}>Register</span>
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          setSelectedEventForWaitlist(event.id);
+                          setSelectedGenderForWaitlist('Female');
+                          setShowWaitlistModal(true);
+                          setWaitlistEmail('');
+                          setWaitlistPhone('');
+                          setWaitlistSuccess(false);
+                          setError('');
+                        }} 
+                        className={`${styles.genderBtn} ${styles.waitlistBtn}`}
+                      >
+                        <span className={styles.genderLabel}>Women</span>
+                        <span className={styles.waitlistLabel}>Join Waitlist</span>
+                      </button>
+                    )}
+
+                    {/* Men Button */}
+                    {menSpots > 0 ? (
+                      <button onClick={() => handleBuyTicket(event, 'Men')} className={styles.genderBtn}>
+                        <span className={styles.genderLabel}>Men</span>
+                        <span className={styles.registerLabel}>Register</span>
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          setSelectedEventForWaitlist(event.id);
+                          setSelectedGenderForWaitlist('Male');
+                          setShowWaitlistModal(true);
+                          setWaitlistEmail('');
+                          setWaitlistPhone('');
+                          setWaitlistSuccess(false);
+                          setError('');
+                        }} 
+                        className={`${styles.genderBtn} ${styles.waitlistBtn}`}
+                      >
+                        <span className={styles.genderLabel}>Men</span>
+                        <span className={styles.waitlistLabel}>Join Waitlist</span>
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
 

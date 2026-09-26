@@ -155,9 +155,26 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining, onCancel
   
   const timeRange = getTimeRange();
   
+const isQueerAudience = (audience) => {
+  if (!audience || typeof audience !== 'string') return false;
+  const normalized = audience.toLowerCase().trim();
+  return (
+    normalized === 'queer women' ||
+    normalized === 'queer men' ||
+    normalized === 'queer men & women' ||
+    normalized === 'queer'
+  );
+};
   const hasNoSpotsForUser = () => {
     if (!userGender || !spotsData) return false;
-    
+
+    // 🔥 NEW: For queer events, check combined spots
+    if (isQueerAudience(event.audience)) {
+      const totalSpots = (spotsData.menSpots || 0) + (spotsData.womenSpots || 0);
+      const totalCount = (spotsData.menCount || 0) + (spotsData.womenCount || 0);
+      return Math.max(totalSpots - totalCount, 0) <= 0;
+    }
+
     const userGenderLower = userGender.toLowerCase();
     if (userGenderLower === 'male') {
       return Math.max(spotsData.menSpots - spotsData.menCount, 0) <= 0;
@@ -387,13 +404,27 @@ const EventCard = ({ event, type, userGender, onSignUp, datesRemaining, onCancel
                 </span>
               </div>
               
+              {/* 🔥 UPDATED: Spots display – single line for queer events */}
               <div className="flex flex-col gap-0">
-                <div className="text-sm text-gray-600">
-                  Open Spots for Men: {Math.max(spotsData.menSpots - spotsData.menCount, 0)}/{spotsData.menSpots}
-                </div>
-                <div className="text-sm text-gray-600">
-                  Open Spots for Women: {Math.max(spotsData.womenSpots - spotsData.womenCount, 0)}/{spotsData.womenSpots}
-                </div>
+              {isQueerAudience(event.audience) ? (
+  <div className="text-sm text-gray-600">
+    Open Spots: {
+      Math.max(
+        (spotsData.menSpots || 0) - (spotsData.menCount || 0),
+        0
+      )
+    }/{spotsData.menSpots || 0}
+  </div>
+) : (
+  <>
+    <div className="text-sm text-gray-600">
+      Open Spots for Men: {Math.max(spotsData.menSpots - spotsData.menCount, 0)}/{spotsData.menSpots}
+    </div>
+    <div className="text-sm text-gray-600">
+      Open Spots for Women: {Math.max(spotsData.womenSpots - spotsData.womenCount, 0)}/{spotsData.womenSpots}
+    </div>
+  </>
+)}
               </div>
             </div>
           </div>
