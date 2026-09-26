@@ -7,6 +7,18 @@ import { db, functions } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import styles from './Checkout.module.css';
 
+// 🔥 NEW: Queer-aware ticket label
+const getTicketLabel = (gender) => {
+  if (!gender) return 'Ticket';
+  const g = gender.toLowerCase();
+  if (g === 'men' || g === 'male') return "Men's";
+  if (g === 'women' || g === 'female') return "Women's";
+  if (g === 'queer men') return "Queer Men's";
+  if (g === 'queer women') return "Queer Women's";
+  if (g === 'queer') return "Queer";
+  return gender;
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -257,14 +269,24 @@ const Checkout = () => {
         const genderLower = selectedGender?.toLowerCase();
 
         if (genderLower === 'female' || genderLower === 'women') {
-          updateData.womenSpots = increment(-1);
-          updateData.womenSignupCount = increment(1);
-        } else if (genderLower === 'male' || genderLower === 'men') {
-          updateData.menSpots = increment(-1);
-          updateData.menSignupCount = increment(1);
-        } else {
-          updateData.spotsRemaining = increment(-1);
-        }
+  updateData.womenSpots = increment(-1);
+  updateData.womenSignupCount = increment(1);
+} else if (genderLower === 'male' || genderLower === 'men') {
+  updateData.menSpots = increment(-1);
+  updateData.menSignupCount = increment(1);
+} else if (
+  genderLower === 'queer men' ||
+  genderLower === 'queer women' ||
+  genderLower === 'queer'
+) {
+  // 🔥 Queer event – decrement BOTH sides (they're stored as the same total)
+  updateData.menSpots = increment(-1);
+  updateData.womenSpots = increment(-1);
+  updateData.menSignupCount = increment(1);
+  updateData.womenSignupCount = increment(1);
+} else {
+  updateData.spotsRemaining = increment(-1);
+}
         await updateDoc(eventRef, updateData);
       }
 
@@ -292,7 +314,8 @@ const Checkout = () => {
         eventTime: time || null,
         eventLocation: city || 'TBD',
         eventAgeRange: ageRange || 'All',
-        eventType: selectedGender ? selectedGender + "'s Ticket" : 'General',
+        // 🔥 UPDATED: queer-aware ticket label
+        eventType: selectedGender ? getTicketLabel(selectedGender) + " Ticket" : 'General',
         claimedFromWaitlist: isClaim || false,
       }, { merge: true });
 
@@ -347,7 +370,8 @@ try {
         <div className={styles.card}>
           <h2 className={styles.successTitle}>🎉 Purchase Confirmed!</h2>
           <p className={styles.successText}>You are now registered for <strong>{eventTitle}</strong>.</p>
-          <p className={styles.successText}><strong>Ticket Type:</strong> {selectedGender}'s Ticket</p>
+          {/* 🔥 UPDATED: queer-aware ticket label */}
+          <p className={styles.successText}><strong>Ticket Type:</strong> {getTicketLabel(selectedGender)} Ticket</p>
           {discountApplied && (
             <p className={styles.successText}><strong>Discount Applied:</strong> ${discountAmount} off</p>
           )}
@@ -384,9 +408,10 @@ try {
             <span>Event:</span>
             <span>{eventTitle}</span>
           </div>
+          {/* 🔥 UPDATED: queer-aware ticket label */}
           <div className={styles.summaryRow}>
             <span>Ticket Type:</span>
-            <span>{selectedGender}'s Ticket</span>
+            <span>{getTicketLabel(selectedGender)} Ticket</span>
           </div>
           <div className={styles.summaryRow}>
             <span>City:</span>

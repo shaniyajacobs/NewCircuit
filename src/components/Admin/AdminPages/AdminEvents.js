@@ -474,7 +474,12 @@ const handleGenerateRounds = async (eventId) => {
       console.error('Error updating event:', error);
     }
   };
-
+// ✅ Force men/women spots equal for queer events
+if (selectedEvent && isQueerAudience(selectedEvent.audience)) {
+  const t = parseInt(selectedEvent.totalSpots || selectedEvent.menSpots || selectedEvent.womenSpots, 10) || 0;
+  selectedEvent.menSpots = t;
+  selectedEvent.womenSpots = t;
+}
   const handleDeleteUser = (user) => {
     setSelectedUserToDelete(user);
     setShowDeleteUserModal(true);

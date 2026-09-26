@@ -3433,6 +3433,11 @@ exports.claimWaitlistSpot = onCall(
   {
     region: "us-central1",
     runtime: "nodejs20",
+    secrets: [
+      twilioAccountSid,
+      twilioAuthToken,
+      twilioPhoneNumber,
+    ],
   },
   async (request) => {
     const { eventId, email, token } = request.data;
@@ -3444,38 +3449,135 @@ exports.claimWaitlistSpot = onCall(
     const db = admin.firestore();
     const emailKey = email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
 
-    const waitlistRef = db.collection('events').doc(eventId).collection('waitlist').doc(emailKey);
-    const waitlistSnap = await waitlistRef.get();
+    const eventRef = db.collection('events').doc(eventId);
+    const waitlistRef = eventRef.collection('waitlist').doc(emailKey);
 
-    if (!waitlistSnap.exists) {
-      throw new HttpsError('not-found', 'Waitlist entry not found');
+    try {
+      // ==================================================
+      // 1. Load and validate waitlist entry + event
+      // ==================================================
+      const [waitlistSnap, eventSnap] = await Promise.all([
+        waitlistRef.get(),
+        eventRef.get(),
+      ]);
+
+      if (!waitlistSnap.exists) {
+        throw new HttpsError('not-found', 'Waitlist entry not found');
+      }
+      if (!eventSnap.exists) {
+        throw new HttpsError('not-found', 'Event not found');
+      }
+
+      const data = waitlistSnap.data();
+      const eventData = eventSnap.data();
+
+      // Verify token
+      if (data.claimToken !== token) {
+        throw new HttpsError('permission-denied', 'Invalid token');
+      }
+
+      // Already claimed?
+      if (data.status === 'claimed') {
+        throw new HttpsError('already-exists', 'This spot has already been claimed');
+      }
+
+      // Deadline check
+      const deadline = data.claimDeadline?.toDate?.() || data.claimDeadline;
+      if (deadline && new Date() > new Date(deadline)) {
+        throw new HttpsError('deadline-exceeded', 'Claim window has expired');
+      }
+
+      // ==================================================
+      // 2. Mark waitlist entry as claimed
+      // ==================================================
+      await waitlistRef.update({
+        status: 'claimed',
+        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // ==================================================
+      // 3. Decrement spots + increment signup count on event
+      //    (this makes the spot disappear from the events page)
+      // ==================================================
+      const gender = (data.gender || '').toLowerCase();
+      const updateData = {};
+
+      if (gender === 'female' || gender === 'women') {
+        updateData.womenSpots = admin.firestore.FieldValue.increment(-1);
+        updateData.womenSignupCount = admin.firestore.FieldValue.increment(1);
+      } else if (gender === 'male' || gender === 'men') {
+        updateData.menSpots = admin.firestore.FieldValue.increment(-1);
+        updateData.menSignupCount = admin.firestore.FieldValue.increment(1);
+      } else if (
+        gender === 'queer men' ||
+        gender === 'queer women' ||
+        gender === 'queer'
+      ) {
+        // Queer event – both sides are stored as the same total
+        updateData.menSpots = admin.firestore.FieldValue.increment(-1);
+        updateData.womenSpots = admin.firestore.FieldValue.increment(-1);
+        updateData.menSignupCount = admin.firestore.FieldValue.increment(1);
+        updateData.womenSignupCount = admin.firestore.FieldValue.increment(1);
+      } else {
+        // Fallback
+        updateData.spotsRemaining = admin.firestore.FieldValue.increment(-1);
+      }
+
+      await eventRef.update(updateData);
+
+      // ==================================================
+      // 4. Send SMS notifications
+      //    - Welcome / Terms
+      //    - Purchase confirmation
+      // ==================================================
+      const phoneNumber = data.phoneNumber;
+      if (phoneNumber) {
+        const client = twilio(
+          twilioAccountSid.value(),
+          twilioAuthToken.value()
+        );
+
+        // 4a. Welcome + Terms SMS
+        try {
+          const welcomeMessage = `Welcome to Circuit! Please review our Terms of Service: https://circuitspeeddating.com/terms-of-service and Privacy Policy: https://circuitspeeddating.com/privacy-policy`;
+          await client.messages.create({
+            body: welcomeMessage,
+            to: phoneNumber,
+            from: twilioPhoneNumber.value(),
+          });
+          console.log(`✅ Welcome/Terms SMS sent to ${phoneNumber}`);
+        } catch (smsErr) {
+          console.error('Welcome SMS failed (non-blocking):', smsErr);
+        }
+
+        // 4b. Purchase confirmation SMS
+        try {
+          const eventTitle = eventData.title || eventData.eventName || 'your event';
+          const eventDateStr = eventData.date || '';
+          const venue = eventData.venue || 'TBD';
+          const city = eventData.location || '';
+
+          const confirmMessage = `⚡You're registered for ${eventTitle}! 📅 ${eventDateStr || 'TBD'} at ${venue}, ${city}. Ticket: ${data.gender || 'General'}'s Ticket. View your dashboard: https://circuitspeeddating.com/dashboard`;
+
+          await client.messages.create({
+            body: confirmMessage,
+            to: phoneNumber,
+            from: twilioPhoneNumber.value(),
+          });
+          console.log(`✅ Purchase confirmation SMS sent to ${phoneNumber}`);
+        } catch (smsErr) {
+          console.error('Purchase confirmation SMS failed (non-blocking):', smsErr);
+        }
+      } else {
+        console.warn('No phone number on waitlist entry; SMS skipped.');
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ claimWaitlistSpot error:', error);
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', error.message);
     }
-
-    const data = waitlistSnap.data();
-
-    // Verify token matches
-    if (data.claimToken !== token) {
-      throw new HttpsError('permission-denied', 'Invalid token');
-    }
-
-    // Check if already claimed
-    if (data.status === 'claimed') {
-      throw new HttpsError('already-exists', 'This spot has already been claimed');
-    }
-
-    // Verify deadline hasn't passed
-    const deadline = data.claimDeadline?.toDate?.() || data.claimDeadline;
-    if (deadline && new Date() > new Date(deadline)) {
-      throw new HttpsError('deadline-exceeded', 'Claim window has expired');
-    }
-
-    // Mark as claimed
-    await waitlistRef.update({
-      status: 'claimed',
-      claimedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    return { success: true };
   }
 );
 

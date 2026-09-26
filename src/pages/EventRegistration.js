@@ -28,6 +28,11 @@ const EventRegistration = () => {
   const [user, setUser] = useState(null);
   const [step] = useState('phone');
 
+  // ✅ SMS consent state
+  const [smsConsent, setSmsConsent] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -47,11 +52,16 @@ const EventRegistration = () => {
       return;
     }
 
+    // ✅ Guard: require consent
+    if (!smsConsent || !consentAccepted) {
+      setError('Please accept the SMS consent to continue.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      // ✅ ONLY OTP – no Terms SMS
       const sendOTP = httpsCallable(functions, 'sendOTP');
       await sendOTP({ phoneNumber: fullNumber });
 
@@ -107,8 +117,14 @@ const EventRegistration = () => {
   const getTicketLabel = () => {
     if (!selectedGender) return 'event';
     const gender = selectedGender.toLowerCase();
+
     if (gender === 'men' || gender === 'male') return "men's";
     if (gender === 'women' || gender === 'female') return "women's";
+
+    if (gender === 'queer men') return "queer men's";
+    if (gender === 'queer women') return "queer women's";
+    if (gender === 'queer') return "queer";
+
     return gender;
   };
 
@@ -181,7 +197,6 @@ const EventRegistration = () => {
 
         <div className={styles.rightColumn}>
           <div className={styles.phoneSection}>
-            {/* ✅ Title exactly as before — single line, one h2 */}
             <h2 className={styles.phoneTitle}>
               1 {getTicketLabel()} ticket - ${price || '27.99'}
             </h2>
@@ -210,12 +225,46 @@ const EventRegistration = () => {
               />
             </div>
 
+            {/* ✅ SMS consent checkbox */}
+            <div className={styles.consentSection}>
+              <label className={styles.consentLabel}>
+                <input
+                  type="checkbox"
+                  checked={smsConsent}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setSmsConsent(checked);
+                    if (checked) {
+                      setShowConsentModal(true);
+                    } else {
+                      setConsentAccepted(false);
+                    }
+                  }}
+                />
+                <span>
+                  I agree to receive SMS messages from Circuit and have read the{' '}
+                  <button
+                    type="button"
+                    className={styles.linkButton}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowConsentModal(true);
+                    }}
+                  >
+                    SMS Terms &amp; Privacy Policy
+                  </button>
+                  .
+                </span>
+              </label>
+            </div>
+
             {error && <div className={styles.error}>{error}</div>}
 
             <button
               onClick={handleContinue}
-              disabled={loading || !phoneNumber}
+              disabled={loading || !phoneNumber || !smsConsent || !consentAccepted}
               className={styles.continueBtn}
+              title={!smsConsent || !consentAccepted ? 'Please accept the SMS consent to continue' : ''}
             >
               {loading ? 'Sending...' : 'Continue'}
             </button>
@@ -229,6 +278,63 @@ const EventRegistration = () => {
           </div>
         </div>
       </div>
+
+      {/* ✅ SMS Consent Modal */}
+      {showConsentModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBox}>
+            <h3 className={styles.modalTitle}>SMS Consent</h3>
+            <p className={styles.modalText}>
+              By checking this box you agree to receive SMS messages from Circuit, including
+              verification codes, event confirmations, real-time round updates, waitlist alerts,
+              booking confirmations, event reminders, account notifications, and customer care.
+              Message frequency varies. Message &amp; data rates may apply. Reply STOP to any
+              message to opt out. Message HELP for help. View our{' '}
+              <a
+                href="https://www.circuitspeeddating.com/terms-of-service#privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.modalLink}
+              >
+                Privacy Policy
+              </a>{' '}
+              and our{' '}
+              <a
+                href="https://www.circuitspeeddating.com/terms-of-service#intro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.modalLink}
+              >
+                Terms and Conditions
+              </a>
+              . Circuit LLC does not share mobile numbers or opt-in data with third parties.
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalBtnCancel}
+                onClick={() => {
+                  setShowConsentModal(false);
+                  setSmsConsent(false);
+                  setConsentAccepted(false);
+                }}
+              >
+                Decline
+              </button>
+              <button
+                type="button"
+                className={styles.modalBtnAccept}
+                onClick={() => {
+                  setConsentAccepted(true);
+                  setShowConsentModal(false);
+                }}
+              >
+                I Agree
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

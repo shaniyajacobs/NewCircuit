@@ -890,3 +890,125 @@ body {
     transform: none;
   }
 }
+/* --- Consent checkbox --- */
+.consentSection {
+  margin: 16px 0;
+  padding: 12px 14px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #211F20;
+}
+
+.consentLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.consentLabel input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #211F20;
+  cursor: pointer;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #211F20;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.linkButton:hover {
+  color: #333;
+  text-decoration-thickness: 2px;
+}
+
+/* --- Modal --- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modalBox {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 520px;
+  width: 100%;
+  padding: 28px 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #211F20;
+  margin: 0 0 12px;
+}
+
+.modalText {
+  font-size: 14px;
+  line-height: 1.55;
+  color: #333;
+  margin: 0 0 24px;
+}
+
+.modalLink {
+  color: #211F20;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.modalLink:hover {
+  color: #000;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.modalBtnCancel,
+.modalBtnAccept {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.modalBtnCancel {
+  background: #f1f1f1;
+  color: #333;
+}
+
+.modalBtnCancel:hover {
+  background: #e0e0e0;
+}
+
+.modalBtnAccept {
+  background: #211F20;
+  color: #fff;
+}
+
+.modalBtnAccept:hover {
+  background: #333;
+}
