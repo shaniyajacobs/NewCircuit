@@ -45,6 +45,50 @@ const WEB_APP_BASE_URL =
   process.env.WEB_APP_BASE_URL || "https://circuitspeeddating.com";
 
 // ========================================================
+// HELPER — Build a readable slug matching the frontend format
+// ========================================================
+function buildEventSlug(eventData, gender) {
+  const cityPart = String(eventData.location || 'event')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  const agePart = String(eventData.ageRange || eventData.ageGroup || 'all')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  let datePart = 'tbd';
+  try {
+    const raw = eventData.startTime || eventData.date;
+    if (raw) {
+      const d = new Date(Number(raw) || raw);
+      if (!isNaN(d.getTime())) datePart = d.toISOString().slice(0, 10);
+    }
+  } catch (_) { datePart = 'tbd'; }
+
+  let timePart = 'tbd';
+  const rawTime = eventData.time || '';
+  if (rawTime) {
+    const cleaned = String(rawTime).toLowerCase().replace(/\s/g, '');
+    const m = cleaned.match(/^(\d{1,2})(?::(\d{2}))?([ap])m?$/);
+    if (m) {
+      timePart = `${m[1]}${m[2] === '00' || !m[2] ? '' : m[2]}${m[3]}`;
+    } else {
+      timePart = cleaned.replace(/[^a-z0-9]/g, '');
+    }
+  }
+
+  const genderPart = String(gender || 'general')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+
+  return [cityPart, agePart, datePart, timePart, genderPart]
+    .filter(Boolean)
+    .join('_');
+}
+
+// ========================================================
 // HELPER – Clear latestEventId if it matches the cancelled event
 // ========================================================
 async function clearLatestEventIdIfNeeded(userId, eventId) {
@@ -2057,7 +2101,8 @@ await createAdminNotification({
           twilioAccountSid.value(),
           twilioAuthToken.value()
         );
-        const claimLink = `${WEB_APP_BASE_URL}/claim-spot?token=${claimToken}&email=${encodeURIComponent(waitlistData.email)}`;
+        const eventSlug = buildEventSlug(eventData, waitlistGender);
+        const claimLink = `${WEB_APP_BASE_URL}/register/${eventSlug}?eventId=${eventId}&gender=${encodeURIComponent(waitlistGender)}&token=${claimToken}&email=${encodeURIComponent(waitlistData.email)}&isClaim=true`;
         const message = `🎉 Great news! A spot opened for ${eventData.title || 'your event'}. Claim it within 2 hours: ${claimLink}`;
         try {
           await client.messages.create({
@@ -2114,7 +2159,7 @@ await createAdminNotification({
   event_id: eventId,
   claim_token: claimToken,
   claim_deadline: claimDeadline.getTime(),
-  claim_link: `${WEB_APP_BASE_URL}/claim-spot?token=${claimToken}&email=${encodeURIComponent(waitlistData.email)}`,
+  claim_link: `${WEB_APP_BASE_URL}/register/${buildEventSlug(eventData, waitlistGender)}?eventId=${eventId}&gender=${encodeURIComponent(waitlistGender)}&token=${claimToken}&email=${encodeURIComponent(waitlistData.email)}&isClaim=true`,
   gender: gender,
   source: "Circuit_Waitlist_Promotion",
                 },
@@ -2280,7 +2325,8 @@ if (promotedPhone) {
     twilioAccountSid.value(),
     twilioAuthToken.value()
   );
-  const claimLink = `${WEB_APP_BASE_URL}/claim-spot?token=${claimToken}&email=${encodeURIComponent(nextData.email)}`;
+  const eventSlug = buildEventSlug(eventData, gender);
+  const claimLink = `${WEB_APP_BASE_URL}/register/${eventSlug}?eventId=${eventId}&gender=${encodeURIComponent(gender)}&token=${claimToken}&email=${encodeURIComponent(nextData.email)}&isClaim=true`;
   const message = `🎉 Great news! A spot opened for ${eventData.title || 'your event'}. Claim it within 2 hours: ${claimLink}`;
   try {
     await client.messages.create({
@@ -2334,7 +2380,7 @@ if (promotedPhone) {
   event_id: eventId,
   claim_token: claimToken,
   claim_deadline: claimDeadline.getTime(),
-  claim_link: `${WEB_APP_BASE_URL}/claim-spot?token=${claimToken}&email=${encodeURIComponent(nextData.email)}`,
+  claim_link: `${WEB_APP_BASE_URL}/register/${buildEventSlug(eventData, gender)}?eventId=${eventId}&gender=${encodeURIComponent(gender)}&token=${claimToken}&email=${encodeURIComponent(nextData.email)}&isClaim=true`,
   gender: gender,
   source: "Circuit_Waitlist_Promotion",
 },
@@ -2511,7 +2557,8 @@ exports.sendWaitlistReminder = onSchedule(
               normalizedPhone = '+' + normalizedPhone;
             }
 
-            const claimLink = `${WEB_APP_BASE_URL}/claim-spot?token=${claimToken}&email=${encodeURIComponent(email)}`;
+            const eventSlug = buildEventSlug(eventData, phoneNumber ? data.gender : data.gender);
+            const claimLink = `${WEB_APP_BASE_URL}/register/${eventSlug}?eventId=${eventRef.id}&gender=${encodeURIComponent(data.gender || 'Women')}&token=${claimToken}&email=${encodeURIComponent(email)}&isClaim=true`;
             const smsMessage = `⏰ Reminder: Your spot for ${eventData.title || 'your event'} expires in ${minutesRemaining} minute${minutesRemaining > 1 ? 's' : ''}. Claim it now: ${claimLink}`;
 
             try {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
-import { doc, setDoc, updateDoc, increment, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, increment, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, functions } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
@@ -40,6 +40,7 @@ const Checkout = () => {
     uid,
     firstName,
     lastName,
+    slug,
   } = location.state || {};
 
   const [savedUserId, setSavedUserId] = useState(null);
@@ -289,20 +290,34 @@ const Checkout = () => {
 }
         await updateDoc(eventRef, updateData);
       }
+// ============================================================
+// 4. Update user document (using userId = phone number)
+// ============================================================
+const userRef = doc(db, 'users', userId);
 
-      // Update user document
-      const userRef = doc(db, 'users', userId);
-      await setDoc(userRef, {
-        eventsAttended: increment(1),
-        latestEventId: eventId,
-        phoneNumber: userPhone || authUser?.phoneNumber || '',
-        preferencesComplete: true,
-        quizComplete: true,
-        locationSet: true,
-        displayName: firstName ? `${firstName} ${lastName || ''}`.trim() : authUser?.displayName || '',
-        email: email || authUser?.email || '',
-        gender: selectedGender || 'Unknown',
-      }, { merge: true });
+// 🔥 Check if this is a brand-new user so we can set createdAt once
+const existingUserSnap = await getDoc(userRef);
+const isNewUser = !existingUserSnap.exists();
+
+const userUpdate = {
+  eventsAttended: increment(1),
+  latestEventId: eventId,
+  phoneNumber: userPhone,
+  preferencesComplete: true,
+  quizComplete: true,
+  locationSet: true,
+  displayName: firstName ? `${firstName} ${lastName || ''}`.trim() : '',
+  email: email || '',
+  gender: selectedGender || 'Unknown',
+  updatedAt: new Date(),
+};
+
+// 🔥 Only set createdAt the first time
+if (isNewUser) {
+  userUpdate.createdAt = new Date();
+}
+
+await setDoc(userRef, userUpdate, { merge: true });
 
       // Add to user's signedUpEvents subcollection
       const signedUpEventRef = doc(db, 'users', userId, 'signedUpEvents', eventId);

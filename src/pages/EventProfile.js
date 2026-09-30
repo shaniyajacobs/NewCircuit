@@ -23,6 +23,7 @@ const EventProfile = () => {
     phoneVerified,
     isClaim,
     email,
+    slug,
   } = location.state || {};
 
   const [loading, setLoading] = useState(false);
@@ -166,26 +167,27 @@ const EventProfile = () => {
         setLoading(false);
         return;
       }
-
       const userRef = doc(db, 'users', userId);
-      const userData = {
-        firstName,
-        lastName,
-        email: formEmail,
-        birthDate: dateOfBirth,
-        phoneNumber,
-        phoneVerified: true,
-        updatedAt: new Date(),
-      };
+const userSnap = await getDoc(userRef);
 
-      if (!auth.currentUser) {
-        userData.createdAt = new Date();
-        userData.gender = selectedGender || '';
-        userData.location = city || '';
-        userData.datesRemaining = 0;
-      }
+const userData = {
+  firstName,
+  lastName,
+  email: formEmail,
+  birthDate: dateOfBirth,
+  phoneNumber,
+  phoneVerified: true,
+  updatedAt: new Date(),
+  gender: selectedGender || '',
+  location: city || '',
+};
 
-      await setDoc(userRef, userData, { merge: true });
+if (!userSnap.exists()) {
+  userData.createdAt = new Date();
+  userData.datesRemaining = 0;
+}
+
+await setDoc(userRef, userData, { merge: true });
 
       navigate('/checkout', {
         state: {
@@ -204,6 +206,7 @@ const EventProfile = () => {
           firstName,
           lastName,
           isClaim: isClaim || false,
+          slug,
         },
       });
     } catch (err) {

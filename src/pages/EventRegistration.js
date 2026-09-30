@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { auth, functions } from '../firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -9,6 +9,7 @@ import circuitLogo from '../images/Cir_Primary_RGB_Mixed Black.png';
 const EventRegistration = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { slug } = useParams();
   const {
     eventId,
     eventTitle,
@@ -77,6 +78,7 @@ const EventRegistration = () => {
           date,
           time,
           ageRange,
+          slug,
         },
       });
     } catch (err) {

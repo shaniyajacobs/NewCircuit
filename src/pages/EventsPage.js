@@ -5,6 +5,7 @@ import { db, auth, functions } from '../firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
 import { IoChevronBack, IoLocationSharp } from 'react-icons/io5';
 import styles from './EventsPage.module.css';
+import { buildEventSlug } from '../utils/slugUtils';
 
 const EventsPage = () => {
   const navigate = useNavigate();
@@ -124,37 +125,37 @@ const EventsPage = () => {
     const dateB = b.startTime ? new Date(b.startTime) : new Date(b.date || '9999-12-31');
     return dateA - dateB;
   });
-
-  const handleBuyTicket = (event, selectedGender) => {
-    let formattedTime = null;
-    if (event.time) formattedTime = event.time;
-    else if (event.startTime) {
-      const date = new Date(event.startTime);
-      if (!isNaN(date.getTime())) {
-        const hours = date.getHours();
-        const minutes = date.getMinutes();
-        const ampm = hours >= 12 ? 'p' : 'a';
-        const hour12 = hours % 12 || 12;
-        formattedTime = `${hour12}:${minutes.toString().padStart(2, '0')}${ampm}`;
-      }
+ const handleBuyTicket = (event, selectedGender) => {
+  let formattedTime = null;
+  if (event.time) formattedTime = event.time;
+  else if (event.startTime) {
+    const date = new Date(event.startTime);
+    if (!isNaN(date.getTime())) {
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const ampm = hours >= 12 ? 'p' : 'a';
+      const hour12 = hours % 12 || 12;
+      formattedTime = `${hour12}:${minutes.toString().padStart(2, '0')}${ampm}`;
     }
-    if (!formattedTime) formattedTime = 'Time TBD';
+  }
+  if (!formattedTime) formattedTime = 'Time TBD';
 
-    navigate('/event-registration', {
-      state: {
-        eventId: event.id,
-        eventTitle: event.title || 'Event',
-        selectedGender,
-        price: event.price || 28,
-        city: event.location || 'Unknown',
-        venue: event.venue || 'TBD',
-        date: event.date || event.startTime || null,
-        time: formattedTime,
-        ageRange: event.ageRange || event.ageGroup || 'All',
-      },
-    });
-  };
+  const slug = buildEventSlug(event, selectedGender);
 
+  navigate(`/register/${slug}?eventId=${encodeURIComponent(event.id)}&gender=${encodeURIComponent(selectedGender)}`, {
+    state: {
+      eventId: event.id,
+      eventTitle: event.title || 'Event',
+      selectedGender,
+      price: event.price || 28,
+      city: event.location || 'Unknown',
+      venue: event.venue || 'TBD',
+      date: event.date || event.startTime || null,
+      time: formattedTime,
+      ageRange: event.ageRange || event.ageGroup || 'All',
+    },
+  });
+};
   const handleWaitlistSubmit = async () => {
     if (!waitlistEmail || !waitlistEmail.includes('@')) {
       setError('Please enter a valid email address');
