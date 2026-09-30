@@ -157,7 +157,8 @@ function AppContent() {
         <Route path="/my-waitlist" element={<MyWaitlist />} />
         <Route path="/newsletter-signup" element={<NewsletterSignup />} />
         <Route path="/verify-event-otp" element={<VerifyEventOTP />} />
-        <Route path="/event-registration" element={<EventRegistration />} />
+        <Route path="/register/:slug" element={<EventRegistration />} />
+        <Route path="/event-registration" element={<Navigate to="/events" replace />} />
         <Route path="/admin-login" element={<Navigate to="/login" replace />} />
         
 

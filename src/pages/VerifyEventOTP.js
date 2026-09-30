@@ -8,7 +8,7 @@ import styles from './VerifyEventOTP.module.css';
 const VerifyEventOTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { phoneNumber, eventId, eventTitle, selectedGender, price, city, venue, date, time, ageRange } = location.state || {};
+  const { phoneNumber, eventId, eventTitle, selectedGender, price, city, venue, date, time, ageRange, slug } = location.state || {};
 
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,9 +35,7 @@ const VerifyEventOTP = () => {
       if (result.data.success) {
         console.log('✅ OTP verified successfully');
 
-        // 🔥 IMPORTANT: We DO NOT create a user account here.
-        // The user will be created in the Profile step with email + password.
-        // Just navigate to the profile page.
+        
 
         navigate('/event-profile', {
           state: {
@@ -51,6 +49,7 @@ const VerifyEventOTP = () => {
             date,
             time,
             ageRange,
+            slug,
           }
         });
       } else {

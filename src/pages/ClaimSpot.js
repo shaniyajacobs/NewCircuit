@@ -4,6 +4,7 @@ import { db, functions } from '../firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import styles from './ClaimSpot.module.css';
+import { buildEventSlug } from '../utils/slugUtils';
 
 const ClaimSpot = () => {
   const [searchParams] = useSearchParams();
@@ -157,8 +158,17 @@ const ClaimSpot = () => {
         email: userEmail,
         token: token,
       });
+        const slug = buildEventSlug(
+        {
+          location: eventData.city,
+          ageRange: eventData.ageRange,
+          date: eventData.date,
+          time: eventData.time,
+        },
+        userGender
+      );
 
-      // 🔥 Fixed: use userEmail instead of undefined 'entry'
+      //  Fixed: use userEmail instead of undefined 'entry'
       navigate('/event-profile', {
         state: {
           eventId: eventData.id,
@@ -171,12 +181,13 @@ const ClaimSpot = () => {
           time: eventData.time,
           ageRange: eventData.ageRange,
           phoneNumber: userPhone,
-          email: userEmail,                    // ✅ pre-fill form with waitlist email
-          waitlistEmail: userEmail,            // keep for reference
-          userAccountEmail: userEmail,         // optional
+          email: userEmail,                    
+          waitlistEmail: userEmail,            
+          userAccountEmail: userEmail,         
           token: token,
           isClaim: true,
           phoneVerified: true,
+          slug,
         },
       });
     } catch (err) {

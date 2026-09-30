@@ -12,37 +12,55 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../../../firebaseConfig';
 
-/* ============================================================
-   PRESENTATION ONLY — shared style tag, no logic touched.
-   ============================================================ */
 const StyleTag = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&display=swap');
-    .circuit-chat { font-family: 'Poppins','Calibri','Candara',system-ui,sans-serif; }
-    .circuit-chat .display { font-family: 'Bricolage Grotesque','Calibri',sans-serif; }
-    @keyframes chatIn { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform: translateY(0); } }
+    @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Poppins:wght@400;500;600;700&display=swap');
+
+    .circuit-chat {
+      font-family: 'Poppins','Calibri','Candara',system-ui,sans-serif;
+      font-size: 16.5px;
+      letter-spacing: -0.005em;
+    }
+    .circuit-chat .display {
+      font-family: 'Bricolage Grotesque','Poppins',sans-serif;
+      font-variation-settings: 'opsz' 96;
+      letter-spacing: -0.03em;
+    }
+    .circuit-chat .pop {
+      /* text that steps forward */
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 2px 12px rgba(168,94,2,0.08);
+    }
+
+    @keyframes chatIn { from { opacity:0; transform: translateY(14px) scale(.985); } to { opacity:1; transform: translateY(0) scale(1); } }
     @keyframes chatSpin { to { transform: rotate(360deg); } }
-    @keyframes bubbleIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes bubbleIn { from { opacity:0; transform: translateY(8px) scale(.97); } to { opacity:1; transform: translateY(0) scale(1); } }
+    @keyframes floaty {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-4px); }
+    }
     .circuit-chat-in { animation: chatIn .6s cubic-bezier(.22,1,.36,1) both; }
-    .circuit-chat-bubble { animation: bubbleIn .28s cubic-bezier(.22,1,.36,1) both; }
+    .circuit-chat-bubble { animation: bubbleIn .3s cubic-bezier(.22,1,.36,1) both; }
+    .circuit-chat-float { animation: floaty 3s ease-in-out infinite; }
+
     .circuit-chat-scroll::-webkit-scrollbar { width: 8px; }
     .circuit-chat-scroll::-webkit-scrollbar-track { background: transparent; }
     .circuit-chat-scroll::-webkit-scrollbar-thumb {
-      background: rgba(168, 94, 2, 0.18);
+      background: rgba(168, 94, 2, 0.22);
       border-radius: 999px;
     }
-    .circuit-chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(168, 94, 2, 0.35); }
+    .circuit-chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(168, 94, 2, 0.4); }
+
     @media (prefers-reduced-motion: reduce) {
-      .circuit-chat-in, .circuit-chat-bubble { animation: none !important; }
+      .circuit-chat-in, .circuit-chat-bubble, .circuit-chat-float { animation: none !important; }
       * { transition: none !important; }
     }
   `}</style>
 );
 
 const canvasBg =
-  'radial-gradient(900px 620px at 12% 6%, #fff5d6 0%, transparent 60%), ' +
-  'radial-gradient(800px 620px at 92% 94%, #f0e2bd 0%, transparent 58%), ' +
-  'linear-gradient(160deg, #fdfaf3 0%, #f4ecd9 100%)';
+  'radial-gradient(900px 620px at 12% 6%, #fff7dc 0%, transparent 60%), ' +
+  'radial-gradient(800px 620px at 92% 94%, #ffe9b8 0%, transparent 58%), ' +
+  'linear-gradient(160deg, #fffdf5 0%, #f7ecd0 100%)';
 
 const Messages = () => {
   const { partnerId, eventId } = useParams();
@@ -58,7 +76,6 @@ const Messages = () => {
   const [error, setError] = useState('');
   const [partnerName, setPartnerName] = useState('...');
 
-  /* Presentation-only ref for auto-scroll */
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -70,7 +87,6 @@ const Messages = () => {
 
     console.log('💬 Chat between:', currentUserId, 'and', partnerId, 'on event', eventId);
 
-    // 🔥 Fetch partner name
     (async () => {
       try {
         const partnerDoc = await getDoc(doc(db, 'users', partnerId));
@@ -174,7 +190,6 @@ const Messages = () => {
     }
   }, [eventId, partnerId, currentUserId]);
 
-  /* ---------- Presentation-only: auto-scroll to newest message ---------- */
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -200,7 +215,6 @@ const Messages = () => {
     }
   };
 
-  /* ---------- Loading state ---------- */
   if (loading) {
     return (
       <>
@@ -209,14 +223,12 @@ const Messages = () => {
           className="circuit-chat min-h-screen flex items-center justify-center p-4"
           style={{ background: canvasBg }}
         >
-          <div className="circuit-chat-in relative w-full max-w-md overflow-hidden rounded-[26px] border border-[#eae4d2] bg-white p-10 text-center shadow-[0_1px_2px_rgba(28,25,23,0.04),0_24px_48px_-20px_rgba(28,25,23,0.18)]">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#f59e0b] via-[#ffd24a] to-[#d9f55c]" />
-            <div
-              className="mx-auto mb-5 h-11 w-11 rounded-full border-[3px] border-[#eae4d2]"
-              style={{ borderTopColor: '#d97706', animation: 'chatSpin .9s linear infinite' }}
-            />
-            <p className="m-0 text-[11px] font-bold uppercase tracking-[0.28em] text-[#a85e02]">
-              Opening your conversation
+          <div className="circuit-chat-in relative w-full max-w-md overflow-hidden rounded-[32px] border-2 border-[#ffd24a] bg-white p-10 text-center shadow-[0_24px_60px_-20px_rgba(168,94,2,0.35),0_0_0_8px_rgba(255,210,74,0.18)]">
+            <div className="circuit-chat-float mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-b from-[#ffe27a] to-[#f5a623] text-[26px] shadow-[inset_0_2px_0_rgba(255,255,255,0.6),0_12px_28px_-8px_rgba(217,119,6,0.55)]">
+              💬
+            </div>
+            <p className="display pop m-0 text-[20px] font-extrabold text-[#1c1917]">
+              Opening your chat…
             </p>
           </div>
         </div>
@@ -224,7 +236,6 @@ const Messages = () => {
     );
   }
 
-  /* ---------- Error state ---------- */
   if (error) {
     return (
       <>
@@ -233,19 +244,18 @@ const Messages = () => {
           className="circuit-chat min-h-screen flex items-center justify-center p-4"
           style={{ background: canvasBg }}
         >
-          <div className="circuit-chat-in relative w-full max-w-md overflow-hidden rounded-[26px] border border-[#eae4d2] bg-white p-9 text-center shadow-[0_1px_2px_rgba(28,25,23,0.04),0_24px_48px_-20px_rgba(28,25,23,0.18)]">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#f59e0b] via-[#ffd24a] to-[#d9f55c]" />
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#fdecef] text-[26px]">
+          <div className="circuit-chat-in relative w-full max-w-md overflow-hidden rounded-[32px] border-2 border-[#ffd24a] bg-white p-9 text-center shadow-[0_24px_60px_-20px_rgba(168,94,2,0.35),0_0_0_8px_rgba(255,210,74,0.18)]">
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#fdecef] text-[30px]">
               ⚠️
             </div>
-            <p className="m-0 mb-6 text-[15px] font-semibold leading-relaxed text-[#c7385a]">
+            <p className="display pop m-0 mb-6 text-[18px] font-extrabold leading-snug text-[#c7385a]">
               {error}
             </p>
             <button
               onClick={() => navigate('/dashboard/mysparks')}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-[#1c1917] to-[#0d0a09] px-6 py-3 text-[14.5px] font-extrabold text-[#fffaf0] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_24px_-8px_rgba(0,0,0,0.5)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_14px_30px_-8px_rgba(0,0,0,0.55),0_28px_56px_-20px_rgba(255,180,60,0.4)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#ffd24a]/60"
+              className="display inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-[#1c1917] to-[#0d0a09] px-7 py-3.5 text-[16px] font-extrabold text-[#fffaf0] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_28px_-8px_rgba(0,0,0,0.55)] transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#ffd24a]/60"
             >
-              <span>←</span>
+              <span className="text-[18px]">←</span>
               <span>Back to Sparks</span>
             </button>
           </div>
@@ -256,7 +266,6 @@ const Messages = () => {
 
   const partnerInitial = (partnerName || '?').trim().charAt(0).toUpperCase();
 
-  /* ---------- Main render ---------- */
   return (
     <>
       <StyleTag />
@@ -266,57 +275,55 @@ const Messages = () => {
       >
         <div className="circuit-chat-in w-full max-w-2xl">
 
-          {/* Chat panel */}
-          <div className="relative overflow-hidden rounded-[28px] border border-[#eae4d2] bg-white shadow-[0_1px_2px_rgba(28,25,23,0.04),0_24px_48px_-20px_rgba(28,25,23,0.18),0_60px_100px_-50px_rgba(28,25,23,0.14)]">
-
-            {/* Amber → lime accent bar */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#f59e0b] via-[#ffd24a] to-[#d9f55c]" />
+          {/* Chat panel — bright amber frame that "pops in front" */}
+          <div className="relative overflow-hidden rounded-[32px] border-2 border-[#ffd24a] bg-white shadow-[0_24px_60px_-20px_rgba(168,94,2,0.35),0_60px_120px_-50px_rgba(168,94,2,0.35),0_0_0_8px_rgba(255,210,74,0.18)]">
 
             {/* Header */}
-            <header className="flex items-center gap-4 border-b border-[#f0e9d4] px-5 py-4 sm:px-7 sm:py-5">
+            <header className="relative flex items-center gap-4 border-b-2 border-[#ffe9a3] bg-gradient-to-b from-[#fff8e1] to-[#fffdf5] px-5 py-5 sm:px-7 sm:py-6">
               <span
-                className="flex h-12 w-12 flex-none items-center justify-center rounded-full text-[18px] font-extrabold text-[#a85e02] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_16px_-6px_rgba(168,94,2,0.4)]"
-                style={{ background: 'linear-gradient(180deg, #fff8e1 0%, #ffe9a3 100%)' }}
+                className="circuit-chat-float flex h-16 w-16 flex-none items-center justify-center rounded-full text-[24px] font-extrabold text-[#7a4402] shadow-[inset_0_2px_0_rgba(255,255,255,0.7),0_14px_30px_-10px_rgba(217,119,6,0.55),0_0_0_6px_rgba(255,210,74,0.25)]"
+                style={{ background: 'linear-gradient(180deg, #ffe27a 0%, #f5a623 100%)' }}
                 aria-hidden="true"
               >
                 {partnerInitial}
               </span>
 
               <div className="min-w-0 flex-1">
-                <p className="m-0 mb-0.5 text-[10.5px] font-extrabold uppercase tracking-[0.24em] text-[#a85e02]">
-                  Circuit chat
+                <p className="m-0 mb-1 text-[11px] font-extrabold uppercase tracking-[0.28em] text-[#a85e02]">
+                  You&rsquo;re chatting with
                 </p>
-                <h2 className="display m-0 truncate text-[18px] sm:text-[20px] font-extrabold leading-tight tracking-[-0.015em] text-[#1c1917]">
+                <h2 className="display pop m-0 truncate text-[24px] sm:text-[28px] font-extrabold leading-[1.05] text-[#1c1917]">
                   {partnerName}
                 </h2>
               </div>
 
-              {/* Live indicator */}
-              <span className="hidden items-center gap-2 rounded-full bg-[#f1fbd3] px-3 py-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-[#4a5d0e] sm:inline-flex">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#84b32e]" />
+              <span className="hidden items-center gap-2 rounded-full border border-[#d9f55c] bg-[#f1fbd3] px-3.5 py-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#4a5d0e] sm:inline-flex">
+                <span className="h-2 w-2 rounded-full bg-[#84b32e] shadow-[0_0_8px_rgba(132,179,46,0.9)]" />
                 Live
               </span>
             </header>
 
-            {/* Message thread */}
+            {/* Thread */}
             <div
               ref={scrollRef}
-              className="circuit-chat-scroll h-[420px] sm:h-[500px] overflow-y-auto bg-[#fffdf7] px-4 py-5 sm:px-6 sm:py-6"
+              className="circuit-chat-scroll h-[440px] sm:h-[520px] overflow-y-auto bg-[#fffdf5] px-4 py-6 sm:px-7 sm:py-7"
             >
               {messages.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center">
-                  <div className="mb-5 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-gradient-to-b from-[#fff8e1] to-[#ffe9a3] text-[34px] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_26px_-10px_rgba(217,119,6,0.45),0_0_0_8px_rgba(255,210,74,0.12)]">
+                  <div className="circuit-chat-float mb-6 inline-flex h-[92px] w-[92px] items-center justify-center rounded-full text-[42px] shadow-[inset_0_2px_0_rgba(255,255,255,0.7),0_18px_40px_-12px_rgba(217,119,6,0.55),0_0_0_10px_rgba(255,210,74,0.18)]"
+                    style={{ background: 'linear-gradient(180deg, #ffe27a 0%, #f5a623 100%)' }}
+                  >
                     👋
                   </div>
-                  <p className="display m-0 text-[18px] font-extrabold tracking-[-0.01em] text-[#1c1917]">
-                    Say hi to {partnerName}
+                  <p className="display pop m-0 text-[24px] sm:text-[28px] font-extrabold leading-tight text-[#1c1917]">
+                    Say hi to <span className="italic text-[#a85e02]">{partnerName}</span>
                   </p>
-                  <p className="mt-2 max-w-xs text-[13.5px] leading-relaxed text-[#7a736b]">
+                  <p className="mt-3 max-w-xs text-[15px] leading-relaxed text-[#4a4540]">
                     You both picked each other. Break the ice — a simple hello goes a long way.
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
                   {messages.map((msg) => {
                     const isMe = msg.from === currentUserId;
                     return (
@@ -325,25 +332,25 @@ const Messages = () => {
                         className={`circuit-chat-bubble flex ${isMe ? 'justify-end' : 'justify-start'}`}
                       >
                         <span
-                          className={`inline-block max-w-[78%] break-words rounded-2xl px-4 py-2.5 text-[14.5px] leading-snug sm:text-[15px] ${
+                          className={`inline-block max-w-[80%] break-words rounded-[22px] px-4 py-3 text-[15.5px] font-medium leading-snug sm:text-[16px] ${
                             isMe
-                              ? 'rounded-br-md font-medium text-[#fffaf0]'
-                              : 'rounded-bl-md font-medium text-[#1c1917]'
+                              ? 'rounded-br-md text-[#fffaf0]'
+                              : 'rounded-bl-md text-[#1c1917]'
                           }`}
                           style={
                             isMe
                               ? {
                                   background:
-                                    'linear-gradient(180deg, #1c1917 0%, #0d0a09 100%)',
+                                    'linear-gradient(180deg, #2a2018 0%, #0d0a09 100%)',
                                   boxShadow:
-                                    'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 20px -8px rgba(0,0,0,0.45), 0 18px 36px -20px rgba(255,180,60,0.35)',
+                                    'inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 24px -8px rgba(0,0,0,0.45), 0 22px 44px -22px rgba(255,180,60,0.4)',
                                 }
                               : {
                                   background:
-                                    'linear-gradient(180deg, #fff8e1 0%, #ffefc2 100%)',
-                                  border: '1px solid #f0e2bd',
+                                    'linear-gradient(180deg, #fff8e1 0%, #ffe9a3 100%)',
+                                  border: '1px solid #ffd24a',
                                   boxShadow:
-                                    'inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 12px -6px rgba(168,94,2,0.25)',
+                                    'inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 20px -8px rgba(168,94,2,0.3)',
                                 }
                           }
                         >
@@ -359,33 +366,31 @@ const Messages = () => {
             {/* Composer */}
             <form
               onSubmit={sendMessage}
-              className="flex items-stretch gap-2 border-t border-[#f0e9d4] bg-white px-4 py-4 sm:px-6 sm:py-5"
+              className="flex items-stretch gap-2.5 border-t-2 border-[#ffe9a3] bg-gradient-to-b from-[#fffdf5] to-[#fff8e1] px-4 py-4 sm:px-6 sm:py-5"
             >
               <input
                 type="text"
-                className="flex-1 min-w-0 rounded-2xl border-[1.5px] border-[#e0dbd0] bg-[#fffdf7] px-4 py-3 text-[15px] text-[#1c1917] placeholder:text-[#a8a29e] transition-all duration-200 focus:border-[#d97706] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#ffd24a]/40"
-                placeholder="Type a message…"
+                className="flex-1 min-w-0 rounded-[20px] border-2 border-[#ffd24a] bg-white px-5 py-3.5 text-[16px] font-medium text-[#1c1917] placeholder:text-[#b39b6b] shadow-[inset_0_2px_4px_rgba(168,94,2,0.08)] transition-all duration-200 focus:border-[#d97706] focus:outline-none focus:ring-4 focus:ring-[#ffd24a]/40"
+                placeholder="Say something nice…"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
               />
               <button
                 type="submit"
                 disabled={!newMessage.trim()}
-                className="group flex flex-none items-center gap-2 rounded-2xl px-5 py-3 text-[14.5px] font-extrabold tracking-[0.005em] transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#ffd24a]/60 disabled:cursor-not-allowed disabled:opacity-45 sm:px-6 sm:text-[15px] hover:enabled:-translate-y-0.5 active:enabled:translate-y-0"
+                className="display group flex flex-none items-center gap-2 rounded-[20px] px-5 py-3.5 text-[16px] font-extrabold transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#ffd24a]/60 disabled:cursor-not-allowed disabled:opacity-45 sm:px-7 hover:enabled:-translate-y-0.5 active:enabled:translate-y-0"
                 style={{
                   background: newMessage.trim()
-                    ? 'linear-gradient(180deg, #1c1917 0%, #0d0a09 100%)'
+                    ? 'linear-gradient(180deg, #2a2018 0%, #0d0a09 100%)'
                     : '#e0dbd0',
                   color: newMessage.trim() ? '#fffaf0' : '#7a736b',
                   boxShadow: newMessage.trim()
-                    ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 20px -8px rgba(0,0,0,0.5), 0 18px 36px -16px rgba(0,0,0,0.35)'
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.1), 0 12px 28px -8px rgba(0,0,0,0.5), 0 24px 48px -20px rgba(255,180,60,0.45)'
                     : 'none',
                 }}
               >
                 <span className="hidden sm:inline">Send</span>
-                <span className="text-[17px] leading-none transition-transform duration-200 group-enabled:group-hover:translate-x-0.5 sm:text-[15px]">
-                  ➤
-                </span>
+                <span className="text-[18px] leading-none transition-transform duration-200 group-enabled:group-hover:translate-x-1">➤</span>
               </button>
             </form>
           </div>
@@ -393,9 +398,9 @@ const Messages = () => {
           {/* Back to Sparks */}
           <button
             onClick={() => navigate('/dashboard/mysparks')}
-            className="group mt-6 inline-flex items-center gap-2 rounded-full border border-[#eae4d2] bg-white/70 px-4 py-2 text-[13.5px] font-bold text-[#4a4540] shadow-[0_1px_2px_rgba(28,25,23,0.04)] backdrop-blur-sm transition-all duration-200 hover:-translate-x-0.5 hover:border-[#d97706] hover:bg-white hover:text-[#1c1917] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#ffd24a]/50"
+            className="display group mt-6 inline-flex items-center gap-2 rounded-full border-2 border-[#ffd24a] bg-white px-5 py-2.5 text-[14.5px] font-extrabold text-[#4a4540] shadow-[0_10px_24px_-10px_rgba(168,94,2,0.4)] transition-all duration-200 hover:-translate-x-0.5 hover:border-[#d97706] hover:text-[#1c1917] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#ffd24a]/50"
           >
-            <span className="text-[15px] transition-transform duration-200 group-hover:-translate-x-1">←</span>
+            <span className="text-[16px] transition-transform duration-200 group-hover:-translate-x-1">←</span>
             <span>Back to Sparks</span>
           </button>
         </div>

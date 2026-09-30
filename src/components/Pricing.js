@@ -122,7 +122,7 @@ const Pricing = () => {
                       </div> 
 
                       <div className={styles.PurchaseSection}>
-                        <Link to="/create-account">
+                        <Link to="/events">
                           <button 
                             className={styles.PurchaseButton}
                             aria-disabled={isDisabled ? 'true' : undefined}

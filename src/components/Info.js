@@ -50,7 +50,7 @@ const Info = () => {
                         <p className="text-[16px] md:text-[20px] lg:text-[24px] text-black font-poppins font-light leading-normal pb-[2px] sm:pb-[4px] md:pb-[8px] lg:pb-[18px]">
                         Sign up, choose your age group, and we’ll guide you into real-time video dates with compatible singles in your area. 
                         </p>
-                        <Link to="/create-account">
+                        <Link to="/events">
                             <button className="w-[148px] h-[34px] sm:w-[148px] sm:h-[34px] md:w-[166px] md:h-[41px] lg:w-[192px] lg:h-[48px] flex items-center justify-center rounded-[4px] sm:rounded-[6px] md:rounded-[6px] lg:rounded-[8px] bg-black text-mindaro-light font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-normal transition-transform hover:scale-105 hover:opacity-60">
                                 Meet someone new
                             </button>

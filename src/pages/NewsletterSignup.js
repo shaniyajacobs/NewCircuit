@@ -5,13 +5,15 @@ import { httpsCallable } from 'firebase/functions';
 import styles from './NewsletterSignup.module.css';
 import { IoChevronBack } from 'react-icons/io5';
 
+const POPPINS_STACK = "'Poppins', 'Calibri', 'Candara', 'Segoe UI', optima, sans-serif";
+
 const NewsletterSignup = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
-  
+
   const [formData, setFormData] = useState({
     email: '',
     city: '',
@@ -125,7 +127,7 @@ const NewsletterSignup = () => {
   if (submitted) {
     const cityLabel = cities.find(c => c.value === formData.city)?.label || formData.city;
     return (
-      <div className={styles.container}>
+      <div className={styles.container} style={{ fontFamily: POPPINS_STACK }}>
         <div className={styles.card}>
           <button onClick={() => navigate('/')} className={styles.backBtn}>
             <IoChevronBack size={20} />
@@ -147,7 +149,7 @@ const NewsletterSignup = () => {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{ fontFamily: POPPINS_STACK }}>
       <div className={styles.card}>
         <button onClick={() => navigate('/')} className={styles.backBtn}>
           <IoChevronBack size={20} />

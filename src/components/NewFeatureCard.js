@@ -29,7 +29,7 @@ const NewFeatureCard = () => {
                         <p className="text-[16px] md:text-[20px] lg:text-[24px] text-black font-poppins font-light leading-normal pb-[2px] sm:pb-[4px] md:pb-[8px] lg:pb-[18px]">
                         Discover your top 3 suggested connections, tailored by our personality insights.
                         </p>
-                        <Link to="/create-account">
+                        <Link to="/events">
                             <button className="px-6 py-2 sm:px-6 sm:py-2 md:px-7 md:py-2.5 lg:px-8 lg:py-3 flex items-center justify-center rounded-[4px] sm:rounded-[6px] md:rounded-[6px] lg:rounded-[8px] bg-black text-white font-poppins text-[12px] sm:text-[12px] md:text-[14px] lg:text-[16px] leading-normal transition-transform hover:scale-105 hover:opacity-60 mb-16 sm:mb-20 md:mb-24 lg:mb-32">
                                 Take the personality indicator
                             </button>
