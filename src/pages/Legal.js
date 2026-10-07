@@ -69,8 +69,8 @@ const sections = [
           the Platform, you agree to these Terms.
         </p>
         <div className="rounded-xl border bg-gray-50 p-4 text-sm">
-          <p><span className="font-medium">Effective Date:</span> July 2025</p>
-          <p><span className="font-medium">Last Updated:</span> September 2025</p>
+          <p><span className="font-medium">Effective Date:</span> October 2026</p>
+          <p><span className="font-medium">Last Updated:</span> October 2026</p>
         </div>
       </div>
     ),
@@ -304,28 +304,37 @@ const sections = [
         <div>
           <h3 className="font-semibold mb-2">Consent for SMS Communication</h3>
           <p>
-            Information obtained as part of the SMS consent process will not be shared with third parties.
+            Information obtained as part of the SMS consent process, including mobile phone numbers, will not be shared with
+            third parties or affiliates for marketing or promotional purposes.
           </p>
         </div>
 
         <div>
           <h3 className="font-semibold mb-2">Types of SMS Communications</h3>
-          <p className="mb-2">
-            If you have consented to receive text messages from Circuit LLC, you may receive text messages related to event reminders, updates, account notifications, customer care, and marketing messages.
+          <p>
+            If you have consented to receive text messages from Circuit LLC, you may receive text messages related to the
+            following operational and transactional purposes: verification codes, event confirmations, real-time round and
+            pairing updates during live events, waitlist alerts, booking confirmations, event reminders, account notifications,
+            and customer care.
           </p>
-          <p className="mb-2">Below are examples:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Customers and Guests:</strong> Updates regarding event reminders, connection selections, coupon notices, or other relevant information.</li>
-          </ul>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Examples</h3>
+          <p>
+            Attendees may receive real-time round updates, partner outfit descriptions, event reminders, waitlist spot
+            notifications, booking confirmations, and customer care messages.
+          </p>
         </div>
 
         <div>
           <h3 className="font-semibold mb-2">Standard Messaging Disclosures</h3>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Message and data rates may apply.</li>
-            <li>You can opt-out at any time by texting "STOP."</li>
-            <li>For assistance, text "HELP" or visit our <a href="#privacy" className="underline">Privacy Policy</a> <a href="https://www.circuitspeeddating.com/terms-of-service#privacy" className="underline" target="_blank" rel="noopener noreferrer">https://www.circuitspeeddating.com/terms-of-service#privacy</a> and <a href="#intro" className="underline">Terms of Service</a> <a href="https://www.circuitspeeddating.com/terms-of-service#intro" className="underline" target="_blank" rel="noopener noreferrer">https://www.circuitspeeddating.com/terms-of-service#intro</a>.</li>
-          </ul>
+          <p>
+            Message and data rates may apply. Message frequency varies. You can opt out at any time by replying{" "}
+            <strong>STOP</strong> to any message. For assistance, reply <strong>HELP</strong> or visit our{" "}
+            <a href="#privacy" className="underline">Privacy Policy</a> and{" "}
+            <a href="#intro" className="underline">Terms of Service</a>.
+          </p>
         </div>
       </div>
     ),
@@ -338,8 +347,8 @@ const sections = [
     content: (
       <div className="space-y-4">
         <div className="rounded-xl border bg-gray-50 p-4 text-sm">
-          <p><span className="font-medium">Effective Date:</span> July 2025</p>
-          <p><span className="font-medium">Last Updated:</span> September 2025</p>
+          <p><span className="font-medium">Effective Date:</span> October 2026</p>
+          <p><span className="font-medium">Last Updated:</span> October 2026</p>
         </div>
         <p>
           This Privacy Policy explains how Circuit (“Circuit,” “we,” “us,” or “our”) collects, uses, discloses, and protects
@@ -421,8 +430,8 @@ const sections = [
     content: (
       <div className="space-y-4">
         <div className="rounded-xl border bg-gray-50 p-4 text-sm">
-          <p><span className="font-medium">Effective Date:</span> July 2025</p>
-          <p><span className="font-medium">Last Updated:</span> September 2025</p>
+          <p><span className="font-medium">Effective Date:</span> October 2026</p>
+          <p><span className="font-medium">Last Updated:</span> October 2026</p>
         </div>
         <p>
           This Cookie Policy explains how Circuit uses cookies, pixels, local storage, and similar technologies (“Cookies”)
@@ -469,7 +478,7 @@ const sections = [
 
         <h3 className="font-semibold">7. Contact</h3>
         <ul className="list-disc pl-5">
-          <li>Email: <span className="font-mono">contact@circuitspeeddating.com</span></li>
+          <li>Email: <span className="font-mono">contact@circuit.dating</span></li>
         </ul>
       </div>
     ),
@@ -535,7 +544,7 @@ export default function LegalMockup() {
             </div>
             <div className="hidden md:block rounded-xl border bg-white p-4 text-sm text-gray-700 shadow-sm">
               <p className="font-medium">Need help?</p>
-              <p>Contact contact@circuitspeeddating.com</p>
+              <p>Contact contact@circuit.dating</p>
             </div>
           </div>
         </div>
