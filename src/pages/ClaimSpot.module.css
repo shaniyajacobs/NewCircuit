@@ -1,0 +1,334 @@
+/* ==========================================================================
+   CIRCUIT — SUNNY YELLOW EDITION (Clean, bright, no rotating borders)
+   ========================================================================== */
+:root {
+  /* Core palette – warm yellows */
+  --yellow-light: #fff8e7;
+  --yellow-mid: #ffe694;
+  --yellow-accent: #f5c518;
+  --yellow-glow: rgba(245, 197, 24, 0.4);
+  --gold-dark: #c99e00;
+
+  /* Surfaces & text */
+  --bg-grad-start: #fff8eb;
+  --bg-grad-end: #faeacb;
+  --card-glass: rgba(255, 248, 235, 0.75);
+  --card-border: 1px solid rgba(245, 197, 24, 0.25);
+  --shadow-card: 0 20px 50px rgba(0, 0, 0, 0.08), 0 0 30px rgba(245, 197, 24, 0.08);
+  --text-primary: #2a2415;
+  --text-secondary: #5a4e32;
+  --text-muted: #8a7a5a;
+  --surface-item: rgba(245, 197, 24, 0.08);
+  --surface-item-hover: rgba(245, 197, 24, 0.15);
+
+  /* Radii & transitions */
+  --radius-xl: 28px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --transition-smooth: 0.25s ease;
+}
+
+/* ==========================================================================
+   PAGE – Warm yellow gradient background
+   ========================================================================== */
+.container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, var(--bg-grad-start) 0%, var(--bg-grad-end) 100%);
+  padding: 24px 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+/* Soft ambient glow (optional) – very subtle */
+.container::before {
+  content: '';
+  position: absolute;
+  top: 20%;
+  right: 10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(245, 197, 24, 0.15), transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ==========================================================================
+   CARD – Glass with warm tint, no rotating border
+   ========================================================================== */
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  background: var(--card-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: var(--card-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: 40px 32px;
+  text-align: center;
+  box-sizing: border-box;
+  transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+}
+
+.card:hover {
+  border-color: rgba(245, 197, 24, 0.4);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1), 0 0 40px rgba(245, 197, 24, 0.12);
+}
+
+/* ==========================================================================
+   ICONS – Gold glow
+   ========================================================================== */
+.successIcon,
+.errorIcon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, var(--yellow-mid), var(--yellow-light));
+  border: 2px solid var(--yellow-accent);
+  box-shadow: 0 0 20px var(--yellow-glow);
+}
+
+.errorIcon {
+  border-color: #e07050;
+  box-shadow: 0 0 20px rgba(224, 112, 80, 0.3);
+}
+
+/* ==========================================================================
+   TYPOGRAPHY
+   ========================================================================== */
+.title {
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0 0 28px 0;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.subtitle strong {
+  color: var(--gold-dark);
+  font-weight: 600;
+  border-bottom: 2px solid var(--yellow-accent);
+  padding-bottom: 2px;
+}
+
+/* ==========================================================================
+   EVENT INFO – Clean rows
+   ========================================================================== */
+.eventInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-item);
+  border: 1px solid rgba(245, 197, 24, 0.15);
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
+}
+
+.infoRow:hover {
+  background: var(--surface-item-hover);
+  border-color: var(--yellow-accent);
+  transform: translateX(3px);
+}
+
+.infoRow span:first-child {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.infoRow span:last-child {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ==========================================================================
+   COUNTDOWN – Warm glow
+   ========================================================================== */
+.timerSection {
+  background: rgba(245, 197, 24, 0.06);
+  border: 1px solid rgba(245, 197, 24, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.timerSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--yellow-accent);
+  opacity: 0.4;
+}
+
+.timerLabel {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gold-dark);
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.timer {
+  font-size: 2.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+/* ==========================================================================
+   BUTTONS – Gold
+   ========================================================================== */
+.claimBtn {
+  width: 100%;
+  background: var(--yellow-accent);
+  color: #1f1a0e;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 16px 24px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), background var(--transition-smooth);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 20px rgba(245, 197, 24, 0.3);
+}
+
+.claimBtn:hover {
+  background: #ffdb4d;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(245, 197, 24, 0.4);
+}
+
+.claimBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(245, 197, 24, 0.2);
+}
+
+.claimBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.secondaryBtn,
+.btn {
+  width: 100%;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--transition-smooth), border-color var(--transition-smooth), background var(--transition-smooth);
+}
+
+.secondaryBtn:hover {
+  color: var(--text-primary);
+  background: rgba(245, 197, 24, 0.08);
+  border-color: var(--yellow-accent);
+}
+
+.btn {
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--text-primary);
+  margin-top: 10px;
+}
+
+.btn:hover {
+  background: rgba(245, 197, 24, 0.08);
+  border-color: var(--yellow-accent);
+}
+
+/* ==========================================================================
+   ERROR – Soft coral
+   ========================================================================== */
+.error {
+  font-size: 1rem;
+  color: #b85a3a;
+  background: rgba(224, 112, 80, 0.06);
+  border: 1px solid rgba(224, 112, 80, 0.15);
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  margin: 16px 0 24px 0;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+@media (max-width: 600px) {
+  .container { padding: 16px 12px; }
+  .card { padding: 28px 20px; border-radius: 24px; }
+  .title { font-size: 1.7rem; }
+  .subtitle { font-size: 0.95rem; }
+  .successIcon, .errorIcon { width: 60px; height: 60px; font-size: 28px; }
+  .infoRow { padding: 12px 14px; }
+  .infoRow span:first-child, .infoRow span:last-child { font-size: 0.8rem; }
+  .timerSection { padding: 16px 12px; }
+  .timer { font-size: 1.8rem; }
+  .claimBtn { padding: 14px 20px; font-size: 1rem; }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

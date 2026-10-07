@@ -20,7 +20,7 @@ const Map = ({ cities, filter }) => {
     : cities;
 
   const handleMarkerClick = () => {
-    navigate('/create-account');
+    navigate('/events');
   };
 
   return (

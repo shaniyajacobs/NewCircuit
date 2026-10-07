@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const QuizStartScreen = () => {
     const navigate = useNavigate();
+    const handleBack = () => navigate('/locations');
     return (
         <div className="min-h-screen flex flex-col">
             <HeaderBar 
@@ -15,6 +16,7 @@ const QuizStartScreen = () => {
                 logoHeight="h-20"
                 titleSize='text-4xl'
                 className = 'w-full flex justify-center items-center text-center relative'
+                onBack={handleBack}
             />
 
             {/* Main content */}
@@ -27,10 +29,7 @@ const QuizStartScreen = () => {
 
                 <div className="max-w-2xl mx-auto text-center">
                     <p className="text-[#151D48] text-xl mb-4">
-                        Take our personality quiz to help us find your perfect connection
-                    </p>
-                    <p className="text-[#151D48] text-lg">
-                        The higher the score, the stronger the connection!
+                        Take our personality indicator to help us find your most compatible connections. After your event, you'll see how your results align with others. The higher the score, the stronger the connection!
                     </p>
                 </div>
 

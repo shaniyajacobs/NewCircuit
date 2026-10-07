@@ -1,12 +1,13 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps} from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getRemoteConfig } from "firebase/remote-config";
 
 import { getFunctions } from "firebase/functions";
 
 import { getStorage } from 'firebase/storage';
+import { testMatchmakingLogic, testRealWorldScenario, cleanupTestUsers } from './utils/matchmakingTest';
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -27,9 +28,18 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
-const analytics = getAnalytics(app);
 const functions = getFunctions(app, "us-central1");
 const storage = getStorage(app);
+const remoteConfig = getRemoteConfig(app);
 
-export { app, auth, db, functions, storage };
+export { app, auth, db, functions, storage, remoteConfig };
+
+// Expose test functions globally for debugging
+if (typeof window !== 'undefined') {
+  window.testMatchmaking = {
+    testMatchmakingLogic,
+    testRealWorldScenario,
+    cleanupTestUsers
+  };
+}
 
