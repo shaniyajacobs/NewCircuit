@@ -348,9 +348,9 @@ const sections = [
 
         <h3 className="font-semibold">1. Information We Collect</h3>
         <ul className="list-disc pl-5 space-y-1">
-          <li><span className="font-medium">You provide:</span> account details (name, email, DOB, gender, location), profile content, photos, messages, event registrations, support communications, and SMS opt-in preferences.</li>
-          <li><span className="font-medium">Automatically:</span> IP, device IDs, browser/OS, log and usage data, cookies/pixels (see Cookies Policy).</li>
-          <li><span className="font-medium">From third parties:</span> processors and vendors (payments, hosting, analytics, SMS, marketing).</li>
+          <li><span className="font-medium">You provide:</span> account details (name, email, date of birth, gender, location), profile content, photos, messages, event registrations, support communications, and SMS opt-in preferences.</li>
+          <li><span className="font-medium">Automatically:</span> IP address, device IDs, browser and operating system information, log and usage data, and cookies (see Cookies Policy).</li>
+          <li><span className="font-medium">From third parties:</span> processors and vendors providing payments, hosting, analytics, SMS, and operational services necessary to run the Platform.</li>
         </ul>
 
         <h3 className="font-semibold">2. How We Use Information</h3>
@@ -366,17 +366,19 @@ const sections = [
         <ul className="list-disc pl-5 space-y-1">
           <li><span className="font-medium">Service providers:</span> payment, hosting, analytics, SMS, support, security.</li>
           <li><span className="font-medium">Legal:</span> compliance with laws and lawful requests.</li>
-          <li><span className="font-medium">Business transfers:</span> merger, acquisition, financing, or sale.</li>
           <li><span className="font-medium">With consent:</span> where you direct us to share.</li>
         </ul>
 
         <h3 className="font-semibold">4. SMS Communications</h3>
         <p>
-          By opting into SMS from a web form, account creation, or other medium, you agree to receive SMS messages from Circuit,
-          including event reminders, updates, account notifications, customer care, and promotional messages. Message frequency
-          varies. Message &amp; data rates may apply. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for help. View our {" "}
-          <a href="#intro" className="underline">Terms &amp; Conditions</a> and {" "}
-          <a href="#privacy" className="underline">Privacy Policy</a>. Circuit does not share mobile numbers or opt-in data with third parties.
+          By opting into SMS from Circuit's event registration page, you agree to receive SMS messages from Circuit, including
+          verification codes, event confirmations, real-time round updates, waitlist alerts, booking confirmations, event
+          reminders, account notifications, and customer care messages. Message frequency varies. Message &amp; data rates may
+          apply. Reply <strong>STOP</strong> to any message to opt out. Reply <strong>HELP</strong> for help. View our{" "}
+          <a href="#intro" className="underline">Terms &amp; Conditions</a> and{" "}
+          <a href="#privacy" className="underline">Privacy Policy</a>. Circuit LLC does not sell, rent, share, or disclose
+          mobile phone numbers or SMS consent data to third parties or affiliates for marketing or promotional purposes.
+          Mobile information is used solely for operational communications necessary to participate in Circuit events.
         </p>
 
         <h3 className="font-semibold">5. Cookies and Tracking</h3>
@@ -406,7 +408,7 @@ const sections = [
 
         <h3 id="contact" className="font-semibold">12. Contact</h3>
         <ul className="list-disc pl-5">
-          <li>Email: <span className="font-mono">contact@circuitspeeddating.com</span></li>
+          <li>Email: <span className="font-mono">contact@circuit.dating</span></li>
         </ul>
       </div>
     ),
