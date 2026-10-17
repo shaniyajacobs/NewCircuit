@@ -86,6 +86,62 @@ const EventProfile = () => {
     });
     return () => unsubscribe();
   }, []);
+// Auto-skip for returning users
+useEffect(() => {
+  if (!phoneNumber) return;
+  if (isClaim) return; // claims already go through their own flow
+
+  (async () => {
+    try {
+      const userRef = doc(db, 'users', phoneNumber);
+      const snap = await getDoc(userRef);
+
+      if (!snap.exists()) return; // new user, show form
+
+      const data = snap.data();
+
+      const hasAll =
+        data.firstName &&
+        data.lastName &&
+        data.email &&
+        data.birthDate;
+
+      if (hasAll) {
+        console.log(' Returning user – skipping profile form');
+        navigate('/checkout', {
+          state: {
+            eventId,
+            eventTitle,
+            selectedGender,
+            price,
+            city,
+            venue,
+            date,
+            time,
+            ageRange,
+            phoneNumber,
+            uid: phoneNumber,
+            email: data.email,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            isClaim: false,
+          },
+        });
+      } else {
+        // Partial data → pre-fill the form
+        setFormData((prev) => ({
+          ...prev,
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          email: data.email || '',
+          dateOfBirth: data.birthDate || '',
+        }));
+      }
+    } catch (err) {
+      console.error('Error checking returning user:', err);
+    }
+  })();
+}, [phoneNumber, eventId, isClaim, navigate]);
 
   // Pre‑fill email from waitlist claim – runs once on mount
   useEffect(() => {

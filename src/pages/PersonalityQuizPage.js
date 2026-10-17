@@ -143,12 +143,11 @@ const PersonalityQuizPage = () => {
   const handleCancelSubmit = () => {
     setShowConfirmation(false);
   };
-
-  const prevStep = () => {
+    const prevStep = () => {
     if (currentStep > 1) {
       navigate(`/personalityquizpage/${currentStep - 1}`);
     } else {
-      navigate('/quiz-start');
+      navigate('/dashboard');
     }
   };
   

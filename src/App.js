@@ -43,7 +43,12 @@ import RoundSchedule from './components/Dashboard/DashboardPages/RoundSchedule';
 import MySparks from './components/Dashboard/DashboardPages/MySparks';
 import Messages from './components/Dashboard/DashboardPages/Messages';
 import EventSelections from './components/Dashboard/DashboardPages/EventSelections';
-
+import DashMyProfile from './components/Dashboard/DashboardPages/DashMyProfile';
+import DashSettings from './components/Dashboard/DashboardPages/DashSettings';
+import DashChangePassword from './components/Dashboard/DashboardPages/DashChangePassword';
+import DashDeleteAccount from './components/Dashboard/DashboardPages/DashDeleteAccount';
+import DashDeactivateAccount from './components/Dashboard/DashboardPages/DashDeactivateAccount';
+import DashPaymentHistory from './components/Dashboard/DashboardPages/DashPaymentHistory';
 // ===== Firebase, etc. =====
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ProfileProvider } from './contexts/ProfileContext';
@@ -89,15 +94,28 @@ const PrivateRoute = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
   const auth = getAuth();
   const location = useLocation();
-  const guestUid = location.state?.guestUid || localStorage.getItem('guestUid');
+
+  // 1. Check if the URL contains a phone number (e.g., /dashboard/+126657142533)
+  const pathParts = location.pathname.split('/');
+  const urlPhone = pathParts[1] === 'dashboard' && pathParts[2] && pathParts[2].startsWith('+') 
+    ? decodeURIComponent(pathParts[2]) 
+    : null;
+
+  // 2. Combine URL phone, state phone, and localStorage
+  const guestUid = urlPhone || location.state?.guestUid || localStorage.getItem('guestUid');
 
   useEffect(() => {
+    // 3. If the phone is in the URL, save it to localStorage immediately
+    if (urlPhone) {
+      localStorage.setItem('guestUid', urlPhone);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);
     });
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, urlPhone]);
 
   if (authLoading) return <div className="p-4 text-center">Loading...</div>;
 
@@ -108,7 +126,6 @@ const PrivateRoute = ({ children }) => {
 
   return children;
 };
-
 function App() {
   useEffect(() => {
     preloadImages();
@@ -168,7 +185,6 @@ function AppContent() {
         <Route path="/event/:eventId/night/:phone" element={<EventNight />} />
         <Route path="/event/:eventId/selections/:phone" element={<EventSelections />} />
         <Route path="/verify-login-otp" element={<VerifyLoginOTP />} />
-        
         <Route path="/dashboard/*" element={
           <PrivateRoute>
             <Elements stripe={stripePromise}>
@@ -176,8 +192,6 @@ function AppContent() {
             </Elements>
           </PrivateRoute>
         } />
-
-        
         <Route path="/dashboard/event-selections/:eventId" element={<PrivateRoute><EventSelections /></PrivateRoute>} />
         <Route path="/dashboard/mysparks" element={<PrivateRoute><MySparks /></PrivateRoute>} />
         <Route path="/dashboard/messages/:partnerId/:eventId" element={<PrivateRoute><Messages /></PrivateRoute>} />
@@ -189,12 +203,12 @@ function AppContent() {
         <Route path="/dashboard/dashMyConnections" element={<PrivateRoute><div>DashMyConnections</div></PrivateRoute>} />
         <Route path="/dashboard/dashDateCalendar" element={<PrivateRoute><div>DashDateCalendar</div></PrivateRoute>} />
         <Route path="/dashboard/dashCheckout" element={<PrivateRoute><div>DashCheckout</div></PrivateRoute>} />
-        <Route path="/dashboard/dashMyProfile" element={<PrivateRoute><div>DashMyProfile</div></PrivateRoute>} />
-        <Route path="/dashboard/dashSettings" element={<PrivateRoute><div>DashSettings</div></PrivateRoute>} />
-        <Route path="/dashboard/dashChangePassword" element={<PrivateRoute><div>DashChangePassword</div></PrivateRoute>} />
-        <Route path="/dashboard/dashDeleteAccount" element={<PrivateRoute><div>DashDeleteAccount</div></PrivateRoute>} />
-        <Route path="/dashboard/dashDeactivateAccount" element={<PrivateRoute><div>DashDeactivateAccount</div></PrivateRoute>} />
-        <Route path="/dashboard/dashPaymentHistory" element={<PrivateRoute><div>DashPaymentHistory</div></PrivateRoute>} />
+        <Route path="/dashboard/dashMyProfile" element={<PrivateRoute><DashMyProfile /></PrivateRoute>} />
+        <Route path="/dashboard/dashSettings" element={<PrivateRoute><DashSettings /></PrivateRoute>} />
+        <Route path="/dashboard/dashChangePassword" element={<PrivateRoute><DashChangePassword /></PrivateRoute>} />
+        <Route path="/dashboard/dashDeleteAccount" element={<PrivateRoute><DashDeleteAccount /></PrivateRoute>} />
+        <Route path="/dashboard/dashDeactivateAccount" element={<PrivateRoute><DashDeactivateAccount /></PrivateRoute>} />
+        <Route path="/dashboard/dashPaymentHistory" element={<PrivateRoute><DashPaymentHistory /></PrivateRoute>} />
         
       </Routes>
     </ScrollToTop>

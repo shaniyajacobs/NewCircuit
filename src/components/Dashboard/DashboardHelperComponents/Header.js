@@ -55,32 +55,57 @@ const Header = (props) => {
     });
     return () => unsubscribe();
   }, []);
-  const getUserData = async () => {
+
+const getUserData = async () => {
   if (!user) return;
 
   try {
-    const userTable = collection(db, "users");
-    const userQuery = query(userTable, where("email", "==", user.email));
-    const loggedInUserQuery = await getDocs(userQuery);
+    // 🔥 Prefer phone number as identifier; fall back to email
+    const phone = user.phoneNumber;
+    const guestUid = phone || localStorage.getItem('guestUid');
 
-    if (loggedInUserQuery.empty) {
-      console.warn("No user document found for:", user.email);
+    let userDocRef;
+    if (guestUid) {
+      userDocRef = doc(db, 'users', guestUid);
+    } else if (user.email) {
+      // Fallback: search by email
+      const q = query(collection(db, 'users'), where('email', '==', user.email));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        console.warn('No user document found for:', user.email);
+        setUserData(null);
+        setIsLoading(false);
+        return;
+      }
+      userDocRef = snap.docs[0].ref;
+    } else {
       setUserData(null);
       setIsLoading(false);
       return;
     }
 
-    const loggedInUserData = loggedInUserQuery.docs[0];
+    const userDoc = await getDoc(userDocRef);
+    if (!userDoc.exists()) {
+      setUserData(null);
+      setIsLoading(false);
+      return;
+    }
 
-    setUserData(loggedInUserData);
-    localStorage.setItem("userData", JSON.stringify(loggedInUserData.data()));
+    // Wrap in a fake snapshot-like object so the rest of Header keeps working
+    const wrapped = {
+      id: userDoc.id,
+      data: () => userDoc.data(),
+      get: (field) => userDoc.data()[field],
+    };
+
+    setUserData(wrapped);
+    localStorage.setItem('userData', JSON.stringify(userDoc.data()));
     setIsLoading(false);
   } catch (error) {
-    console.error("Error fetching user data:", error);
+    console.error('Error fetching user data:', error);
     setIsLoading(false);
   }
 };
-
   // Fetch cart count
   const getCartCount = async () => {
     if (!user) return;
@@ -186,11 +211,11 @@ const Header = (props) => {
 
         
         {userData ? (
-          userData.get("image") ? (
+          userData.get("email") ? (
             <div className="flex items-center gap-2">
               {/* Profile Picture - Direct image */}
               <img
-                src={userData.get("image")}
+                src={userData.get("email")}
                 alt="User Profile"
                 style={{
                   width: '48px',

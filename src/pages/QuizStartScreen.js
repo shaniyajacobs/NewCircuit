@@ -1,11 +1,18 @@
 import React from 'react';
 import HeaderBar from '../components/HeaderBar';
 import vistaBlueLogo from '../images/logomark_vistablue.png';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const QuizStartScreen = () => {
     const navigate = useNavigate();
-    const handleBack = () => navigate('/locations');
+    const location = useLocation();
+    
+    // DEBUG: Check your browser console (F12) to see what this prints!
+    console.log("QuizStartScreen location.state:", location.state);
+
+    const fromDashboard = location.state?.from === 'dashboard';
+    const handleBack = () => navigate(fromDashboard ? '/dashboard' : '/locations');
+
     return (
         <div className="min-h-screen flex flex-col">
             <HeaderBar 
