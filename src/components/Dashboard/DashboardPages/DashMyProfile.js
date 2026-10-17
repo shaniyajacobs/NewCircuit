@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 import {
-  collection,
-  query,
-  where,
-  getDocs,
   doc,
+  getDoc,
   updateDoc,
 } from "firebase/firestore";
 import { db, storage } from "../../../firebaseConfig";
@@ -23,8 +21,11 @@ const formatDate = (date) => {
 };
 
 const DashMyProfile = () => {
+  const location = useLocation();
   const auth = getAuth();
-  const user = auth.currentUser;
+  const authUser = auth.currentUser;
+  const authPhone = authUser?.phoneNumber;
+  const guestUid = authPhone || location.state?.guestUid || localStorage.getItem('guestUid');
   const [images, setImages] = useState([]);
   const maxNumber = 1;
 
@@ -52,21 +53,18 @@ const DashMyProfile = () => {
   
   // State for success popup
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-
-  // On mount, fetch the user's profile and initialize both formData and savedData
+    // On mount, fetch the user's profile and initialize both formData and savedData
   useEffect(() => {
-    if (!user) return;
+    if (!guestUid) return;
 
     async function getUserData() {
       try {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("email", "==", user.email));
-        const querySnapshot = await getDocs(q);
+        const userDocRef = doc(db, "users", guestUid);
+        const userDocSnap = await getDoc(userDocRef);
 
-        if (!querySnapshot.empty) {
-          const docSnapshot = querySnapshot.docs[0];
-          const userDoc = docSnapshot.data();
-
+        if (userDocSnap.exists()) {
+          const userDoc = userDocSnap.data();
+  
           // Format birthDate for display - handle multiple formats
           let formattedDate = "";
           if (userDoc.birthDate) {
@@ -107,8 +105,7 @@ const DashMyProfile = () => {
             firstName: userDoc.firstName || "",
             lastName:  userDoc.lastName  || "",
           });
-
-          setDocId(docSnapshot.id);
+         setDocId(userDocSnap.id);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -116,7 +113,7 @@ const DashMyProfile = () => {
     }
 
     getUserData();
-  }, [user]);
+  }, [guestUid]); 
 
   // Helper function to convert MM/DD/YYYY to YYYY-MM-DD for date input
   const formatDateForInput = (dateString) => {
@@ -164,7 +161,7 @@ const DashMyProfile = () => {
     if (imageList.length > 0) {
       try {
         const timestamp = new Date().getTime();
-        const filename = `${timestamp}_${user.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const filename = `${timestamp}_${String(guestUid || 'user').replace(/[^a-zA-Z0-9]/g, '_')}`;
         const storageRef = ref(storage, `profilePictures/${filename}`);
         
         // Convert base64 to blob
@@ -401,7 +398,7 @@ const DashMyProfile = () => {
                         // Handle the image upload similar to ImageUploading
                         try {
                           const timestamp = new Date().getTime();
-                          const filename = `${timestamp}_${user.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                          const filename = `${timestamp}_${String(guestUid || 'user').replace(/[^a-zA-Z0-9]/g, '_')}`;
                           const storageRef = ref(storage, `profilePictures/${filename}`);
                           
                           const response = await fetch(imageData);
@@ -548,7 +545,7 @@ const DashMyProfile = () => {
           }}>
             Last name
           </label>
-          <input
+                    <input
             type="text"
             name="lastName"
             value={formData.lastName}
@@ -571,6 +568,47 @@ const DashMyProfile = () => {
               lineHeight: 'normal',
               background: 'transparent',
               outline: 'none'
+            }}
+          />
+        </div>
+
+        {/* Phone Number (read-only — phone is the primary user identifier) */}
+        <div className="flex flex-col gap-2 mt-4 max-w-full w-full">
+          <label style={{
+            alignSelf: 'stretch',
+            color: 'var(--Raisin_Black, #211F20)',
+            fontFamily: '"Bricolage Grotesque"',
+            fontSize: 'var(--H8, 16px)',
+            fontStyle: 'normal',
+            fontWeight: '500',
+            lineHeight: '130%',
+            textTransform: 'uppercase'
+          }}>
+            Phone Number
+          </label>
+          <input
+            type="text"
+            name="phoneNumber"
+            value={guestUid || ""}
+            readOnly
+            style={{
+              display: 'flex',
+              padding: 'var(--TopBottom-S, 12px) var(--Left-Right-M, 24px)',
+              alignItems: 'center',
+              gap: 'var(--Gap-S, 24px)',
+              alignSelf: 'stretch',
+              borderRadius: 'var(--Radius-S, 8px)',
+              border: '1px solid rgba(0, 0, 0, 0.10)',
+              flex: '1 0 0',
+              color: 'var(--Raisin_Black, #211F20)',
+              fontFamily: 'Poppins',
+              fontSize: 'var(--Body-S-Med, 16px)',
+              fontStyle: 'normal',
+              fontWeight: '500',
+              lineHeight: 'normal',
+              background: 'rgba(0, 0, 0, 0.03)',
+              outline: 'none',
+              cursor: 'not-allowed'
             }}
           />
         </div>

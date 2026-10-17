@@ -214,6 +214,43 @@ async function triggerWaitlistConfirmationEmail({
     success: true,
   };
 }
+// ========================================================
+// HELPER – Trigger Klaviyo Event for SMS Notifications
+// ========================================================
+async function sendKlaviyoEventForSMS({ email, metricName, properties, apiKey }) {
+  if (!email || !apiKey) {
+    console.warn(`Klaviyo event ${metricName} skipped: Missing email or API key`);
+    return;
+  }
+  try {
+    const response = await fetch("https://a.klaviyo.com/api/events", {
+      method: "POST",
+      headers: {
+        Authorization: `Klaviyo-API-Key ${apiKey}`,
+        "Content-Type": "application/vnd.api+json",
+        Accept: "application/vnd.api+json",
+        revision: "2026-07-15",
+      },
+      body: JSON.stringify({
+        data: {
+          type: "event",
+          attributes: {
+            metric: { data: { type: "metric", attributes: { name: metricName } } },
+            profile: { data: { type: "profile", attributes: { email: email } } },
+            properties: properties || {},
+          },
+        },
+      }),
+    });
+    if (!response.ok) {
+      console.error(`Klaviyo event ${metricName} error for ${email}:`, await response.text());
+    } else {
+      console.log(`✅ Klaviyo event "${metricName}" sent for ${email}`);
+    }
+  } catch (err) {
+    console.error(`Klaviyo fetch error for ${metricName}:`, err);
+  }
+}
 
 // Helper function to create PayPal client
 function getPayPalClient() {
@@ -883,15 +920,15 @@ exports.loginWithPhone = onCall(
     }
 
     // --------------------------------------------------
-    // 4. Try Firebase Auth lookup first
+    // 4. Try Firebase Auth lookup
     // --------------------------------------------------
     let authUser = null;
     try {
       authUser = await admin.auth().getUserByPhoneNumber(normalizedPhone);
-      console.log(` loginWithPhone: found Auth user for ${normalizedPhone}`);
+      console.log(`✅ loginWithPhone: found Auth user for ${normalizedPhone}`);
     } catch (error) {
       if (error.code === "auth/user-not-found") {
-        console.log(`ℹ️ loginWithPhone: no Auth user for ${normalizedPhone}, checking Firestore`);
+        console.log(`ℹ️ loginWithPhone: no Auth user for ${normalizedPhone}`);
         authUser = null;
       } else {
         console.error("❌ loginWithPhone: getUserByPhoneNumber error:", error);
@@ -900,69 +937,140 @@ exports.loginWithPhone = onCall(
     }
 
     // --------------------------------------------------
-    // 5. If not in Auth, check Firestore users/{phoneNumber}
-    //    (registered guest – they used phone as doc ID)
+    // 5. ALWAYS look up Firestore user by phone number
+    //    (the app uses phone as the doc ID after registration)
     // --------------------------------------------------
     let firestoreUserData = null;
     let firestoreUserPhoneKey = null;
 
-    if (!authUser) {
-      // Try both formats: +26657142533 and 26657142533
-      const phoneVariants = [
-        normalizedPhone,                       // +26657142533
-        normalizedPhone.replace(/^\+/, ''),    // 26657142533
-      ];
+    const phoneVariants = [
+      normalizedPhone,
+      normalizedPhone.replace(/^\+/, ''),
+    ];
 
-      for (const phoneKey of phoneVariants) {
-        try {
-          const userDoc = await admin.firestore()
-            .collection("users")
-            .doc(phoneKey)
-            .get();
-          if (userDoc.exists) {
-            firestoreUserData = userDoc.data();
-            firestoreUserPhoneKey = phoneKey;
-            console.log(` loginWithPhone: found Firestore user for ${phoneKey}`);
-            break;
-          }
-        } catch (err) {
-          console.error(`Error reading users/${phoneKey}:`, err);
-        }
-      }
-
-      if (!firestoreUserData) {
-        // Neither Auth nor Firestore → genuine no-account
-        console.log(`ℹ️ loginWithPhone: no account for ${normalizedPhone}`);
-        return {
-          success: false,
-          reason: "no_account",
-        };
-      }
-
-      // --------------------------------------------------
-      // 6. Create Firebase Auth user for this guest
-      //    Uses phone as identifier, links phone, no password.
-      // --------------------------------------------------
+    for (const phoneKey of phoneVariants) {
       try {
-        const newAuthUser = await admin.auth().createUser({
-          phoneNumber: normalizedPhone,
-          email: firestoreUserData.email || undefined,
-          displayName: firestoreUserData.displayName
-            || (firestoreUserData.firstName
-                ? `${firestoreUserData.firstName} ${firestoreUserData.lastName || ''}`.trim()
-                : undefined),
-        });
-        authUser = newAuthUser;
-        console.log(` loginWithPhone: created Auth user ${authUser.uid} for guest ${firestoreUserPhoneKey}`);
-
-        // Optionally copy Firestore data to users/{uid} so dashboard works by uid too.
-        // For now, dashboard uses guestUid = phoneNumber, so we don't strictly need this.
-      } catch (createError) {
-        console.error(" loginWithPhone: createUser error:", createError);
-        throw new HttpsError("internal", "Unable to create account for this phone.");
+        const userDoc = await admin.firestore()
+          .collection("users")
+          .doc(phoneKey)
+          .get();
+        if (userDoc.exists) {
+          firestoreUserData = userDoc.data();
+          firestoreUserPhoneKey = phoneKey;
+          console.log(`✅ loginWithPhone: found Firestore user for ${phoneKey}`);
+          break;
+        }
+      } catch (err) {
+        console.error(`Error reading users/${phoneKey}:`, err);
       }
     }
 
+    // If neither Auth nor Firestore → genuine no-account
+    if (!authUser && !firestoreUserData) {
+      console.log(`ℹ️ loginWithPhone: no account for ${normalizedPhone}`);
+      return {
+        success: false,
+        reason: "no_account",
+      };
+    }
+
+    // --------------------------------------------------
+    // 6. If Auth user missing but Firestore user exists → link or create
+    // --------------------------------------------------
+    if (!authUser && firestoreUserData) {
+      const emailInFirestore = firestoreUserData.email || null;
+
+      // Try to find an existing Auth user by email
+      let existingByEmail = null;
+      if (emailInFirestore) {
+        try {
+          existingByEmail = await admin.auth().getUserByEmail(emailInFirestore);
+          console.log(
+            `loginWithPhone: found existing Auth user by email (${emailInFirestore}) → uid=${existingByEmail.uid}`
+          );
+        } catch (err) {
+          if (err.code === "auth/user-not-found") {
+            existingByEmail = null;
+          } else {
+            console.error("❌ loginWithPhone: getUserByEmail error:", err.code, err.message);
+          }
+        }
+      }
+
+      if (existingByEmail) {
+        try {
+          const updated = await admin.auth().updateUser(existingByEmail.uid, {
+            phoneNumber: normalizedPhone,
+            displayName:
+              existingByEmail.displayName ||
+              firestoreUserData.displayName ||
+              (firestoreUserData.firstName
+                ? `${firestoreUserData.firstName} ${firestoreUserData.lastName || ''}`.trim()
+                : undefined),
+          });
+          authUser = updated;
+          console.log(
+            `loginWithPhone: linked phone ${normalizedPhone} to existing Auth user ${updated.uid} (via email match)`
+          );
+        } catch (linkErr) {
+          console.error("❌ loginWithPhone: failed to link phone to existing user:", linkErr.code, linkErr.message);
+          throw new HttpsError(
+            "failed-precondition",
+            "This email is registered but we couldn't link your phone to it. Please contact support."
+          );
+        }
+      } else {
+        try {
+          const newAuthUser = await admin.auth().createUser({
+            phoneNumber: normalizedPhone,
+            email: emailInFirestore || undefined,
+            displayName:
+              firestoreUserData.displayName ||
+              (firestoreUserData.firstName
+                ? `${firestoreUserData.firstName} ${firestoreUserData.lastName || ''}`.trim()
+                : undefined),
+          });
+          authUser = newAuthUser;
+          console.log(`✅ loginWithPhone: created new Auth user ${authUser.uid}`);
+        } catch (createError) {
+          // Fallback: create WITHOUT email (phone-only)
+          if (
+            createError.code === "auth/email-already-exists" ||
+            createError.code === "auth/email-already-in-use"
+          ) {
+            try {
+              const newAuthUser = await admin.auth().createUser({
+                phoneNumber: normalizedPhone,
+                displayName:
+                  firestoreUserData.displayName ||
+                  (firestoreUserData.firstName
+                    ? `${firestoreUserData.firstName} ${firestoreUserData.lastName || ''}`.trim()
+                    : undefined),
+              });
+              authUser = newAuthUser;
+              console.log(
+                `✅ loginWithPhone: created phone-only Auth user ${authUser.uid} (email was in use)`
+              );
+            } catch (retryErr) {
+              console.error("❌ loginWithPhone: phone-only create failed:", retryErr.code, retryErr.message);
+              throw new HttpsError("internal", "Unable to create account. Please contact support.");
+            }
+          } else {
+            console.error("❌ loginWithPhone: createUser error:", createError.code, createError.message);
+            throw new HttpsError(
+              "internal",
+              `Unable to create account (${createError.code || "unknown"}). Please contact support.`
+            );
+          }
+        }
+      }
+    }
+
+    // --------------------------------------------------
+    // 6b. Derive uid (FIX: was previously undefined)
+    //     authUser is guaranteed non-null here — the both-null case
+    //     already returned earlier with reason: "no_account".
+    // --------------------------------------------------
     const uid = authUser.uid;
 
     // --------------------------------------------------
@@ -976,37 +1084,37 @@ exports.loginWithPhone = onCall(
         .get();
       isAdmin = adminDoc.exists;
     } catch (error) {
-      console.error(" loginWithPhone: admin lookup error:", error);
+      console.error("❌ loginWithPhone: admin lookup error:", error);
       isAdmin = false;
     }
 
     // --------------------------------------------------
-    // 8. Check if user has signed-up events
-    //    Prefer Firestore (phone key), fall back to Auth uid.
+    // 8. Check signedUpEvents — check EVERY likely key
     // --------------------------------------------------
     let hasEvents = false;
     try {
-      const phoneKeyForEvents = firestoreUserPhoneKey || uid;
-      const signedUpSnap = await admin.firestore()
-        .collection("users")
-        .doc(phoneKeyForEvents)
-        .collection("signedUpEvents")
-        .limit(1)
-        .get();
-      hasEvents = !signedUpSnap.empty;
+      const keysToCheck = [
+        firestoreUserPhoneKey,           // phone-keyed guest doc
+        normalizedPhone,                 // phone with +
+        normalizedPhone.replace(/^\+/, ''), // phone without +
+        uid,                             // Auth UID (fallback)
+      ].filter(Boolean);
 
-      // Also check under Auth uid as a fallback
-      if (!hasEvents && phoneKeyForEvents !== uid) {
-        const altSnap = await admin.firestore()
+      for (const key of keysToCheck) {
+        const snap = await admin.firestore()
           .collection("users")
-          .doc(uid)
+          .doc(key)
           .collection("signedUpEvents")
           .limit(1)
           .get();
-        hasEvents = !altSnap.empty;
+        if (!snap.empty) {
+          hasEvents = true;
+          console.log(`✅ loginWithPhone: found signedUpEvents under users/${key}`);
+          break;
+        }
       }
     } catch (error) {
-      console.error(" loginWithPhone: signedUpEvents lookup error:", error);
+      console.error("❌ loginWithPhone: signedUpEvents lookup error:", error);
       hasEvents = false;
     }
 
@@ -1017,11 +1125,11 @@ exports.loginWithPhone = onCall(
     try {
       customToken = await admin.auth().createCustomToken(uid);
     } catch (error) {
-      console.error(" loginWithPhone: createCustomToken error:", error);
+      console.error("❌ loginWithPhone: createCustomToken error:", error);
       throw new HttpsError("internal", "Unable to complete sign-in.");
     }
 
-    console.log(` loginWithPhone: issued token uid=${uid} isAdmin=${isAdmin} hasEvents=${hasEvents}`);
+    console.log(`✅ loginWithPhone: issued token uid=${uid} isAdmin=${isAdmin} hasEvents=${hasEvents}`);
 
     return {
       success: true,
@@ -1029,11 +1137,10 @@ exports.loginWithPhone = onCall(
       isAdmin,
       hasEvents,
       uid,
-      guestUid: firestoreUserPhoneKey || normalizedPhone, // pass phone if we want to reuse guest flow
+      guestUid: firestoreUserPhoneKey || normalizedPhone,
     };
   }
 );
-
 //======================================================== 
 // TWILIO OTP 
 // ======================================================== 
@@ -1092,10 +1199,11 @@ exports.sendTermsSMS = onCall(
   {
     region: "us-central1",
     runtime: "nodejs20",
-    secrets: [
+      secrets: [
       twilioAccountSid,
       twilioAuthToken,
       twilioPhoneNumber,
+      klaviyoApiKey,
     ],
   },
   async (request) => {
@@ -1114,13 +1222,25 @@ exports.sendTermsSMS = onCall(
     );
 
     const message = `Welcome to Circuit! Please review our Terms of Service: https://circuitspeeddating.com/terms-of-service and Privacy Policy: https://circuitspeeddating.com/privacy-policy`;
-
-    try {
+      try {
       await client.messages.create({
         body: message,
         to: phoneNumber,
         from: twilioPhoneNumber.value(),
       });
+
+      // Fetch user email to trigger Klaviyo
+      const db = admin.firestore();
+      const userSnap = await db.collection("users").doc(phoneNumber).get();
+      if (userSnap.exists && userSnap.data().email) {
+        await sendKlaviyoEventForSMS({
+          email: userSnap.data().email,
+          metricName: "Welcome & Terms Sent",
+          properties: { phone: phoneNumber },
+          apiKey: klaviyoApiKey.value().trim()
+        });
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Terms SMS error:', error);
@@ -1143,6 +1263,7 @@ exports.sendPurchaseConfirmation = onCall(
       twilioAccountSid,
       twilioAuthToken,
       twilioPhoneNumber,
+      klaviyoApiKey,
     ],
   },
   async (request) => {
@@ -1159,15 +1280,26 @@ exports.sendPurchaseConfirmation = onCall(
       twilioAccountSid.value(),
       twilioAuthToken.value()
     );
-
-    const message = `⚡You're registered for ${eventTitle}! 📅 ${eventDate || 'TBD'} at ${venue || 'TBD'}, ${city || ''}. Ticket: ${ticketType || 'General'}'s Ticket. View your dashboard: https://circuitspeeddating.com/dashboard`;
-
-    try {
+    const dashboardUrl = `https://circuitspeeddating.com/dashboard/${encodeURIComponent(phoneNumber)}`;
+    const message = `⚡You're registered for ${eventTitle}! 📅 ${eventDate || 'TBD'} at ${venue || 'TBD'}, ${city || ''}. Ticket: ${ticketType || 'General'}'s Ticket. View your dashboard: ${dashboardUrl}`;
+      try {
       await client.messages.create({
         body: message,
         to: phoneNumber,
         from: twilioPhoneNumber.value(),
       });
+
+      const db = admin.firestore();
+      const userSnap = await db.collection("users").doc(phoneNumber).get();
+      if (userSnap.exists && userSnap.data().email) {
+          await sendKlaviyoEventForSMS({
+          email: userSnap.data().email,
+          metricName: "Purchase Confirmation",
+          properties: { eventTitle, eventDate, venue, city, ticketType, dashboardUrl },
+          apiKey: klaviyoApiKey.value().trim()
+        });
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Purchase SMS error:', error);
@@ -1364,7 +1496,7 @@ exports.joinWaitlist = onCall(
             }
           }
 
-          // ✅ Store normalized gender
+          // Store normalized gender
           transaction.set(
             waitlistRef,
             {
@@ -2105,13 +2237,27 @@ await createAdminNotification({
         const claimLink = `${WEB_APP_BASE_URL}/register/${eventSlug}?eventId=${eventId}&gender=${encodeURIComponent(waitlistGender)}&token=${claimToken}&email=${encodeURIComponent(waitlistData.email)}&isClaim=true`;
         const message = `🎉 Great news! A spot opened for ${eventData.title || 'your event'}. Claim it within 2 hours: ${claimLink}`;
         try {
-          await client.messages.create({
+            await client.messages.create({
             body: message,
-            to: promotedPhone,
+            to: phoneNumber,
             from: twilioPhoneNumber.value(),
           });
-          console.log(` SMS sent to ${promotedPhone}`);
-        } catch (smsError) {
+          console.log(` Purchase confirmation SMS sent to ${phoneNumber}`);
+          if (data.email) {
+            await sendKlaviyoEventForSMS({
+              email: data.email,
+              metricName: "Waitlist Spot Claimed",
+              properties: { 
+                eventTitle: eventData.title || eventData.eventName || "Circuit Event",
+                eventDate: eventData.date || 'TBD',
+                venue: eventData.venue || 'TBD',
+                city: eventData.location || '',
+                dashboardUrl: dashboardUrl
+              },
+              apiKey: klaviyoApiKey.value().trim()
+            });
+          }
+        } catch (smsErr) {
           console.error("SMS notification failed:", smsError);
         }
       } else {
@@ -2610,7 +2756,7 @@ exports.send12HourReminder = onSchedule(
     schedule: "every 30 minutes",
     region: "us-central1",
     runtime: "nodejs20",
-    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber, klaviyoApiKey],
   },
   async () => {
     const db = admin.firestore();
@@ -2662,16 +2808,26 @@ exports.send12HourReminder = onSchedule(
 
         const claimLink = `${baseUrl}/event/${eventDoc.id}/selections/${encodeURIComponent(phone)}`;
         const msg = `Don't forget! 12 hours left to make your Circuit selections: ${claimLink}`;
-
-        try {
+          try {
           await client.messages.create({
             body: msg,
             to: phone,
             from: fromNumber,
           });
-          console.log(`✅ 12h reminder sent to ${phone}`);
+          console.log(` 12h reminder sent to ${phone}`);
+          if (a.email) {
+            await sendKlaviyoEventForSMS({
+              email: a.email,
+              metricName: "12 Hour Selection Reminder",
+              properties: { 
+                eventTitle: eventData.title || "Circuit Event",
+                selectionLink: `${WEB_APP_BASE_URL}/event/${eventDoc.id}/selections/${phone}`
+              },
+              apiKey: klaviyoApiKey.value().trim()
+            });
+          }
         } catch (err) {
-          console.error(`❌ 12h reminder failed for ${phone}:`, err);
+          console.error(`12h reminder failed for ${phone}:`, err);
         }
       }
 
@@ -3106,26 +3262,6 @@ exports.addSubscriberToKlaviyo = onCall(
   }
 );
 // ========================================================
-// HELPER: Create admin notification
-// ========================================================
-async function createAdminNotification({ type, eventId, eventTitle, message, data }) {
-  try {
-    const db = admin.firestore();
-    await db.collection('adminNotifications').add({
-      type,
-      eventId,
-      eventTitle,
-      message,
-      data: data || null,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      read: false,
-    });
-    console.log(` Admin notification created: ${type}`);
-  } catch (err) {
-    console.error('Failed to create admin notification:', err);
-  }
-}
-// ========================================================
 // HELPER: Clear latestEventId if it matches
 // ========================================================
 async function clearLatestEventIdIfNeeded(userId, eventId) {
@@ -3158,8 +3294,7 @@ exports.cancelEventRegistration = onCall(
   userPhoneNumber,
   phone,
 } = request.data || {};
-
-    if (!eventId) {
+        if (!eventId) {
       throw new HttpsError("invalid-argument", "Event ID is required.");
     }
 
@@ -3167,8 +3302,59 @@ exports.cancelEventRegistration = onCall(
 
     try {
       // ============================================================
+      // 48-HOUR CANCELLATION WINDOW (server-side, authoritative)
+      // Starts at signUpTime, not event time.
+      // ============================================================
+      if (userId) {
+        try {
+          const signedUpEventRef = db
+            .collection("users")
+            .doc(userId)
+            .collection("signedUpEvents")
+            .doc(eventId);
+
+          const signedUpEventSnap = await signedUpEventRef.get();
+
+          if (signedUpEventSnap.exists) {
+            const suData = signedUpEventSnap.data() || {};
+            const signUpTime = suData.signUpTime;
+
+            let signUpMillis = null;
+            if (signUpTime && typeof signUpTime.toMillis === "function") {
+              signUpMillis = signUpTime.toMillis();
+            } else if (signUpTime instanceof Date) {
+              signUpMillis = signUpTime.getTime();
+            } else if (typeof signUpTime === "number") {
+              signUpMillis = signUpTime;
+            }
+
+            if (signUpMillis) {
+              const hoursSinceSignup =
+                (Date.now() - signUpMillis) / (1000 * 60 * 60);
+
+              console.log(
+                `cancelEventRegistration: ${hoursSinceSignup.toFixed(2)}h since signup for event ${eventId}`
+              );
+
+              if (hoursSinceSignup > 48) {
+                throw new HttpsError(
+                  "failed-precondition",
+                  "Cancellation window closed. You can only cancel within 48 hours of signing up."
+                );
+              }
+            }
+          }
+        } catch (err) {
+          if (err instanceof HttpsError) throw err;
+          console.warn("48h window check failed (non-blocking):", err);
+          // Do NOT block cancellation if we can't read signUpTime.
+        }
+      }
+
+      // ============================================================
       // BUILD IDENTIFIERS
       // ============================================================
+    
       const identifiers = new Set();
 
 if (userId) identifiers.add(String(userId).trim());
@@ -3484,6 +3670,7 @@ exports.claimWaitlistSpot = onCall(
       twilioAccountSid,
       twilioAuthToken,
       twilioPhoneNumber,
+      klaviyoApiKey,
     ],
   },
   async (request) => {
@@ -3604,7 +3791,8 @@ exports.claimWaitlistSpot = onCall(
           const venue = eventData.venue || 'TBD';
           const city = eventData.location || '';
 
-          const confirmMessage = `⚡You're registered for ${eventTitle}! 📅 ${eventDateStr || 'TBD'} at ${venue}, ${city}. Ticket: ${data.gender || 'General'}'s Ticket. View your dashboard: https://circuitspeeddating.com/dashboard`;
+         const dashboardUrl = `https://circuitspeeddating.com/dashboard/${encodeURIComponent(phoneNumber)}`;
+         const message = `⚡You're registered for ${eventTitle}! 📅 ${eventDate || 'TBD'} at ${venue || 'TBD'}, ${city || ''}. Ticket: ${ticketType || 'General'}'s Ticket. View your dashboard: ${dashboardUrl}`;
 
           await client.messages.create({
             body: confirmMessage,
@@ -3627,7 +3815,9 @@ exports.claimWaitlistSpot = onCall(
     }
   }
 );
-
+// ========================================================
+// GENERATE ROUNDS 
+// ========================================================
 exports.generateRounds = onRequest(
   {
     region: "us-central1",
@@ -3635,8 +3825,19 @@ exports.generateRounds = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', 'https://circuitspeeddating.com');
+    // DYNAMIC CORS – accept www, non-www, and localhost
+    const allowedOrigins = [
+      'https://circuitspeeddating.com',
+      'https://www.circuitspeeddating.com',
+      'http://localhost:3000',
+    ];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+      res.set('Access-Control-Allow-Origin', origin);
+    } else {
+      // Fallback so the request doesn't silently fail
+      res.set('Access-Control-Allow-Origin', 'https://www.circuitspeeddating.com');
+    }
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -3669,11 +3870,10 @@ exports.generateRounds = onRequest(
 
       const signedUpSnap = await eventRef.collection('signedUpUsers').get();
 
-      //  FIX: Map attendees with correct gender field and normalise values
+      // Map attendees with correct gender field and normalise values
       const attendees = signedUpSnap.docs.map(doc => {
         const data = doc.data();
         let gender = data.gender || data.userGender || 'Unknown';
-        // Normalise: "Men" → "Male", "Women" → "Female"
         if (gender === 'Men') gender = 'Male';
         else if (gender === 'Women') gender = 'Female';
         return {
@@ -3729,7 +3929,7 @@ exports.generateRounds = onRequest(
         roundsGenerated: roundStartTimes.length,
       });
     } catch (error) {
-      console.error(' generateRounds error:', error);
+      console.error('❌ generateRounds error:', error);
       res.status(500).send({
         error: error.message || 'Internal server error',
       });
@@ -3748,6 +3948,7 @@ exports.computeMatches = onCall(
       twilioAccountSid,
       twilioAuthToken,
       twilioPhoneNumber,
+      klaviyoApiKey,
     ],
   },
   async (request) => {
@@ -3775,7 +3976,7 @@ exports.computeMatches = onCall(
 
     const attendeeSelections = {};
     const allIds = [];
-    attendeesSnap.docs.forEach(doc => {
+    attendeesSnap.docs.forEach((doc) => {
       const data = doc.data();
       attendeeSelections[doc.id] = data.selections || [];
       allIds.push(doc.id);
@@ -3810,6 +4011,7 @@ exports.computeMatches = onCall(
         eventId: eventId,
         mutual: true,
       });
+
       const user1Ref = eventRef.collection('signedUpUsers').doc(match.user1);
       const user2Ref = eventRef.collection('signedUpUsers').doc(match.user2);
       batch.update(user1Ref, {
@@ -3829,6 +4031,9 @@ exports.computeMatches = onCall(
     const baseUrl = WEB_APP_BASE_URL;
 
     for (const match of mutualMatches) {
+      // NOTE: outer try/finally removed — there was no catch, and each Twilio
+      // send below already has its own try/catch. If you want one bad match
+      // not to stop the loop, keep the per-send try/catch blocks as-is.
       try {
         const a1Snap = await eventRef.collection('signedUpUsers').doc(match.user1).get();
         const a2Snap = await eventRef.collection('signedUpUsers').doc(match.user2).get();
@@ -3840,9 +4045,14 @@ exports.computeMatches = onCall(
         const phone1 = a1.phoneNumber || a1.userId;
         const phone2 = a2.phoneNumber || a2.userId;
 
-        const name1 = a1.firstName ? `${a1.firstName} ${(a1.lastName || '').charAt(0)}.` : (a1.userName || 'Your match');
-        const name2 = a2.firstName ? `${a2.firstName} ${(a2.lastName || '').charAt(0)}.` : (a2.userName || 'Your match');
+        const name1 = a1.firstName
+          ? `${a1.firstName} ${(a1.lastName || '').charAt(0)}.`
+          : (a1.userName || 'Your match');
+        const name2 = a2.firstName
+          ? `${a2.firstName} ${(a2.lastName || '').charAt(0)}.`
+          : (a2.userName || 'Your match');
 
+        // ---- Notify user 1 about user 2 ----
         if (phone1) {
           try {
             await twilioClient.messages.create({
@@ -3851,9 +4061,24 @@ exports.computeMatches = onCall(
               from: twilioFrom,
             });
             console.log(` Spark SMS sent to ${phone1}`);
-          } catch (err) { console.error(` Spark SMS failed for ${phone1}:`, err); }
+            if (a1.email) {
+              await sendKlaviyoEventForSMS({
+                email: a1.email,
+                metricName: "New Spark Matched",
+                properties: { 
+                  partnerName: name2, 
+                  eventId: eventId,
+                  messageLink: `${baseUrl}/dashboard/messages/${phone2}/${eventId}`
+                },
+                apiKey: klaviyoApiKey.value().trim()
+              });
+            }
+          } catch (err) {
+            console.error(` Spark SMS failed for ${phone1}:`, err);
+          }
         }
 
+        // ---- Notify user 2 about user 1 ----
         if (phone2) {
           try {
             await twilioClient.messages.create({
@@ -3862,13 +4087,29 @@ exports.computeMatches = onCall(
               from: twilioFrom,
             });
             console.log(` Spark SMS sent to ${phone2}`);
-          } catch (err) { console.error(`Spark SMS failed for ${phone2}:`, err); }
+            if (a2.email) {
+              await sendKlaviyoEventForSMS({
+                email: a2.email,
+                metricName: "New Spark Matched",
+                properties: { 
+                  partnerName: name1, 
+                  eventId: eventId,
+                  messageLink: `${baseUrl}/dashboard/messages/${phone1}/${eventId}`
+                },
+                apiKey: klaviyoApiKey.value().trim()
+              });
+            }
+          } catch (err) {
+            console.error(` Spark SMS failed for ${phone2}:`, err);
+          }
         }
       } catch (err) {
-        console.error('Spark SMS block error:', err);
+        // Guards against a Firestore read failure for one match aborting the
+        // whole loop. Remove this try/catch entirely if you'd rather a match
+        // read failure fail the whole function.
+        console.error(` Spark processing failed for match ${match.user1} ↔ ${match.user2}:`, err);
       }
     }
-
     await eventRef.update({
       matchesComputed: true,
       matchesComputedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -3890,6 +4131,7 @@ exports.autoComputeMatches = onSchedule(
       twilioAccountSid,
       twilioAuthToken,
       twilioPhoneNumber,
+      klaviyoApiKey,
     ],
   },
   async () => {
@@ -4028,7 +4270,7 @@ exports.sendEventSMS = onCall(
       throw new HttpsError('not-found', 'Attendee not found');
     }
     const attendeeData = attendeeSnap.data();
-    const phoneNumber = attendeeData.phoneNumber || attendeeData.userId;
+    const phone = attendeeData.phoneNumber || attendeeData.userId;
     if (!phoneNumber) {
       console.warn(`No phone number for attendee ${attendeeId}`);
       return { success: false, message: 'No phone number' };
@@ -4107,13 +4349,51 @@ exports.sendEventSMS = onCall(
       twilioAccountSid.value(),
       twilioAuthToken.value()
     );
-    try {
+        try {
       await client.messages.create({
         body: smsBody,
         to: phoneNumber,
         from: twilioPhoneNumber.value(),
       });
       console.log(` SMS sent to ${phoneNumber} for type: ${type}`);
+
+      // Map SMS types to Klaviyo metric names
+      const klaviyoMetricMap = {
+        'dayOf': 'Event Day Reminder',
+        'roundStart': 'Round Started',
+        'late': 'Partner Late',
+        'noShow': 'Partner No Show',
+        'roundEnd': 'Round Ended',
+        'nextRound': 'Next Round Started',
+        'eventEnd': 'Event Ended'
+      };
+      if (attendeeData.email && klaviyoMetricMap[type]) {
+        // Map the type to a nice email headline
+        const headlineMap = {
+          'roundStart': `Round ${roundNum} has started!`,
+          'late': `Your date is running late`,
+          'noShow': `Your date hasn't arrived`,
+          'roundEnd': `Round ${roundNum} has ended`,
+          'nextRound': `Next round is starting soon`,
+          'eventEnd': `That's a wrap!`
+        };
+
+        await sendKlaviyoEventForSMS({
+          email: attendeeData.email,
+          metricName: klaviyoMetricMap[type],
+          properties: { 
+            eventTitle, 
+            roundNum, 
+            partnerName,
+            venue: eventData.venue || 'TBD',
+            eventTime: eventData.time || 'Scheduled Time',
+            outfitLink: `${baseUrl}/outfit/${eventId}/${attendeeId}`,
+            headline: headlineMap[type] || 'Event Update',
+            smsBody: smsBody // We pass the exact SMS text so the email matches!
+          },
+          apiKey: klaviyoApiKey.value().trim()
+        });
+      }
     } catch (smsError) {
       console.error(' SMS send error:', smsError);
       return { success: false, error: smsError.message };
@@ -4248,7 +4528,7 @@ exports.sendDayOfSMS = onSchedule(
     schedule: "*/30 * * * *",   
     region: "us-central1",
     runtime: "nodejs20",
-    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber,klaviyoApiKey],
   },
   async () => {
     const db = admin.firestore();
@@ -4304,12 +4584,21 @@ exports.sendDayOfSMS = onSchedule(
           console.log(`📱 Sending SMS to ${phone}`);
           const message = `Tonight's the night! Circuit ${eventData.ageGroup || ''} starts at ${eventData.time || 'scheduled time'} at ${eventData.venue || 'venue'}. Tap here to enter your outfit description: ${WEB_APP_BASE_URL}/outfit/${eventDoc.id}/${attendeeDoc.id}`;
           try {
-            const result = await client.messages.create({
+              const result = await client.messages.create({
               body: message,
               to: phone,
               from: fromNumber,
             });
             console.log(`SMS sent to ${phone}, SID: ${result.sid}`);
+
+            if (attendeeData.email) {
+              await sendKlaviyoEventForSMS({
+                email: attendeeData.email,
+                metricName: "Day of Event SMS Sent",
+                properties: { eventTitle: eventData.title || eventData.eventName },
+                apiKey: klaviyoApiKey.value().trim()
+              });
+            }
           } catch (err) {
             console.error(` Failed to send SMS to ${phone}:`, err);
           }

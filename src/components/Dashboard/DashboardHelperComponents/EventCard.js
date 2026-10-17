@@ -80,7 +80,7 @@ function getDatePartsFromMillis(millis) {
   };
 }
 
-const EventCard = ({ event, type, userGender, onSignUp, datesRemaining, onCancel }) => {
+  const EventCard = ({ event, type, userGender, onSignUp, datesRemaining, onCancel, canCancel = true }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
   const [showMapsMenu, setShowMapsMenu] = useState(false);
   const [joining, setJoining] = useState(false);
@@ -168,7 +168,7 @@ const isQueerAudience = (audience) => {
   const hasNoSpotsForUser = () => {
     if (!userGender || !spotsData) return false;
 
-    // 🔥 NEW: For queer events, check combined spots
+    // For queer events, check combined spots
     if (isQueerAudience(event.audience)) {
       const totalSpots = (spotsData.menSpots || 0) + (spotsData.womenSpots || 0);
       const totalCount = (spotsData.menCount || 0) + (spotsData.womenCount || 0);
@@ -403,54 +403,43 @@ const isQueerAudience = (audience) => {
                   {event.eventType || ''}{event.eventType && timeRange ? ' @ ' : ''}{timeRange}
                 </span>
               </div>
-              
-              {/* 🔥 UPDATED: Spots display – single line for queer events */}
-              <div className="flex flex-col gap-0">
-              {isQueerAudience(event.audience) ? (
-  <div className="text-sm text-gray-600">
-    Open Spots: {
-      Math.max(
-        (spotsData.menSpots || 0) - (spotsData.menCount || 0),
-        0
-      )
-    }/{spotsData.menSpots || 0}
-  </div>
-) : (
-  <>
-    <div className="text-sm text-gray-600">
-      Open Spots for Men: {Math.max(spotsData.menSpots - spotsData.menCount, 0)}/{spotsData.menSpots}
-    </div>
-    <div className="text-sm text-gray-600">
-      Open Spots for Women: {Math.max(spotsData.womenSpots - spotsData.womenCount, 0)}/{spotsData.womenSpots}
-    </div>
-  </>
-)}
-              </div>
             </div>
           </div>
         </div>
 
         {/* Button Logic – Upcoming shows Cancel Registration */}
-        {type === 'upcoming' ? (
-          <button
-            onClick={() => onCancel && onCancel(event.firestoreID)}
-            className="
-              bg-red-500 
-              text-white 
-              font-medium 
-              hover:bg-red-600 
-              transition-colors 
-              text-left
-              rounded-lg
-              py-2 sm:py-2 xl:py-2 2xl:py-2
-              px-6 sm:px-5 xl:px-5 2xl:px-5
-              font-poppins
-              leading-normal
-              text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
-            "
-          >
-            Cancel Registration
-          </button>
+                {type === 'upcoming' ? (
+          canCancel ? (
+            <button
+              onClick={() => onCancel && onCancel(event.firestoreID)}
+              className="
+                bg-red-500 
+                text-white 
+                font-medium 
+                hover:bg-red-600 
+                transition-colors 
+                text-left
+                rounded-lg
+                py-2 sm:py-2 xl:py-2 2xl:py-2
+                px-6 sm:px-5 xl:px-5 2xl:px-5
+                font-poppins
+                leading-normal
+                text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
+              "
+            >
+              Cancel Registration
+            </button>
+          ) : (
+            <p
+              className="
+                text-gray-500 italic
+                font-poppins leading-normal
+                text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]
+              "
+            >
+              Cancellation window closed (48 hours after signup).
+            </p>
+          )
         ) : (
           <button
             disabled={joining || (shouldShowWaitlist && waitlistClicked)}

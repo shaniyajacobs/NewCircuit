@@ -7,7 +7,7 @@ import { db, functions } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 import styles from './Checkout.module.css';
 
-// 🔥 NEW: Queer-aware ticket label
+// Queer-aware ticket label
 const getTicketLabel = (gender) => {
   if (!gender) return 'Ticket';
   const g = gender.toLowerCase();
@@ -57,7 +57,7 @@ const Checkout = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // ✅ PayPal client ID fetched from Firebase secret via Cloud Function
+  // PayPal client ID fetched from Firebase secret via Cloud Function
   const [paypalClientId, setPaypalClientId] = useState(null);
 
   const finalPrice = Math.max(0, (price || 28) - discountAmount);
@@ -70,7 +70,7 @@ const Checkout = () => {
     }
   }, [eventId, navigate]);
 
-  // ✅ Fetch PayPal Client ID from Cloud Function (uses Firebase secret)
+  //Fetch PayPal Client ID from Cloud Function (uses Firebase secret)
   useEffect(() => {
     const cached = localStorage.getItem('paypalClientId');
     if (cached) {
@@ -205,9 +205,9 @@ const Checkout = () => {
             email,
             token,
           });
-          console.log('✅ Waitlist spot claimed successfully');
+          console.log(' Waitlist spot claimed successfully');
         } catch (claimErr) {
-          console.error('❌ Claim error:', claimErr);
+          console.error(' Claim error:', claimErr);
           setError('Failed to claim your waitlist spot. Please contact support.');
           setLoading(false);
           return;
@@ -280,7 +280,7 @@ const Checkout = () => {
   genderLower === 'queer women' ||
   genderLower === 'queer'
 ) {
-  // 🔥 Queer event – decrement BOTH sides (they're stored as the same total)
+  // decrement BOTH sides (they're stored as the same total)
   updateData.menSpots = increment(-1);
   updateData.womenSpots = increment(-1);
   updateData.menSignupCount = increment(1);
@@ -295,7 +295,7 @@ const Checkout = () => {
 // ============================================================
 const userRef = doc(db, 'users', userId);
 
-// 🔥 Check if this is a brand-new user so we can set createdAt once
+// Check if this is a brand-new user so we can set createdAt once
 const existingUserSnap = await getDoc(userRef);
 const isNewUser = !existingUserSnap.exists();
 
@@ -312,7 +312,7 @@ const userUpdate = {
   updatedAt: new Date(),
 };
 
-// 🔥 Only set createdAt the first time
+// Only set createdAt the first time
 if (isNewUser) {
   userUpdate.createdAt = new Date();
 }
@@ -329,17 +329,17 @@ await setDoc(userRef, userUpdate, { merge: true });
         eventTime: time || null,
         eventLocation: city || 'TBD',
         eventAgeRange: ageRange || 'All',
-        // 🔥 UPDATED: queer-aware ticket label
+        //  queer-aware ticket label
         eventType: selectedGender ? getTicketLabel(selectedGender) + " Ticket" : 'General',
         claimedFromWaitlist: isClaim || false,
       }, { merge: true });
 
-      console.log('✅ Event added to signedUpEvents:', eventId);
-      // 🔥 Terms of Service SMS (non-blocking)
+      console.log(' Event added to signedUpEvents:', eventId);
+      // Terms of Service SMS (non-blocking)
 try {
   const sendTerms = httpsCallable(functions, 'sendTermsSMS');
   await sendTerms({ phoneNumber: userPhone || authUser?.phoneNumber || '' });
-  console.log('✅ Terms SMS sent successfully');
+  console.log(' Terms SMS sent successfully');
 } catch (termsError) {
   console.error('Terms SMS failed (non-blocking):', termsError);
 }
@@ -356,7 +356,7 @@ try {
           discountApplied: discountApplied,
           discountAmount: discountAmount,
         });
-        console.log('✅ Purchase SMS sent successfully');
+        console.log(' Purchase SMS sent successfully');
       } catch (smsError) {
         console.error('Purchase SMS failed (non-blocking):', smsError);
       }
@@ -385,7 +385,7 @@ try {
         <div className={styles.card}>
           <h2 className={styles.successTitle}>🎉 Purchase Confirmed!</h2>
           <p className={styles.successText}>You are now registered for <strong>{eventTitle}</strong>.</p>
-          {/* 🔥 UPDATED: queer-aware ticket label */}
+          {/*  queer-aware ticket label */}
           <p className={styles.successText}><strong>Ticket Type:</strong> {getTicketLabel(selectedGender)} Ticket</p>
           {discountApplied && (
             <p className={styles.successText}><strong>Discount Applied:</strong> ${discountAmount} off</p>
@@ -396,10 +396,7 @@ try {
           <p className={styles.successText}><strong>Date:</strong> {formatEventDate()}</p>
           <p className={styles.successText}>A confirmation SMS has been sent to your phone.</p>
           <button
-            onClick={() => {
-              localStorage.setItem('guestUid', savedUserId);
-              navigate('/dashboard', { state: { guestUid: savedUserId } });
-            }}
+            onClick={() => navigate(`/dashboard/${encodeURIComponent(savedUserId)}`)}
             className={styles.primaryBtn}
           >
             Go to Dashboard
@@ -409,7 +406,7 @@ try {
     );
   }
 
-  // =============================================================
+  ///=============================================================
   // Main render
   // =============================================================
   return (
@@ -423,7 +420,7 @@ try {
             <span>Event:</span>
             <span>{eventTitle}</span>
           </div>
-          {/* 🔥 UPDATED: queer-aware ticket label */}
+          {/* UPDATED: queer-aware ticket label */}
           <div className={styles.summaryRow}>
             <span>Ticket Type:</span>
             <span>{getTicketLabel(selectedGender)} Ticket</span>
@@ -477,7 +474,7 @@ try {
             {discountError && <div className={styles.discountError}>{discountError}</div>}
             {discountApplied && (
               <div className={styles.discountSuccess}>
-                ✅ ${discountAmount} off applied!
+                 ${discountAmount} off applied!
               </div>
             )}
           </div>

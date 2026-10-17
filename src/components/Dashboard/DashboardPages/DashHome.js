@@ -20,7 +20,6 @@ import { sortEventsByDate, sortAndFilterUpcomingEvents } from '../../../utils/ev
 import homeSelectMySparks from '../../../images/home_select_my_sparks.jpg';
 import imgNoise from '../../../images/noise.png';
 import homeSeeMySparks from '../../../images/home_see_my_sparks.jpg';
-import homePurchaseMoreDates from '../../../images/home_purchase_more_dates.jpg';
 import { ReactComponent as SmallFlashIcon } from '../../../images/small_flash.svg';
 import filterIcon from '../../../images/setting-4.svg';
 import { markSparkAsRead, isSparkNew, markSparkAsViewed, refreshSidebarNotification } from "../../../utils/notificationManager";
@@ -146,8 +145,14 @@ const DashHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const guestUid = location.state?.guestUid || localStorage.getItem('guestUid');
-
+  // Priority: 1) logged-in user's phone (auth), 2) location.state, 3) localStorage
+const authPhone = auth.currentUser?.phoneNumber;
+const urlParams = new URLSearchParams(location.search);
+const paramsPhone = location.pathname.split('/dashboard/')[1]?.split('/')[0];
+const guestUid = paramsPhone
+  || auth.currentUser?.phoneNumber
+  || location.state?.guestUid
+  || localStorage.getItem('guestUid');
   const [events, setEvents] = useState([]);
   const [firebaseEvents, setFirebaseEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -164,12 +169,12 @@ const DashHome = () => {
   const [hasNewSpark, setHasNewSpark] = useState(false);
   const [checkingNewSparks, setCheckingNewSparks] = useState(false);
   const [hideNewSparksNotification, setHideNewSparksNotification] = useState(false);
-  const [showSelectSparksCard, setShowSelectSparksCard] = useState(false);
   const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
   const [selectingMatches, setSelectingMatches] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [signupTimes, setSignupTimes] = useState({});
 
   const [errorModal, setErrorModal] = useState({
     open: false,
@@ -183,8 +188,21 @@ const DashHome = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelEventId, setCancelEventId] = useState(null);
 
-  // ✅ Cancelled events tombstone (in-memory Set)
+  // Cancelled events tombstone (in-memory Set)
   const [cancelledEventIds, setCancelledEventIds] = useState(new Set());
+  // 🔥 NEW: Keep localStorage in sync with the current logged-in user's phone
+useEffect(() => {
+  const unsub = onAuthStateChanged(auth, (user) => {
+    if (user?.phoneNumber) {
+      localStorage.setItem('guestUid', user.phoneNumber);
+    } else if (!user) {
+      // Only clear if there is no guest session either
+      // (guests are identified by phone, not auth)
+      // Leave localStorage alone for pure guests
+    }
+  });
+  return () => unsub();
+}, []);
 
   const handleCancelClick = (eventId) => {
     setCancelEventId(eventId);
@@ -192,7 +210,7 @@ const DashHome = () => {
   };
 
   // ============================================================
-  // ✅ Tombstone load – handles BOTH array and object formats
+  // Tombstone load – handles BOTH array and object formats
   // ============================================================
   useEffect(() => {
     const userId = guestUid || auth.currentUser?.uid;
@@ -213,9 +231,9 @@ const DashHome = () => {
     });
     return () => unsub();
   }, [guestUid, auth.currentUser?.uid]);
-
+  
   // ============================================================
-  // ✅ performCancelRegistration – idempotent + optimistic + phone-aware
+  // performCancelRegistration – idempotent + optimistic + phone-aware
   // ============================================================
   const performCancelRegistration = async () => {
     if (!cancelEventId) return;
@@ -267,9 +285,22 @@ const DashHome = () => {
           eventFormat: event?.eventFormat || 'in-person',
           eventID: event?.eventID || null,
         });
-        console.log('✅ CF cancellation succeeded');
+       console.log(' CF cancellation succeeded');
       } catch (cfErr) {
-        console.warn('CF cancel error (will do client-side cleanup):', cfErr);
+        console.warn('CF cancel error:', cfErr);
+
+        // If the server refused (e.g. 48h window closed), do NOT fall back to
+        // client-side cleanup. Server is authoritative.
+        if (cfErr && cfErr.code === 'functions/failed-precondition') {
+          setErrorModal({
+            open: true,
+            title: 'Cannot Cancel',
+            message: cfErr.message || 'Cancellation is no longer allowed for this event.',
+          });
+          setShowCancelModal(false);
+          setCancelEventId(null);
+          return;
+        }
 
         // Client-side cleanup – try phone first, then uid
         try {
@@ -283,12 +314,12 @@ const DashHome = () => {
           for (const id of idsToTry) {
             try {
               await deleteDoc(doc(db, 'events', eventIdToCancel, 'signedUpUsers', id));
-              console.log(`✅ Deleted signedUpUsers/${id}`);
+              console.log(` Deleted signedUpUsers/${id}`);
             } catch (e) {
               // ignore – doc might not exist
             }
           }
-          console.log('✅ Client-side cleanup done');
+          console.log(' Client-side cleanup done');
         } catch (cleanupErr) {
           console.warn('Client-side cleanup failed:', cleanupErr);
         }
@@ -426,9 +457,8 @@ const DashHome = () => {
             const fetchedRemaining = typeof data.datesRemaining === 'number'
               ? data.datesRemaining
               : Number(data.datesRemaining);
-            setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
+                        setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
             setUserProfile(data);
-            setShowSelectSparksCard(!!data.latestEventId);
           }
         } catch (err) {
           console.error('Error loading guest data:', err);
@@ -447,9 +477,8 @@ const DashHome = () => {
           const fetchedRemaining = typeof data.datesRemaining === 'number'
             ? data.datesRemaining
             : Number(data.datesRemaining);
-          setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
+                     setDatesRemaining(Number.isFinite(fetchedRemaining) ? fetchedRemaining : 0);
           setUserProfile(data);
-          setShowSelectSparksCard(!!data.latestEventId);
         }
       }
     });
@@ -521,15 +550,20 @@ const DashHome = () => {
     }
     const signedUpRef = collection(db, 'users', userId, 'signedUpEvents');
 
-    const unsubscribe = onSnapshot(signedUpRef, (snapshot) => {
-      const idSet = new Set();
-      snapshot.forEach((doc) => {
-        idSet.add(doc.id);
-      });
-      setSignedUpEventIds(idSet);
-      setSignedUpEventsLoaded(true);
-    });
-
+  const unsubscribe = onSnapshot(signedUpRef, (snapshot) => {
+  const idSet = new Set();
+  const signupTimes = {}; 
+  snapshot.forEach((doc) => {
+    idSet.add(doc.id);
+    const data = doc.data();
+    if (data.signUpTime) {
+      signupTimes[doc.id] = data.signUpTime;
+    }
+  });
+  setSignedUpEventIds(idSet);
+  setSignupTimes(signupTimes); 
+  setSignedUpEventsLoaded(true);
+});
     return () => unsubscribe();
   }, [guestUid]);
 
@@ -1157,13 +1191,9 @@ const DashHome = () => {
     navigate('dashMyConnections');
   };
 
-  const handlePurchaseMoreDatesClick = () => {
-    navigate('/dashboard/dashDateCalendar');
-  };
-
   const signUpEventLimit = useResponsiveEventLimit();
 
-  // ✅ Filter cancelled events + only upcoming events
+  // Filter cancelled events + only upcoming events
   const upcomingEvents = useMemo(() => {
     const filtered = allEvents.filter(event => {
       const isSigned = signedUpEventIds.has(event.firestoreID);
@@ -1191,33 +1221,10 @@ const DashHome = () => {
           <div className="flex flex-col gap-[18px] sm:gap-[24px] xl:gap-[32px] 2xl:gap-[50px]">
 
             <h2 className="font-semibold text-[#211F20] leading-[110%] font-bricolage text-[32px] sm:text-[40px] md:text-[48px]">
-              Welcome back, {userProfile?.firstName}
+                            Welcome back, {userProfile?.firstName}
             </h2>
 
             {pendingSelections.length > 0 && !loadingSelections && (
-              <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
-                <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
-                <div className="absolute inset-0 bg-[#211F20] bg-opacity-10" style={{ background: `linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%), linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%), linear-gradient(0deg, rgba(226,255,101,0.25) 0%, rgba(226,255,101,0.25) 100%)` }} />
-                <div className="relative z-10 flex flex-col items-start p-6">
-                  <span className="flex items-center font-medium text-white leading-[130%] font-bricolage text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px] mb-4">
-                    <SmallFlashIcon className="w-6 h-6 mr-2" />
-                    It's time to select your favourites! Choose up to 3 people from your event.
-                  </span>
-                  {pendingSelections.map((ps) => (
-                    <button
-                      key={ps.eventId}
-                      onClick={() => navigate(`/dashboard/event-selections/${ps.eventId}`)}
-                      className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition hover:bg-[#d4f85a] mr-2"
-                    >
-                      Select for {ps.eventTitle}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {showSelectSparksCard && (
               <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center">
                 <img src={homeSelectMySparks} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
@@ -1229,20 +1236,22 @@ const DashHome = () => {
                       linear-gradient(0deg, rgba(226,255,101,0.25) 0%, rgba(226,255,101,0.25) 100%)
                     `
                   }}/>
-                <div className="relative z-10 flex flex-col items-start p-6">
+                  <div className="relative z-10 flex flex-col items-start p-6">
                   <span className="flex items-center font-medium text-white leading-[130%] font-bricolage text-[14px] sm:text-[16px] lg:text-[20px] 2xl:text-[24px] mb-4">
                     <SmallFlashIcon className="w-6 h-6 mr-2" />
                     You just went on a date! Choose up to 3 connections. We'll let you know if the spark is mutual.
                   </span>
-                  <button
-                    onClick={handleMatchesClick}
-                    disabled={selectingMatches}
-                    className={`bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition ${
-                      selectingMatches ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#d4f85a]'
-                    }`}
-                  >
-                    {selectingMatches ? 'Loading…' : 'Select My Connections'}
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    {pendingSelections.map((ps) => (
+                      <button
+                        key={ps.eventId}
+                        onClick={() => navigate(`/dashboard/event-selections/${ps.eventId}`)}
+                        className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none transition hover:bg-[#d4f85a]"
+                      >
+                        Select for {ps.eventTitle}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -1278,11 +1287,11 @@ const DashHome = () => {
               </div>
             )}
 
-            {/* Upcoming Events Section */}
+            {/* My Upcoming Events Section */}
             <div>
               <div className="flex bg-white justify-between items-center mb-6">
                 <h6 className="font-medium text-[#211F20] leading-[100%] font-bricolage text-[18px] md:text-[20px] xl:text-[28px] 2xl:text-[32px] mt-4">
-                  Upcoming Events
+                 My Upcoming Events
                 </h6>
                 <div className="flex items-center gap-2 sm:gap-2 md:gap-3 lg:gap-4">
                   <button
@@ -1298,17 +1307,27 @@ const DashHome = () => {
               </div>
 
               <div className="grid gap-4 sm:gap-4 md:gap-5 lg:gap-6 bg-white rounded-xl w-full grid-cols-1 md:grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 auto-rows-fr">
-                {(upcomingEvents.slice(0, 6)).map((event) => (
-                  <EventCard
-                    key={event.firestoreID}
-                    event={event}
-                    type="upcoming"
-                    userGender={userGender}
-                    datesRemaining={datesRemaining}
-                    isSignedUp={true}
-                    onCancel={handleCancelClick}
-                  />
-                ))}
+                {upcomingEvents.slice(0, 6).map((event) => {
+  const signUpTime = signupTimes[event.firestoreID];
+  let canCancel = false;
+  if (signUpTime) {
+    const signUpMillis = signUpTime.toMillis ? signUpTime.toMillis() : new Date(signUpTime).getTime();
+    const hoursSinceSignup = (Date.now() - signUpMillis) / (1000 * 60 * 60);
+    canCancel = hoursSinceSignup < 48;
+  }
+  return (
+    <EventCard
+      key={event.firestoreID}
+      event={event}
+      type="upcoming"
+      userGender={userGender}
+      datesRemaining={datesRemaining}
+      isSignedUp={true}
+      onCancel={handleCancelClick}
+      canCancel={canCancel} 
+    />
+  );
+})}
                 {loading && (
                   <div className="col-span-full flex items-center justify-center w-full p-8">
                     <div className="text-lg text-gray-600">Loading events...</div>
@@ -1329,27 +1348,38 @@ const DashHome = () => {
                       <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowAllUpcoming(false)}>&times;</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {upcomingEvents.map((event) => (
-                        <EventCard
-                          key={event.firestoreID}
-                          event={event}
-                          type="upcoming"
-                          userGender={userGender}
-                          datesRemaining={datesRemaining}
-                          onCancel={handleCancelClick}
-                        />
-                      ))}
+                     {upcomingEvents.slice(0, 6).map((event) => {
+  const signUpTime = signupTimes[event.firestoreID];
+  let canCancel = false;
+  if (signUpTime) {
+    const signUpMillis = signUpTime.toMillis ? signUpTime.toMillis() : new Date(signUpTime).getTime();
+    const hoursSinceSignup = (Date.now() - signUpMillis) / (1000 * 60 * 60);
+    canCancel = hoursSinceSignup < 48;
+  }
+  return (
+    <EventCard
+      key={event.firestoreID}
+      event={event}
+      type="upcoming"
+      userGender={userGender}
+      datesRemaining={datesRemaining}
+      isSignedUp={true}
+      onCancel={handleCancelClick}
+      canCancel={canCancel} 
+    />
+  );
+})}
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Sign-Up for Dates Section */}
+            {/* Future Events Section */}
             <div>
               <div className="flex justify-between items-center mb-6">
                 <h6 className="font-medium text-[#211F20] leading-none font-bricolage text-[18px] md:text-[20px] xl:text-[28px] 2xl:text-[32px]">
-                  Sign-Up for Dates
+                  Future Events
                 </h6>
                 <div className="flex items-center gap-2 sm:gap-2 md:gap-3 lg:gap-4">
                   <button
@@ -1363,28 +1393,6 @@ const DashHome = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="relative w-full rounded-2xl overflow-hidden min-h-[103px] flex items-center mb-6">
-                <img src={homePurchaseMoreDates} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                <img src={imgNoise} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ mixBlendMode: 'soft-light' }} />
-                <div className="absolute inset-0 bg-[#211F20] bg-opacity-10"
-                  style={{
-                    background: `
-                      linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.50) 100%),
-                      linear-gradient(0deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.30) 100%),
-                      linear-gradient(0deg, rgba(226,255,101,0.25) 0%, rgba(226,255,101,0.25) 100%)
-                    `
-                  }}/>
-                <div className="relative z-10 flex flex-col items-start p-6">
-                  <button
-                    onClick={handlePurchaseMoreDatesClick}
-                    className="bg-[#E2FF65] text-[#211F20] font-semibold rounded-md px-6 py-2 text-base shadow-none hover:bg-[#d4f85a] transition"
-                  >
-                    Purchase more dates
-                  </button>
-                </div>
-              </div>
-
               <div className="grid gap-4 sm:gap-4 md:gap-5 lg:gap-6 bg-white rounded-xl w-full grid-cols-1 md:grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 auto-rows-fr">
                 {loading ? (
                   <div className="col-span-full flex items-center justify-center w-full p-8">
@@ -1416,16 +1424,27 @@ const DashHome = () => {
                       <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowAllSignUp(false)}>&times;</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {upcomingSignupEvents.map((event) => (
-                        <EventCard
-                          key={event.firestoreID}
-                          event={event}
-                          type="signup"
-                          userGender={userGender}
-                          datesRemaining={datesRemaining}
-                          onSignUp={() => handleSignUp(event)}
-                        />
-                      ))}
+                     {upcomingEvents.slice(0, 6).map((event) => {
+  const signUpTime = signupTimes[event.firestoreID];
+  let canCancel = false;
+  if (signUpTime) {
+    const signUpMillis = signUpTime.toMillis ? signUpTime.toMillis() : new Date(signUpTime).getTime();
+    const hoursSinceSignup = (Date.now() - signUpMillis) / (1000 * 60 * 60);
+    canCancel = hoursSinceSignup < 48;
+  }
+  return (
+    <EventCard
+      key={event.firestoreID}
+      event={event}
+      type="upcoming"
+      userGender={userGender}
+      datesRemaining={datesRemaining}
+      isSignedUp={true}
+      onCancel={handleCancelClick}
+      canCancel={canCancel}
+    />
+  );
+})}
                     </div>
                   </div>
                 </div>

@@ -79,11 +79,12 @@ const Sidebar = () => {
       ),
       cName: "nav-text",
     },
-    {
+     {
       title: "Personality Quiz",
       path: "/quiz-start",
       icon: <FaBrain className="w-5 h-5" />,
       cName: "nav-text",
+      state: { from: 'dashboard' },
     },
     {
       title: "My Profile",
@@ -249,8 +250,8 @@ const Sidebar = () => {
         <div className="pt-6 flex-1 overflow-y-auto">
           <div className="flex flex-col gap-2">
             {SidebarData.slice(0, -2).map((item, index) => (
-              <Link key={item.path || index} to={item.path} className="w-full">
-                <div className={`flex items-center justify-between w-full px-4 py-3 text-lg rounded-xl transition-all cursor-pointer duration-200 text-slate-500 border
+              <Link key={item.path || index} to={item.path} state={item.state} className="w-full">
+           <div className={`flex items-center justify-between w-full px-4 py-3 text-lg rounded-xl transition-all cursor-pointer duration-200 text-slate-500 border
                   ${location.pathname === item.path
                     ? "bg-[#1C50D81A] border-[#1C50D840] text-[#1C50D8]"
                     : "border-transparent hover:bg-[#F5F7FB] hover:text-[#1C50D8] hover:border-[#1C50D840]"
@@ -423,7 +424,7 @@ const Sidebar = () => {
                       <span>{item.title}</span>
                     </button>
                   ) : (
-                    <Link to={item.path} onClick={() => setShowTabletMenu(false)}>
+                   <Link to={item.path} state={item.state} onClick={() => setShowTabletMenu(false)}>
                       <div
                         className={`flex gap-4 items-center px-4 py-3 text-lg rounded-xl transition-all cursor-pointer duration-[0.2s] text-slate-500 border
                           ${location.pathname === item.path
