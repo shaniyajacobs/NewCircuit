@@ -55,15 +55,23 @@ const Header = (props) => {
     });
     return () => unsubscribe();
   }, []);
-
 const getUserData = async () => {
-  if (!user) return;
-
   try {
-    // 🔥 Prefer phone number as identifier; fall back to email
-    const phone = user.phoneNumber;
-    const guestUid = phone || localStorage.getItem('guestUid');
+    //  Check URL parameter FIRST (e.g., /dashboard/+26657142533)
+    const paramsPhone = location.pathname.split('/dashboard/')[1]?.split('/')[0];
+    
+    // Fallbacks in order of priority
+    const guestUid = paramsPhone 
+      || location.state?.guestUid 
+      || user?.phoneNumber 
+      || localStorage.getItem('guestUid');
 
+    // 3. If we have no identifier at all, stop.
+    if (!guestUid && !user?.email) {
+      setUserData(null);
+      setIsLoading(false);
+      return;
+    }
     let userDocRef;
     if (guestUid) {
       userDocRef = doc(db, 'users', guestUid);

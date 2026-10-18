@@ -4533,10 +4533,10 @@ exports.sendDayOfSMS = onSchedule(
   async () => {
     const db = admin.firestore();
     const now = Date.now();
-    const threeHoursLater = now + 3 * 60 * 60 * 1000;
+    const twoHoursLater = now + 2 * 60 * 60 * 1000; 
     const startWindow = 15 * 60 * 1000;
-    const lowerBound = threeHoursLater - startWindow;
-    const upperBound = threeHoursLater + startWindow;
+    const lowerBound = twoHoursLater - startWindow;
+    const upperBound = twoHoursLater + startWindow; 
 
     const eventsSnapshot = await db
       .collection('events')
@@ -4582,7 +4582,17 @@ exports.sendDayOfSMS = onSchedule(
             continue;
           }
           console.log(`📱 Sending SMS to ${phone}`);
-          const message = `Tonight's the night! Circuit ${eventData.ageGroup || ''} starts at ${eventData.time || 'scheduled time'} at ${eventData.venue || 'venue'}. Tap here to enter your outfit description: ${WEB_APP_BASE_URL}/outfit/${eventDoc.id}/${attendeeDoc.id}`;
+                    // Format the time properly (handles both timestamp and string)
+          let timeString = eventData.time;
+          if (!timeString && eventData.startTime) {
+            const ts = eventData.startTime.toMillis ? eventData.startTime.toMillis() : eventData.startTime;
+            timeString = new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          }
+          if (!timeString) timeString = 'the scheduled time';
+
+          const venueString = eventData.venue || eventData.location || 'the venue';
+
+          const message = `The time is here! Circuit event starts at ${timeString} at ${venueString}. Tap here to enter your outfit description: ${WEB_APP_BASE_URL}/outfit/${eventDoc.id}/${attendeeDoc.id}`;
           try {
               const result = await client.messages.create({
               body: message,
@@ -4612,5 +4622,56 @@ exports.sendDayOfSMS = onSchedule(
     }
 
     console.log(`sendDayOfSMS completed. ${count} events processed.`);
+  }
+);
+// ========================================================
+// AUTO-GENERATE ROUNDS (Runs every 15 minutes)
+// ========================================================
+exports.autoGenerateRounds = onSchedule(
+  {
+    schedule: "every 15 minutes",
+    region: "us-central1",
+    runtime: "nodejs20",
+  },
+  async () => {
+    const db = admin.firestore();
+    const now = Date.now();
+    // Look for events starting in the next 2 hours
+    const twoHoursFromNow = now + 2 * 60 * 60 * 1000;
+
+    try {
+      // 1. Find events that haven't started yet
+      const eventsSnapshot = await db
+        .collection("events")
+        .where("status", "==", "upcoming") // or "live" depending on your setup
+        .get();
+
+      for (const eventDoc of eventsSnapshot.docs) {
+        const eventData = eventDoc.data();
+        const startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
+
+        if (!startTime) continue;
+
+        // 2. If the event is starting in less than 2 hours, and rounds aren't generated yet...
+        const needsRounds = !eventData.roundStartTimes || eventData.roundStartTimes.length === 0;
+        
+        if (startTime <= twoHoursFromNow && needsRounds) {
+          console.log(`🤖 Auto-generating rounds for upcoming event: ${eventDoc.id}`);
+          
+          // Trigger your existing HTTP function internally
+          const generateRoundsUrl = "https://us-central1-circuit-eb73c.cloudfunctions.net/generateRounds";
+          
+          await fetch(generateRoundsUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ eventId: eventDoc.id }),
+          });
+          
+          console.log(`✅ Auto-generated rounds for ${eventDoc.id}`);
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error in autoGenerateRounds:", error);
+    }
   }
 );

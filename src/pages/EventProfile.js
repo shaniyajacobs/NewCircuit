@@ -80,13 +80,16 @@ const EventProfile = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
+      
+      // ONLY fetch by Auth UID if there is NO phoneNumber passed in the URL/state.
+      // If a phoneNumber is passed, we are registering a guest and shouldn't load the logged-in user's data.
+      if (currentUser && !phoneNumber) {
         await fetchUserData(currentUser.uid);
       }
     });
     return () => unsubscribe();
-  }, []);
-// Auto-skip for returning users
+  }, [phoneNumber]); // Added phoneNumber to dependency array
+  // Auto-skip for returning users
 useEffect(() => {
   if (!phoneNumber) return;
   if (isClaim) return; // claims already go through their own flow

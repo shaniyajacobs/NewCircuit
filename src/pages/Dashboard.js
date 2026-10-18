@@ -17,6 +17,10 @@ import SeeAllMatches from "../components/Dashboard/DashboardPages/SeeAllMatches"
 import DashPaymentHistory from "../components/Dashboard/DashboardPages/DashPaymentHistory";
 import MatchmakingTest from "../components/Dashboard/DashboardPages/MatchmakingTest";
 import DashOrderConfirmation from "../components/Dashboard/DashboardPages/DashOrderConfirmation";
+import MySparks from "../components/Dashboard/DashboardPages/MySparks";
+import Messages from "../components/Dashboard/DashboardPages/Messages";
+import RoundSchedule from "../components/Dashboard/DashboardPages/RoundSchedule";
+import EventSelections from "../components/Dashboard/DashboardPages/EventSelections";
 
 import SignOut from "../components/Dashboard/DashboardPages/SignOut";
 
@@ -71,9 +75,16 @@ const Dashboard = () => {
           onBackToConnections={handleBackToConnections}
         />
           <Routes>
+            
             <Route path="/" element={<DashHome />}/> 
-            <Route path="dashMyConnections" element={
-              <DashMyConnections 
+            <Route path=":phone" element={<DashHome />} /> 
+
+            <Route path="mysparks" element={<MySparks />} />
+            <Route path="messages/:partnerId/:eventId" element={<Messages />} />
+            <Route path="event-schedule/:eventId" element={<RoundSchedule />} />
+            <Route path="event-selections/:eventId" element={<EventSelections />} />
+
+            <Route path="dashMyConnections" element={              <DashMyConnections 
                 ref={connectionsRef}
                 onConnectionSelect={setActiveConnection}
                 onConnectionDeselect={() => setActiveConnection(null)}
