@@ -140,19 +140,20 @@ async function emailsToUserIds(emails) {
   }
   return userIds;
 }
-
 const DashHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Priority: 1) logged-in user's phone (auth), 2) location.state, 3) localStorage
-const authPhone = auth.currentUser?.phoneNumber;
-const urlParams = new URLSearchParams(location.search);
+  // 1. Check the URL first (e.g., /dashboard/+26657142533)
+  const pathParts = location.pathname.split('/');
+  const urlPhone = pathParts[1] === 'dashboard' && pathParts[2] && pathParts[2].startsWith('+') 
+    ? decodeURIComponent(pathParts[2]) 
+    : null;
+// Priority: 1) URL parameter, 2) location.state, 3) logged-in user, 4) localStorage
 const paramsPhone = location.pathname.split('/dashboard/')[1]?.split('/')[0];
-const guestUid = paramsPhone
-  || auth.currentUser?.phoneNumber
-  || location.state?.guestUid
-  || localStorage.getItem('guestUid');
+const guestUid = paramsPhone || location.state?.guestUid || auth.currentUser?.phoneNumber || localStorage.getItem('guestUid');
+  // DEBUG: browser console to verify it picks the right number!
+  console.log("🔍 DashHome is using guestUid:", guestUid);
   const [events, setEvents] = useState([]);
   const [firebaseEvents, setFirebaseEvents] = useState([]);
   const [loading, setLoading] = useState(true);

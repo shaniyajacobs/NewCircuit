@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 import {
   doc,
@@ -9,7 +9,7 @@ import {
 import { db, storage } from "../../../firebaseConfig";
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import ImageUploading from 'react-images-uploading';
-import { IoPersonCircle, IoLocationSharp, IoCameraOutline } from 'react-icons/io5';
+import { IoPersonCircle, IoLocationSharp, IoCameraOutline, IoChevronBack } from 'react-icons/io5';
 import { formatUserName } from "../../../utils/nameFormatter";
 
 // Utility function to format a JavaScript Date to MM/DD/YYYY
@@ -22,6 +22,7 @@ const formatDate = (date) => {
 
 const DashMyProfile = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const auth = getAuth();
   const authUser = auth.currentUser;
   const authPhone = authUser?.phoneNumber;
@@ -249,7 +250,30 @@ const DashMyProfile = () => {
       alignSelf: 'stretch',
       background: 'transparent'
     }}>
-      <div className="flex flex-col items-start pt-8 pr-20 pb-7 pl-8 w-full rounded-3xl max-md:px-5 max-sm:px-4">
+            <div className="flex flex-col items-start pt-8 pr-20 pb-7 pl-8 w-full rounded-3xl max-md:px-5 max-sm:px-4">
+        
+        {/* Back Button */}
+        <button
+          onClick={() => navigate('/dashboard')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'none',
+            border: 'none',
+            color: 'var(--Raisin_Black, #211F20)',
+            fontFamily: '"Bricolage Grotesque"',
+            fontSize: '16px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            marginBottom: '16px',
+            padding: '0'
+          }}
+        >
+          <IoChevronBack size={20} />
+          Back to Dashboard
+        </button>
+
         {/* Main My Profile Title */}
         <h1 style={{
           alignSelf: 'stretch',

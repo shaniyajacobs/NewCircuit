@@ -185,31 +185,13 @@ function AppContent() {
         <Route path="/event/:eventId/night/:phone" element={<EventNight />} />
         <Route path="/event/:eventId/selections/:phone" element={<EventSelections />} />
         <Route path="/verify-login-otp" element={<VerifyLoginOTP />} />
-        <Route path="/dashboard/*" element={
+          <Route path="/dashboard/*" element={
           <PrivateRoute>
             <Elements stripe={stripePromise}>
               <Dashboard />
             </Elements>
           </PrivateRoute>
         } />
-        <Route path="/dashboard/event-selections/:eventId" element={<PrivateRoute><EventSelections /></PrivateRoute>} />
-        <Route path="/dashboard/mysparks" element={<PrivateRoute><MySparks /></PrivateRoute>} />
-        <Route path="/dashboard/messages/:partnerId/:eventId" element={<PrivateRoute><Messages /></PrivateRoute>} />
-        <Route path="/dashboard/event-schedule/:eventId" element={<PrivateRoute><RoundSchedule /></PrivateRoute>} />
-
-        
-        <Route path="/dashboard/myMatches" element={<PrivateRoute><div>MyMatches</div></PrivateRoute>} />
-        <Route path="/dashboard/seeAllMatches" element={<PrivateRoute><div>SeeAllMatches</div></PrivateRoute>} />
-        <Route path="/dashboard/dashMyConnections" element={<PrivateRoute><div>DashMyConnections</div></PrivateRoute>} />
-        <Route path="/dashboard/dashDateCalendar" element={<PrivateRoute><div>DashDateCalendar</div></PrivateRoute>} />
-        <Route path="/dashboard/dashCheckout" element={<PrivateRoute><div>DashCheckout</div></PrivateRoute>} />
-        <Route path="/dashboard/dashMyProfile" element={<PrivateRoute><DashMyProfile /></PrivateRoute>} />
-        <Route path="/dashboard/dashSettings" element={<PrivateRoute><DashSettings /></PrivateRoute>} />
-        <Route path="/dashboard/dashChangePassword" element={<PrivateRoute><DashChangePassword /></PrivateRoute>} />
-        <Route path="/dashboard/dashDeleteAccount" element={<PrivateRoute><DashDeleteAccount /></PrivateRoute>} />
-        <Route path="/dashboard/dashDeactivateAccount" element={<PrivateRoute><DashDeactivateAccount /></PrivateRoute>} />
-        <Route path="/dashboard/dashPaymentHistory" element={<PrivateRoute><DashPaymentHistory /></PrivateRoute>} />
-        
       </Routes>
     </ScrollToTop>
   );
