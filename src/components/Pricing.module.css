@@ -64,6 +64,8 @@
     align-self: stretch;
     overflow: visible; 
     position: relative;
+    flex-shrink: 0; /* Prevent shrinking */
+    flex-grow: 0; /* Prevent growing */
 }
 .upperContent {
     display: flex;
@@ -280,12 +282,6 @@
     line-height: 110%; /* 22px */
 }
 
-.toggleBackgroundInverted {
-  background: var(--Mindaro, #E2FF65);
-}
-.toggleButtonInverted {
-  background: var(--Raisin_Black, #211F20);
-}
 @media (min-width: 2560px) {
   :root {
     --H2: 48px;
@@ -393,7 +389,7 @@
     --Pricing-Image-Height: 75px;
     --toggle-background-width: 40px;
     --toggle-background-height: 24px;
-    --Card-Width: 696px;
+    --Card-Width: 320px;
   }
   .bundleCard {
     --Card-Height: 445px;
@@ -407,6 +403,16 @@
   .PricingImageWrapper {
     padding-top: 10px;
     margin-bottom: 40px;
+  }
+  .container {
+    width: 100%;
+    padding-left: var(--Sec-LeftRight-S);
+    padding-right: var(--Sec-LeftRight-S);
+  }
+  .cardsContainer {
+    max-width: 100%;
+    justify-content: center;
+    align-items: center;
   }
 }
 @media (max-width: 744px) {

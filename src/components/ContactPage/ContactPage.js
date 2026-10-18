@@ -1,16 +1,29 @@
 import React, { useState } from 'react';
 import styles from './ContactPage.module.css';
+import { functions } from '../../firebaseConfig';
+import { httpsCallable } from 'firebase/functions';
 
 const ContactPage = () => {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '', compliance: false });
+  const [modal, setModal] = useState({ open: false, success: true });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
+
+    try {
+      const sendContactEmail = httpsCallable(functions, 'sendContactEmail');
+      await sendContactEmail(form);
+      setForm({ name: '', email: '', phone: '', message: '', compliance: false });
+      setModal({ open: true, success: true });
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      setModal({ open: true, success: false });
+    }
   };
 
   return (
@@ -58,7 +71,49 @@ const ContactPage = () => {
               rows={6}
               required
             />
-            <button className={styles.sendButton} type="submit">
+            <div className={styles.checkboxContainer}>
+              <input
+                className={styles.complianceCheckbox}
+                type="checkbox"
+                name="compliance"
+                id="compliance"
+                checked={form.compliance}
+                onChange={handleChange}
+                required
+              />
+              <label htmlFor="compliance" className={styles.checkboxLabel}>
+                I agree to the{' '}
+                <a href="/terms-of-service#intro" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                  conditions of use
+                </a>
+                {' '}, {' '}
+                <a href="/terms-of-service#sms" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                  SMS terms of service
+                </a>
+                {' '}and{' '}
+                <a href="/terms-of-service#privacy" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                  privacy policy
+                </a>
+              </label>
+            </div>
+            <div className={styles.smsDisclosure}>
+              <p>
+                By checking this box you agree to receive SMS messages from Circuit, including verification codes, event confirmations, real-time round updates, waitlist alerts, booking confirmations, event reminders, account notifications, and customer care. Message frequency varies. Message &amp; data rates may apply. Reply STOP to any message to opt out. Message HELP for help. View our{' '}
+                <a href="https://www.circuitspeeddating.com/terms-of-service#privacy" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                  Privacy Policy
+                </a>{' '}
+                and our{' '}
+                <a href="https://www.circuitspeeddating.com/terms-of-service#intro" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                  Terms and Conditions
+                </a>
+                . Circuit LLC does not share mobile numbers or opt-in data with third parties.
+              </p>
+            </div>
+            <button
+              className={`${styles.sendButton} ${!form.compliance ? styles.sendButtonDisabled : ''}`}
+              type="submit"
+              disabled={!form.compliance}
+            >
               <span className={styles.sendButtonText}>Send</span>
             </button>
           </div>
@@ -72,13 +127,33 @@ const ContactPage = () => {
         >
           <div className={styles.contactInfoMobile}>
             <div className={styles.getInTouch}>GET IN TOUCH</div>
-            <div className={styles.email}>hello@circuit.com</div>
-            <div className={styles.phone}>+514.514.5144</div>
+            <div className={styles.email}>contact@circuitspeeddating.com</div>
+            <div className={styles.phone}>+510.903.7210</div>
           </div>
         </div>
       </div>
+      {modal.open && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalTitle}>
+              {modal.success ? 'Message Sent!' : 'Something went wrong'}
+            </div>
+            <div className={styles.modalMessage}>
+              {modal.success
+                ? 'Thank you for reaching out – we’ll be in touch shortly.'
+                : 'Sorry, we could not send your message. Please try again later.'}
+            </div>
+            <button
+              className={styles.modalButton}
+              onClick={() => setModal({ ...modal, open: false })}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default ContactPage; 
+export default ContactPage;

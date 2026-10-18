@@ -15,8 +15,9 @@
   --card-padding: 24px;
   --card-image-height: 278px;
   --card-text-height: 172px;
+  --card2-text-height: 190px;   /* special for card 2 - slightly taller */
   --card3-image-height: 254px;   /* special for card 3 */
-  --card3-text-height: 196px;    /* special for card 3 */
+  --card3-text-height: 190px;    /* same as card 2 for uniform height */
   --stepnum-font: 16px;
   --card-desc-font: 16px;
   --h2: 48px;
@@ -80,7 +81,8 @@
 }
 
 .stepcard {
-  width: var(--card-maxwidth);
+  width: 100%;
+  max-width: var(--card-maxwidth); /* allows it to shrink on small screens */
   height: var(--card-total-height);
   border-radius: var(--card-radius);
   border: var(--card-border-width) solid #211F20;
@@ -126,7 +128,7 @@
   border-top-left-radius: var(--card-radius);
   border-top-right-radius: var(--card-radius);
   overflow: hidden;
-  border: var(--card-border-width) solid #211F20;
+  
 }
 
 .stepcardContent {
@@ -323,8 +325,8 @@
     --section-bottom: 50px;
     --section-side: 24px;
     --section-minheight: 350px;
-    --card-maxwidth: 696px;
-    --card-minwidth: 696px;
+    --card-maxwidth: 100%;
+    --card-minwidth: 0;
     --cards-row-maxwidth: 800px;
     --card-radius: 10px;
     --card-border-width: 1px;
@@ -356,8 +358,8 @@
   }
   .howitworks-card-wrapper {
     width: 100% !important;
-    min-width: unset !important;
-    max-width: var(--card-maxwidth) !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     margin-bottom: var(--gap-m);
   }
   .howitworksBtn {
@@ -392,8 +394,8 @@
     --section-bottom: 32px;
     --section-side: 16px;
     --section-minheight: 250px;
-    --card-maxwidth: 358px;
-    --card-minwidth: 358px;
+    --card-maxwidth: 100%;
+    --card-minwidth: 0;
     --cards-row-maxwidth: 350px;
     --card-radius: 8px;
     --card-padding: 16px;
