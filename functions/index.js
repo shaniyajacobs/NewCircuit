@@ -1267,7 +1267,7 @@ exports.sendPurchaseConfirmation = onCall(
     ],
   },
   async (request) => {
-    const { phoneNumber, eventTitle, eventDate, venue, city, ticketType } = request.data;
+        const { phoneNumber, eventTitle, eventDate, venue, city, ticketType, email } = request.data;
 
     if (!phoneNumber || !eventTitle) {
       throw new functions.https.HttpsError(
@@ -1288,16 +1288,39 @@ exports.sendPurchaseConfirmation = onCall(
         to: phoneNumber,
         from: twilioPhoneNumber.value(),
       });
+      // 1. Try to use the email passed from the frontend
+      let targetEmail = email;
+      let targetName = "there";
 
-      const db = admin.firestore();
-      const userSnap = await db.collection("users").doc(phoneNumber).get();
-      if (userSnap.exists && userSnap.data().email) {
-          await sendKlaviyoEventForSMS({
-          email: userSnap.data().email,
+      // 2. If no email passed, look it up in Firestore
+      if (!targetEmail) {
+        const db = admin.firestore();
+        const userSnap = await db.collection("users").doc(phoneNumber).get();
+        if (userSnap.exists) {
+          targetEmail = userSnap.data().email;
+          targetName = userSnap.data().firstName || "there";
+        }
+      }
+
+      // 3. Send to Klaviyo if we have an email
+      if (targetEmail) {
+        console.log(`Sending Purchase Confirmation Klaviyo event to ${targetEmail}`);
+        await sendKlaviyoEventForSMS({
+          email: targetEmail,
           metricName: "Purchase Confirmation",
-          properties: { eventTitle, eventDate, venue, city, ticketType, dashboardUrl },
+          properties: { 
+            eventTitle, 
+            eventDate, 
+            venue, 
+            city, 
+            ticketType, 
+            dashboardUrl,
+            first_name: targetName 
+          },
           apiKey: klaviyoApiKey.value().trim()
         });
+      } else {
+        console.warn(`No email found for ${phoneNumber}. Skipping Klaviyo event.`);
       }
 
       return { success: true };
