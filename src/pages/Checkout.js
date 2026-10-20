@@ -355,6 +355,7 @@ try {
           ticketType: selectedGender || 'General',
           discountApplied: discountApplied,
           discountAmount: discountAmount,
+          email: email || authUser?.email || '', 
         });
         console.log(' Purchase SMS sent successfully');
       } catch (smsError) {
