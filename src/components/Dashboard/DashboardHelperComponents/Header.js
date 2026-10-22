@@ -56,16 +56,27 @@ const Header = (props) => {
     return () => unsubscribe();
   }, []);
 const getUserData = async () => {
-  try {
-    //  Check URL parameter FIRST (e.g., /dashboard/+26657142533)
-    const paramsPhone = location.pathname.split('/dashboard/')[1]?.split('/')[0];
-    
-    // Fallbacks in order of priority
-    const guestUid = paramsPhone 
-      || location.state?.guestUid 
-      || user?.phoneNumber 
-      || localStorage.getItem('guestUid');
+   try {
+    // 1. Check URL parameter FIRST (e.g., /dashboard/+26657142533)
+    let urlPhone = null;
+    const pathParts = location.pathname.split('/');
+    if (pathParts[1] === 'dashboard' && pathParts[2]) {
+      const decoded = decodeURIComponent(pathParts[2]);
+      if (decoded.startsWith('+') || /^\d+$/.test(decoded)) {
+        urlPhone = decoded;
+      }
+    }
 
+    // 2. Priority: URL -> Guest localStorage -> Auth
+    const guestUid = urlPhone 
+      || localStorage.getItem('guestUid') 
+      || location.state?.guestUid 
+      || user?.phoneNumber;
+
+    // 3. Save to localStorage if found in URL
+    if (urlPhone) {
+      localStorage.setItem('guestUid', urlPhone);
+    } 
     // 3. If we have no identifier at all, stop.
     if (!guestUid && !user?.email) {
       setUserData(null);
@@ -132,8 +143,7 @@ const getUserData = async () => {
   useEffect(() => {
     getUserData();
     getCartCount();
-  }, [user]);
-
+  }, [user, location.pathname]);
   // Listen for cart updates
   useEffect(() => {
     const handleCartUpdate = () => {
@@ -222,8 +232,8 @@ const getUserData = async () => {
           userData.get("email") ? (
             <div className="flex items-center gap-2">
               {/* Profile Picture - Direct image */}
-              <img
-                src={userData.get("email")}
+                <img
+                src={userData.get("image") || userData.get("email")}
                 alt="User Profile"
                 style={{
                   width: '48px',

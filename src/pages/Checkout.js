@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
-import { doc, setDoc, updateDoc, increment, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, increment, collection, query, where, getDocs, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, functions } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
@@ -309,12 +309,12 @@ const userUpdate = {
   displayName: firstName ? `${firstName} ${lastName || ''}`.trim() : '',
   email: email || '',
   gender: selectedGender || 'Unknown',
-  updatedAt: new Date(),
+  updatedAt: serverTimestamp(), // Use serverTimestamp for accurate server time
 };
 
-// Only set createdAt the first time
+// Only set createdAt the first time they check out
 if (isNewUser) {
-  userUpdate.createdAt = new Date();
+  userUpdate.createdAt = serverTimestamp(); 
 }
 
 await setDoc(userRef, userUpdate, { merge: true });

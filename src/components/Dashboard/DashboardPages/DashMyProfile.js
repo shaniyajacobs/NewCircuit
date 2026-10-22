@@ -26,7 +26,8 @@ const DashMyProfile = () => {
   const auth = getAuth();
   const authUser = auth.currentUser;
   const authPhone = authUser?.phoneNumber;
-  const guestUid = authPhone || location.state?.guestUid || localStorage.getItem('guestUid');
+  // Priority: URL state -> localStorage (Guest) -> Auth (Admin)
+  const guestUid = location.state?.guestUid || localStorage.getItem('guestUid') || authPhone;
   const [images, setImages] = useState([]);
   const maxNumber = 1;
 

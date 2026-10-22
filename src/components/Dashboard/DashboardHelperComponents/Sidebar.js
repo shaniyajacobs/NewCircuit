@@ -29,7 +29,7 @@ const Sidebar = () => {
   const [cartCount, setCartCount] = useState(0);
 
   // ============================================================
-  // ✅ handleSignOut MUST be defined BEFORE SidebarData
+  //  handleSignOut MUST be defined BEFORE SidebarData
   // ============================================================
   const handleSignOut = (e) => {
     if (e) {
@@ -52,10 +52,13 @@ const Sidebar = () => {
   // ============================================================
   // SidebarData – now safely references handleSignOut
   // ============================================================
+  const savedGuestUid = localStorage.getItem('guestUid');
+  const dashPath = savedGuestUid ? `/dashboard/${savedGuestUid}` : "/dashboard";
+
   const SidebarData = [
     {
       title: "Home",
-      path: "/dashboard",
+      path: dashPath,
       icon: (
         <HomeIcon
           className="w-5 h-5"
@@ -110,7 +113,7 @@ const Sidebar = () => {
       path: "#",
       icon: <LogoutIcon className="w-5 h-5" />,
       cName: "nav-text",
-      onClick: handleSignOut, // ✅ now defined
+      onClick: handleSignOut,
     },
   ];
 

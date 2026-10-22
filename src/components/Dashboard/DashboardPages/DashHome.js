@@ -143,15 +143,25 @@ async function emailsToUserIds(emails) {
 const DashHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // 1. Check the URL first (e.g., /dashboard/+26657142533)
+  // 1. Check the URL first and DECODE it properly (handles %2B -> +)
   const pathParts = location.pathname.split('/');
-  const urlPhone = pathParts[1] === 'dashboard' && pathParts[2] && pathParts[2].startsWith('+') 
-    ? decodeURIComponent(pathParts[2]) 
-    : null;
-// Priority: 1) URL parameter, 2) location.state, 3) logged-in user, 4) localStorage
-const paramsPhone = location.pathname.split('/dashboard/')[1]?.split('/')[0];
-const guestUid = paramsPhone || location.state?.guestUid || auth.currentUser?.phoneNumber || localStorage.getItem('guestUid');
+  let urlPhone = null;
+  if (pathParts[1] === 'dashboard' && pathParts[2]) {
+    const decoded = decodeURIComponent(pathParts[2]);
+    if (decoded.startsWith('+') || /^\d+$/.test(decoded)) {
+      urlPhone = decoded;
+    }
+  }
+
+  // 2. Priority: URL first, then localStorage (saved guest), then logged-in user
+  const guestUid = urlPhone || location.state?.guestUid || localStorage.getItem('guestUid') || auth.currentUser?.phoneNumber;
+
+  // 3. Save the URL phone to localStorage so the Sidebar doesn't lose it!
+  useEffect(() => {
+    if (urlPhone) {
+      localStorage.setItem('guestUid', urlPhone);
+    }
+  }, [urlPhone]);
   // DEBUG: browser console to verify it picks the right number!
   console.log("🔍 DashHome is using guestUid:", guestUid);
   const [events, setEvents] = useState([]);
@@ -191,19 +201,7 @@ const guestUid = paramsPhone || location.state?.guestUid || auth.currentUser?.ph
 
   // Cancelled events tombstone (in-memory Set)
   const [cancelledEventIds, setCancelledEventIds] = useState(new Set());
-  // 🔥 NEW: Keep localStorage in sync with the current logged-in user's phone
-useEffect(() => {
-  const unsub = onAuthStateChanged(auth, (user) => {
-    if (user?.phoneNumber) {
-      localStorage.setItem('guestUid', user.phoneNumber);
-    } else if (!user) {
-      // Only clear if there is no guest session either
-      // (guests are identified by phone, not auth)
-      // Leave localStorage alone for pure guests
-    }
-  });
-  return () => unsub();
-}, []);
+
 
   const handleCancelClick = (eventId) => {
     setCancelEventId(eventId);
@@ -588,7 +586,7 @@ useEffect(() => {
     }
   }, []);
 
-  // ✅ loadEvents
+  // loadEvents
   const loadEvents = async () => {
     setLoading(true);
     try {
@@ -894,10 +892,15 @@ useEffect(() => {
       return { success: false, message: 'Failed to sign up for event. Please try again.' };
     }
   };
-
   const reconcileUserEventState = async ({ force = false } = {}) => {
     const user = auth.currentUser;
     if (!user) return;
+
+    //  If we are viewing a guest profile, do NOT use the Admin's Auth UID
+    if (guestUid && user.phoneNumber && guestUid !== user.phoneNumber) {
+      console.log("Guest profile active. Skipping Auth reconcile to prevent data mixing.");
+      return;
+    }
 
     try {
       const mySignedUpSnap = await getDocs(
@@ -911,7 +914,7 @@ useEffect(() => {
       const userSnap = await getDoc(doc(db, 'users', user.uid));
       const userData = userSnap.exists() ? userSnap.data() : {};
 
-      // ✅ Normalize tombstone – handle BOTH array and object
+      // Normalize tombstone – handle BOTH array and object
       const rawCancelled = userData.cancelledEvents;
       const cancelledEvents = {};
       if (Array.isArray(rawCancelled)) {
