@@ -4542,7 +4542,56 @@ exports.autoMarkNoShow = onSchedule(
     return null;
   }
 );
+// ========================================================
+// SEND 15-MINUTE LOBBY REMINDER
+// ========================================================
+exports.send15MinLobbySMS = onSchedule(
+  {
+    schedule: "*/5 * * * *", // Run every 5 minutes
+    region: "us-central1",
+    runtime: "nodejs20",
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
+  },
+  async () => {
+    const db = admin.firestore();
+    const now = Date.now();
+    const fifteenMinsFromNow = now + 15 * 60 * 1000;
+    const sixteenMinsFromNow = now + 16 * 60 * 1000;
 
+    const eventsSnap = await db.collection('events').where('status', 'in', ['upcoming', 'live']).get();
+    const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
+
+    for (const eventDoc of eventsSnap.docs) {
+      const eventData = eventDoc.data();
+      const startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
+      
+      // If event starts between 15 and 16 minutes from now
+      if (startTime && startTime >= fifteenMinsFromNow && startTime <= sixteenMinsFromNow) {
+        const attendeesSnap = await eventDoc.ref.collection('signedUpUsers').get();
+        
+        for (const attendeeDoc of attendeesSnap.docs) {
+          const a = attendeeDoc.data();
+          const phone = a.phoneNumber || a.userId;
+          if (!phone || a.checkInStatus) continue; // Skip if no phone or already checked in
+
+          const lobbyLink = `${WEB_APP_BASE_URL}/event/${eventDoc.id}/lobby/${encodeURIComponent(phone)}`;
+          const msg = `⏰ 15 minutes until Circuit starts! Tap here to check in and see your Round 1 date: ${lobbyLink}`;
+
+          try {
+            await client.messages.create({
+              body: msg,
+              to: phone,
+              from: twilioPhoneNumber.value(),
+            });
+            console.log(`✅ 15-min lobby reminder sent to ${phone}`);
+          } catch (err) {
+            console.error(`❌ Failed to send 15-min reminder to ${phone}:`, err);
+          }
+        }
+      }
+    }
+  }
+);
 // ========================================================
 // SEND DAY-OF SMS – scheduled 3 hours before event start
 // ========================================================

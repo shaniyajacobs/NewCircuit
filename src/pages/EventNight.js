@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebaseConfig';
-import { doc, getDoc, onSnapshot, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'; 
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { format } from 'date-fns';
 
@@ -106,9 +106,10 @@ const EventNight = () => {
   const [partnerStatus, setPartnerStatus] = useState('noShow');
   const [partnerEta, setPartnerEta] = useState(null);
   const [icebreakers, setIcebreakers] = useState([]);
-  const [phase, setPhase] = useState('preRound'); // 'preRound' | 'round' | 'break' | 'noShow' | 'postEvent' | 'imLate'
+  const [phase, setPhase] = useState('preRound');
   const [timeLeft, setTimeLeft] = useState(0);
   const intervalRef = useRef();
+  const lastSmsSentRef = useRef({}); 
 
   const getTimestampMillis = (ts) => {
     if (typeof ts === 'number') return ts;
@@ -137,12 +138,15 @@ const EventNight = () => {
     const fetchData = async () => {
       try {
         const eventRef = doc(db, 'events', eventId);
-        const eventSnap = await getDoc(eventRef);
-        if (!eventSnap.exists()) throw new Error('Event not found');
-        const eventData = eventSnap.data();
-        setEvent(eventData);
-        setRoundStartTimes(eventData.roundStartTimes || []);
-        setIcebreakers(eventData.icebreakers || []);
+        const unsubEvent = onSnapshot(eventRef, (eventSnap) => {
+          if (eventSnap.exists()) {
+            const eventData = eventSnap.data();
+            setEvent(eventData);
+            setRoundStartTimes(eventData.roundStartTimes || []);
+            setIcebreakers(eventData.icebreakers || []);
+          }
+        });
+        window.__unsubscribeEventNightEvent = unsubEvent;
 
         const attendeesRef = collection(db, 'events', eventId, 'signedUpUsers');
         const q = query(attendeesRef, where('phoneNumber', '==', phone));
@@ -176,21 +180,21 @@ const EventNight = () => {
       }
     };
     fetchData();
-
     return () => {
       if (window.__unsubscribeEventNight) window.__unsubscribeEventNight();
+      if (window.__unsubscribeEventNightEvent) window.__unsubscribeEventNightEvent();
       clearInterval(intervalRef.current);
     };
   }, [eventId, phone]);
 
-  // ✅ Step 3 – Update state to handle noShow phase
+  //  Step 3 – Update state to handle noShow phase
   const updateState = useCallback(() => {
     if (!event || !attendee || Object.keys(allAttendees).length === 0) return;
     const now = Date.now();
     const starts = roundStartTimes;
     if (!starts || starts.length === 0) return;
 
-    // 🔥 NEW: If the current user checked in as "late" and hasn't arrived yet,
+    //  If the current user checked in as "late" and hasn't arrived yet,
     // show a dedicated "You're Running Late" screen.
     const myStatus = attendee.checkInStatus;
     const myArrived = attendee.arrivedAtEvent === true;
@@ -308,24 +312,28 @@ const EventNight = () => {
       const remaining = Math.floor((roundEnd - now) / 1000);
       setTimeLeft(Math.max(0, remaining));
 
-      if (status === 'onTime') {
-        sendSMS('roundStart', {
-          roundNum,
-          partnerName: partnerData.firstName,
-          partnerOutfit: partnerData.outfitDescription || '',
-          icebreaker: icebreakers[idx] || '',
-        });
-      } else if (status === 'late') {
-        sendSMS('late', {
-          roundNum,
-          partnerName: partnerData.firstName,
-          partnerOutfit: partnerData.outfitDescription || '',
-          eta: partnerData.eta || null,
-        });
+      if (!lastSmsSentRef.current[`round_${roundNum}`]) {
+        if (status === 'onTime') {
+          sendSMS('roundStart', {
+            roundNum,
+            partnerName: partnerData.firstName,
+            partnerOutfit: partnerData.outfitDescription || '',
+            icebreaker: icebreakers[idx] || '',
+          });
+          lastSmsSentRef.current[`round_${roundNum}`] = true; // Mark as sent
+        } else if (status === 'late') {
+          sendSMS('late', {
+            roundNum,
+            partnerName: partnerData.firstName,
+            partnerOutfit: partnerData.outfitDescription || '',
+            eta: partnerData.eta || null,
+          });
+          lastSmsSentRef.current[`round_${roundNum}`] = true; // Mark as sent
+        }
       }
-
-      if (remaining <= 5 && remaining > 0) {
+      if (remaining <= 5 && remaining > 0 && !lastSmsSentRef.current[`roundEnd_${roundNum}`]) {
         sendSMS('roundEnd', { roundNum });
+        lastSmsSentRef.current[`roundEnd_${roundNum}`] = true; // Only send once
       }
     } else {
       setPhase('noShow');

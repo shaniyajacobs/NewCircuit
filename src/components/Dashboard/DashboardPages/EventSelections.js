@@ -208,9 +208,25 @@ const EventSelections = () => {
               Your sparks are in.
             </h2>
 
-            <p className="mx-auto mt-4 mb-0 max-w-sm text-[15px] leading-relaxed text-[#4a4540]">
+            <p className="mx-auto mt-4 mb-6 max-w-sm text-[15px] leading-relaxed text-[#4a4540]">
               Thank you — we'll let you know tomorrow if any of your picks are mutual. Fingers crossed. ⚡
             </p>
+            <button
+              onClick={() => {
+                if (phone) {
+                  // Save the phone number so the dashboard knows who to load, 
+                  // then navigate directly to their personalized URL
+                  localStorage.setItem('guestUid', phone);
+                  navigate(`/dashboard/${encodeURIComponent(phone)}`);
+                } else {
+                  // Fallback for logged-in users
+                  navigate('/dashboard');
+                }
+              }}
+              className="inline-flex w-full items-center justify-center rounded-2xl bg-[#1c1917] px-6 py-4 text-[16px] font-extrabold tracking-[0.005em] text-[#fffaf0] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#2b2724] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#ffd24a]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_26px_-8px_rgba(0,0,0,0.5),0_22px_44px_-16px_rgba(0,0,0,0.4)]"
+            >
+              Back to Dashboard
+            </button>
           </div>
         </div>
       </>
