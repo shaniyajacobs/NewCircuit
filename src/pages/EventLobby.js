@@ -32,12 +32,14 @@ const EventLobby = () => {
     const fetchData = async () => {
       try {
         const eventRef = doc(db, 'events', eventId);
-        const eventSnap = await getDoc(eventRef);
-        if (!eventSnap.exists()) throw new Error('Event not found');
-        const eventData = eventSnap.data();
-        setEvent(eventData);
-        setRoundStartTimes(eventData.roundStartTimes || []);
-        console.log('✅ Event loaded:', eventData);
+        const unsubEvent = onSnapshot(eventRef, (eventSnap) => {
+          if (eventSnap.exists()) {
+            const eventData = eventSnap.data();
+            setEvent(eventData);
+            setRoundStartTimes(eventData.roundStartTimes || []);
+          }
+        });
+        window.__unsubscribeLobbyEvent = unsubEvent;
 
         const attendeesRef = collection(db, 'events', eventId, 'signedUpUsers');
         const q = query(attendeesRef, where('phoneNumber', '==', phone));
@@ -50,9 +52,9 @@ const EventLobby = () => {
         const docSnap = querySnapshot.docs[0];
         setAttendeeDocId(docSnap.id);
         const attendeeData = docSnap.data();
-        console.log('✅ Attendee data:', attendeeData);
+        console.log(' Attendee data:', attendeeData);
         setRoundAssignments(attendeeData.roundAssignments || {});
-        console.log('📋 Round assignments:', attendeeData.roundAssignments || 'none');
+        console.log('Round assignments:', attendeeData.roundAssignments || 'none');
 
         const unsubscribe = onSnapshot(
           collection(db, 'events', eventId, 'signedUpUsers'),
@@ -84,10 +86,10 @@ const EventLobby = () => {
 
     return () => {
       if (window.__unsubscribeLobby) window.__unsubscribeLobby();
+      if (window.__unsubscribeLobbyEvent) window.__unsubscribeLobbyEvent(); 
       clearInterval(intervalRef.current);
     };
   }, [eventId, phone]);
-
   // Timer to navigate to night when round 1 starts
   useEffect(() => {
     if (roundStartTimes.length === 0) return;
@@ -106,7 +108,7 @@ const EventLobby = () => {
     return () => clearInterval(intervalRef.current);
   }, [roundStartTimes, navigate, eventId, phone]);
 
-  // 🔥 NEW: Force redirect if event has already started (for late joiners)
+  // Force redirect if event has already started (for late joiners)
   useEffect(() => {
     if (roundStartTimes.length === 0) return;
     const firstStart = getTimestampMillis(roundStartTimes[0]);
@@ -160,7 +162,7 @@ const EventLobby = () => {
           <p className="text-sm text-gray-500 mt-4 text-center">
             When the timer hits zero, locate your Round 1 date based on their outfit description.
           </p>
-          {/* 🔥 Manual fallback button */}
+          {/* Manual fallback button */}
           <button
             onClick={() => navigate(`/event/${eventId}/night/${phone}`)}
             className="mt-4 w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
