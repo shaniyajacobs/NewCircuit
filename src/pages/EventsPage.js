@@ -62,18 +62,33 @@ const EventsPage = () => {
     const unsubscribe = onSnapshot(eventsRef, (snapshot) => {
       const eventsData = [];
       const now = new Date();
+      const nowMillis = now.getTime();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
       snapshot.forEach((doc) => {
         const event = { id: doc.id, ...doc.data() };
+        
         let eventDate = null;
-        if (event.startTime) eventDate = new Date(event.startTime);
-        else if (event.date) eventDate = new Date(event.date);
+        // Safely parse the date whether it's a Firestore Timestamp, a number, or a string
+        if (event.startTime) {
+          eventDate = new Date(event.startTime.toMillis ? event.startTime.toMillis() : event.startTime);
+        } else if (event.date) {
+          eventDate = new Date(event.date);
+        }
 
         if (eventDate) {
-          const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
-          if (eventDay >= today) eventsData.push(event);
+          if (event.startTime) {
+            // If the event has a specific start time, hide it if that exact time has passed.
+            if (eventDate.getTime() > nowMillis) {
+              eventsData.push(event);
+            }
+          } else {
+            // Fallback: If it only has a date (no time), show it if the day is today or in the future
+            const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+            if (eventDay >= today) eventsData.push(event);
+          }
         } else {
+          // If no date is set at all, show it so admins know it exists
           eventsData.push(event);
         }
       });
@@ -101,12 +116,12 @@ const EventsPage = () => {
     return map[code] || code;
   };
 
-  // 🔥 NEW: Queer audience detection
+  //  Queer audience detection
   const isQueerAudience = (audience) => {
     return audience && (audience === 'Queer Women' || audience === 'Queer Men' || audience === 'Queer Men & Women');
   };
 
-  // 🔥 NEW: Get button label for queer events
+  //  Get button label for queer events
   const getQueerLabel = (audience) => {
     if (audience === 'Queer Women') return 'Queer Women';
     if (audience === 'Queer Men') return 'Queer Men';
@@ -338,7 +353,7 @@ const EventsPage = () => {
                 )}
               </div>
 
-              {/* 🔥 UPDATED: Queer event support */}
+              {/*  Queer event support */}
               <div className={styles.genderButtons}>
                 {isQueerAudience(event.audience) ? (
                   /* Queer event – single button */

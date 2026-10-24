@@ -92,22 +92,35 @@ const EventLobby = () => {
   }, [eventId, phone]);
   // Timer to navigate to night when round 1 starts
   useEffect(() => {
-    if (roundStartTimes.length === 0) return;
+    if (!event) return;
+
     const updateTimer = () => {
       const now = Date.now();
-      const firstStart = getTimestampMillis(roundStartTimes[0]);
-      const diff = firstStart - now;
-      if (diff <= 0) {
-        navigate(`/event/${eventId}/night/${phone}`);
-        return;
+      let targetTime = 0;
+
+      // If rounds are generated, count down to Round 1
+      if (roundStartTimes.length > 0) {
+        targetTime = getTimestampMillis(roundStartTimes[0]);
+      } 
+      // If rounds not generated yet, count down to the actual event start time
+      else if (event.startTime) {
+        targetTime = event.startTime.toMillis ? event.startTime.toMillis() : new Date(event.startTime).getTime();
       }
-      setTimeLeft(Math.floor(diff / 1000));
+
+      if (targetTime > 0) {
+        const diff = targetTime - now;
+        if (diff <= 0) {
+          navigate(`/event/${eventId}/night/${phone}`);
+          return;
+        }
+        setTimeLeft(Math.floor(diff / 1000));
+      }
     };
+
     updateTimer();
     intervalRef.current = setInterval(updateTimer, 1000);
     return () => clearInterval(intervalRef.current);
-  }, [roundStartTimes, navigate, eventId, phone]);
-
+  }, [roundStartTimes, event, navigate, eventId, phone]);
   // Force redirect if event has already started (for late joiners)
   useEffect(() => {
     if (roundStartTimes.length === 0) return;
