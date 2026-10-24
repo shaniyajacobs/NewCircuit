@@ -55,36 +55,49 @@ const eventZoneMap = {
   'GMT': 'Europe/London',
   'BST': 'Europe/London',
 };
-
 function isEventUpcoming(event, userLocation) {
+  const now = DateTime.now();
+  const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
+  const nowZoned = now.setZone(userZone);
+
+  // 1. Check if startTime is a valid millisecond timestamp (Standard way)
   if (event.startTime) {
-    const eventDateTime = DateTime.fromMillis(Number(event.startTime));
+    const ts = typeof event.startTime === 'object' && event.startTime.toMillis 
+      ? event.startTime.toMillis() 
+      : Number(event.startTime);
+    
+    const eventDateTime = DateTime.fromMillis(ts);
     if (eventDateTime.isValid) {
-      const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
-      const now = DateTime.now().setZone(userZone);
-      const eventEndDateTime = event.endTime ? DateTime.fromMillis(Number(event.endTime)) : eventDateTime.plus({ minutes: 90 });
-      return eventEndDateTime.setZone(userZone) > now;
+      const eventEnd = event.endTime 
+        ? DateTime.fromMillis(Number(event.endTime)).setZone(userZone)
+        : eventDateTime.plus({ minutes: 90 }).setZone(userZone);
+      return eventEnd > nowZoned;
     }
   }
 
-  if (event.date && event.time) {
-    let eventZone = event.timeZone || 'UTC';
-    const normalizedTime = event.time.replace(/am|pm/i, m => m.toUpperCase());
-    let eventDateTime = DateTime.fromFormat(`${event.date} ${normalizedTime}`, 'yyyy-MM-dd h:mma', { zone: eventZone });
-    if (!eventDateTime.isValid) {
-      eventDateTime = DateTime.fromFormat(`${event.date} ${normalizedTime}`, 'yyyy-MM-dd H:mm', { zone: eventZone });
-    }
-    if (eventDateTime.isValid) {
-      const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
-      const now = DateTime.now().setZone(userZone);
-      const eventEndDateTime = eventDateTime.plus({ minutes: 90 });
-      return eventEndDateTime.setZone(userZone) > now;
+  // 2. Fallback: Check date and time strings (Handles MM/DD/YYYY and YYYY-MM-DD)
+  if (event.date) {
+    let dateTimeStr = event.date;
+    if (event.time) dateTimeStr += ` ${event.time.replace(/am|pm/i, m => m.toUpperCase())}`;
+    
+    const formats = [
+      'yyyy-MM-dd h:mma', 'yyyy-MM-dd H:mm', 
+      'MM/dd/yyyy h:mma', 'MM/dd/yyyy H:mm',
+      'yyyy-MM-dd', 'MM/dd/yyyy'
+    ];
+
+    for (const fmt of formats) {
+      const dt = DateTime.fromFormat(dateTimeStr, fmt, { zone: event.timeZone || 'UTC' });
+      if (dt.isValid) {
+        const eventEnd = dt.plus({ minutes: 90 }).setZone(userZone);
+        return eventEnd > nowZoned;
+      }
     }
   }
 
-  return true;
+  // 3. If the date is completely broken/unparseable, HIDE IT (don't show it forever)
+  return false;
 }
-
 function useResponsiveEventLimit() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {

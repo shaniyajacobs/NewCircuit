@@ -204,7 +204,7 @@ const Profile = () => {
 
           <SMSDisclosure>
             <SMSDisclosureHeader onClick={() => setSMSExpanded(!smsExpanded)}>
-              <span>By checking this box you agree to receive SMS messages from Circuit LLC, including event reminders, updates, account notifications, customer care, and marketing messages. Message frequency varies. Message & data rates may apply. Reply STOP to any message to opt out. Message HELP for help. View our <LegalLink href="https://www.circuit.dating.com/terms-of-service#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</LegalLink> and our <LegalLink href="https://www.circuit.dating.com/terms-of-service#intro" target="_blank" rel="noopener noreferrer">Terms and Conditions</LegalLink>. Circuit LLC does not share mobile numbers or opt-in data with third parties.</span>
+              <span>By checking this box you agree to receive SMS messages from Circuit LLC, including event reminders, updates, account notifications, customer care, and marketing messages. Message frequency varies. Message & data rates may apply. Reply STOP to any message to opt out. Message HELP for help. View our <LegalLink href="https://circuit.dating.com/terms-of-service#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</LegalLink> and our <LegalLink href="https://circuit.dating.com/terms-of-service#intro" target="_blank" rel="noopener noreferrer">Terms and Conditions</LegalLink>. Circuit LLC does not share mobile numbers or opt-in data with third parties.</span>
               <SMSDisclosureToggle>{smsExpanded ? '−' : '+'}</SMSDisclosureToggle>
             </SMSDisclosureHeader>
             {smsExpanded && (
@@ -212,7 +212,7 @@ const Profile = () => {
                 <p><strong>Consent for SMS Communication:</strong> Information obtained as part of the SMS consent process will not be shared with third parties.</p>
                 <p><strong>Types of SMS Communications:</strong> If you have consented to receive text messages from Circuit LLC, you may receive text messages related to event reminders, updates, account notifications, customer care, and marketing messages.</p>
                 <p><strong>Examples:</strong> Customers and Guests: Updates regarding event reminders, connection selections, coupon notices, or other relevant information.</p>
-                <p><strong>Standard Messaging Disclosures:</strong> Message and data rates may apply. You can opt-out at any time by texting "STOP." For assistance, text "HELP" or visit our <LegalLink href="https://www.circuit.dating.com/terms-of-service#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</LegalLink> and <LegalLink href="https://www.circuit.dating.com/terms-of-service#intro" target="_blank" rel="noopener noreferrer">Terms of Service</LegalLink>.</p>
+                <p><strong>Standard Messaging Disclosures:</strong> Message and data rates may apply. You can opt-out at any time by texting "STOP." For assistance, text "HELP" or visit our <LegalLink href="https://circuit.dating.com/terms-of-service#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</LegalLink> and <LegalLink href="https://circuit.dating.com/terms-of-service#intro" target="_blank" rel="noopener noreferrer">Terms of Service</LegalLink>.</p>
               </SMSDisclosureContent>
             )}
           </SMSDisclosure>
