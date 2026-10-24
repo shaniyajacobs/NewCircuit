@@ -42,8 +42,7 @@ admin.initializeApp();
 // CONFIG – Web app base URL for SMS links
 // ========================================================
 const WEB_APP_BASE_URL =
-  process.env.WEB_APP_BASE_URL || "https://circuitspeeddating.com";
-
+  process.env.WEB_APP_BASE_URL || "https://circuit.dating";
 // ========================================================
 // HELPER — Build a readable slug matching the frontend format
 // ========================================================
@@ -1221,7 +1220,7 @@ exports.sendTermsSMS = onCall(
       twilioAuthToken.value()
     );
 
-    const message = `Welcome to Circuit! Please review our Terms of Service: https://circuitspeeddating.com/terms-of-service and Privacy Policy: https://circuitspeeddating.com/privacy-policy`;
+    const message = `Welcome to Circuit! Please review our Terms of Service: https://circuit.dating.com/terms-of-service and Privacy Policy: https://circuit.dating.com/privacy-policy`;
       try {
       await client.messages.create({
         body: message,
@@ -1280,7 +1279,7 @@ exports.sendPurchaseConfirmation = onCall(
       twilioAccountSid.value(),
       twilioAuthToken.value()
     );
-    const dashboardUrl = `https://circuitspeeddating.com/dashboard/${encodeURIComponent(phoneNumber)}`;
+    const dashboardUrl = `https://circuit.dating.com/dashboard/${encodeURIComponent(phoneNumber)}`;
     const message = `⚡You're registered for ${eventTitle}! 📅 ${eventDate || 'TBD'} at ${venue || 'TBD'}, ${city || ''}. Ticket: ${ticketType || 'General'}'s Ticket. View your dashboard: ${dashboardUrl}`;
       try {
       await client.messages.create({
@@ -3796,7 +3795,7 @@ exports.claimWaitlistSpot = onCall(
 
         // 4a. Welcome + Terms SMS
         try {
-          const welcomeMessage = `Welcome to Circuit! Please review our Terms of Service: https://circuitspeeddating.com/terms-of-service and Privacy Policy: https://circuitspeeddating.com/privacy-policy`;
+          const welcomeMessage = `Welcome to Circuit! Please review our Terms of Service: https://circuit.dating.com/terms-of-service and Privacy Policy: https://circuit.dating.com/privacy-policy`;
           await client.messages.create({
             body: welcomeMessage,
             to: phoneNumber,
@@ -3814,7 +3813,7 @@ exports.claimWaitlistSpot = onCall(
           const venue = eventData.venue || 'TBD';
           const city = eventData.location || '';
 
-         const dashboardUrl = `https://circuitspeeddating.com/dashboard/${encodeURIComponent(phoneNumber)}`;
+         const dashboardUrl = `https://circuit.dating.com/dashboard/${encodeURIComponent(phoneNumber)}`;
          const message = `⚡You're registered for ${eventTitle}! 📅 ${eventDate || 'TBD'} at ${venue || 'TBD'}, ${city || ''}. Ticket: ${ticketType || 'General'}'s Ticket. View your dashboard: ${dashboardUrl}`;
 
           await client.messages.create({
@@ -3850,8 +3849,8 @@ exports.generateRounds = onRequest(
   async (req, res) => {
     // DYNAMIC CORS – accept www, non-www, and localhost
     const allowedOrigins = [
-      'https://circuitspeeddating.com',
-      'https://www.circuitspeeddating.com',
+      'https://circuit.dating.com',
+      'https://www.circuits.dating.com',
       'http://localhost:3000',
     ];
     const origin = req.headers.origin;
@@ -3859,7 +3858,7 @@ exports.generateRounds = onRequest(
       res.set('Access-Control-Allow-Origin', origin);
     } else {
       // Fallback so the request doesn't silently fail
-      res.set('Access-Control-Allow-Origin', 'https://www.circuitspeeddating.com');
+      res.set('Access-Control-Allow-Origin', 'https://www.circuit.dating.com');
     }
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -4583,9 +4582,9 @@ exports.send15MinLobbySMS = onSchedule(
               to: phone,
               from: twilioPhoneNumber.value(),
             });
-            console.log(`✅ 15-min lobby reminder sent to ${phone}`);
+            console.log(` 15-min lobby reminder sent to ${phone}`);
           } catch (err) {
-            console.error(`❌ Failed to send 15-min reminder to ${phone}:`, err);
+            console.error(` Failed to send 15-min reminder to ${phone}:`, err);
           }
         }
       }
@@ -4593,152 +4592,147 @@ exports.send15MinLobbySMS = onSchedule(
   }
 );
 // ========================================================
-// SEND DAY-OF SMS – scheduled 3 hours before event start
+// SEND DAY-OF SMS – Runs every 5 mins, fires 2 hours before event
 // ========================================================
 exports.sendDayOfSMS = onSchedule(
   {
-    schedule: "*/30 * * * *",   
+    schedule: "*/5 * * * *", // Runs every 5 minutes
     region: "us-central1",
     runtime: "nodejs20",
-    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber,klaviyoApiKey],
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
   },
   async () => {
     const db = admin.firestore();
     const now = Date.now();
-    const twoHoursLater = now + 2 * 60 * 60 * 1000; 
-    const startWindow = 15 * 60 * 1000;
-    const lowerBound = twoHoursLater - startWindow;
-    const upperBound = twoHoursLater + startWindow; 
+    const twoHoursFromNow = now + 2 * 60 * 60 * 1000;
 
-    const eventsSnapshot = await db
-      .collection('events')
-      .where('status', 'in', ['upcoming', 'live'])
-      .get();
-
-    console.log(`🔍 Found ${eventsSnapshot.size} events.`);
-
+    const eventsSnapshot = await db.collection('events').where('status', 'in', ['upcoming', 'live']).get();
+    
     let count = 0;
     for (const eventDoc of eventsSnapshot.docs) {
       const eventData = eventDoc.data();
       const startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
-      if (!startTime) {
-        console.log(`⏭️ Event ${eventDoc.id} missing startTime`);
-        continue;
-      }
+      
+      if (!startTime) continue;
 
-      console.log(`📅 Event ${eventDoc.id}: startTime=${new Date(startTime).toISOString()}, now=${new Date(now).toISOString()}, window: ${new Date(lowerBound).toISOString()} - ${new Date(upperBound).toISOString()}`);
-
-      if (startTime >= lowerBound && startTime <= upperBound) {
-        if (eventData.dayOfSMSSent) {
-          console.log(`⏭️ Event ${eventDoc.id} already sent`);
-          continue;
-        }
-
+      // 1. Check if the event is starting in the next 2 hours
+      if (startTime > now && startTime <= twoHoursFromNow) {
+        
         const attendeesSnap = await eventDoc.ref.collection('signedUpUsers').get();
-        console.log(`👥 Event ${eventDoc.id} has ${attendeesSnap.size} attendees.`);
-
         if (attendeesSnap.empty) continue;
 
-        const client = twilio(
-          twilioAccountSid.value(),
-          twilioAuthToken.value()
-        );
+        const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
         const fromNumber = twilioPhoneNumber.value();
-        console.log(` Twilio from number: ${fromNumber}`);
 
+        // Timezone Formatting
+        let timeString = 'the scheduled time';
+        if (eventData.time && typeof eventData.time === 'string') {
+          timeString = eventData.time;
+        } else {
+          const cityToTimeZone = {
+            'atlanta': 'America/New_York', 'chicago': 'America/Chicago', 'dallas': 'America/Chicago',
+            'houston': 'America/Chicago', 'los angeles': 'America/Los_Angeles', 'louisville': 'America/New_York',
+            'miami': 'America/New_York', 'new york city': 'America/New_York', 'new york': 'America/New_York',
+            'sacramento': 'America/Los_Angeles', 'san francisco / bay area': 'America/Los_Angeles',
+            'seattle': 'America/Los_Angeles', 'washington d.c.': 'America/New_York',
+            'maseru': 'Africa/Maseru', 'lesotho': 'Africa/Maseru'
+          };
+          const eventZone = eventData.timeZone || cityToTimeZone[(eventData.location || '').toLowerCase().trim()] || 'America/New_York';
+          timeString = new Date(startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: eventZone });
+        }
+        
+        const venueString = eventData.venue || eventData.location || 'the venue';
+
+        // 2. Loop through attendees and check their INDIVIDUAL flag
         for (const attendeeDoc of attendeesSnap.docs) {
           const attendeeData = attendeeDoc.data();
           const phone = attendeeData.phoneNumber || attendeeData.userId;
-          if (!phone) {
-            console.log(`⚠️ Attendee ${attendeeDoc.id} has no phone`);
-            continue;
-          }
-          console.log(`📱 Sending SMS to ${phone}`);
-                    // Format the time properly (handles both timestamp and string)
-          let timeString = eventData.time;
-          if (!timeString && eventData.startTime) {
-            const ts = eventData.startTime.toMillis ? eventData.startTime.toMillis() : eventData.startTime;
-            timeString = new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-          }
-          if (!timeString) timeString = 'the scheduled time';
+          
+          if (!phone) continue;
+          if (attendeeData.smsSent?.dayOf) continue;
 
-          const venueString = eventData.venue || eventData.location || 'the venue';
-
-          const message = `The time is here! Circuit event starts at ${timeString} at ${venueString}. Tap here to enter your outfit description: ${WEB_APP_BASE_URL}/outfit/${eventDoc.id}/${attendeeDoc.id}`;
+          const message = `Tonight is the night! Circuit starts at ${timeString} at ${venueString}. Tap here to enter your outfit description: ${WEB_APP_BASE_URL}/outfit/${eventDoc.id}/${attendeeDoc.id}`;
+          
           try {
-              const result = await client.messages.create({
+            await client.messages.create({
               body: message,
               to: phone,
               from: fromNumber,
             });
-            console.log(`SMS sent to ${phone}, SID: ${result.sid}`);
-
-            if (attendeeData.email) {
-              await sendKlaviyoEventForSMS({
-                email: attendeeData.email,
-                metricName: "Day of Event SMS Sent",
-                properties: { eventTitle: eventData.title || eventData.eventName },
-                apiKey: klaviyoApiKey.value().trim()
-              });
-            }
+            console.log(` 2-Hour SMS sent to ${phone} for event ${eventDoc.id}`);
+            
+            // 3. Mark THIS user as having received the message
+            await attendeeDoc.ref.update({
+              'smsSent.dayOf': true
+            });
+            count++;
           } catch (err) {
             console.error(` Failed to send SMS to ${phone}:`, err);
           }
         }
-
-        await eventDoc.ref.update({ dayOfSMSSent: true, dayOfSMSSentAt: admin.firestore.FieldValue.serverTimestamp() });
-        count++;
-      } else {
-        console.log(`⏭️ Event ${eventDoc.id} not in time window (${new Date(startTime).toISOString()})`);
       }
     }
-
-    console.log(`sendDayOfSMS completed. ${count} events processed.`);
+    console.log(`sendDayOfSMS completed. ${count} SMS messages processed.`);
   }
 );
 // ========================================================
-// AUTO-GENERATE ROUNDS (Runs every 15 minutes)
+// AUTO-GENERATE ROUNDS (Runs every 5 minutes)
 // ========================================================
 exports.autoGenerateRounds = onSchedule(
   {
-    schedule: "every 15 minutes",
+    schedule: "*/5 * * * *", // Every 5 minutes
     region: "us-central1",
     runtime: "nodejs20",
   },
   async () => {
     const db = admin.firestore();
     const now = Date.now();
-    // Look for events starting in the next 2 hours
-    const twoHoursFromNow = now + 2 * 60 * 60 * 1000;
+    const fifteenMinsFromNow = now + 15 * 60 * 1000;
 
     try {
-      // 1. Find events that haven't started yet
-      const eventsSnapshot = await db
-        .collection("events")
-        .where("status", "==", "upcoming") // or "live" depending on your setup
-        .get();
-
+      const eventsSnapshot = await db.collection("events").get();
+      
       for (const eventDoc of eventsSnapshot.docs) {
         const eventData = eventDoc.data();
-        const startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
-
+        let startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
         if (!startTime) continue;
 
-        // 2. If the event is starting in less than 2 hours, and rounds aren't generated yet...
         const needsRounds = !eventData.roundStartTimes || eventData.roundStartTimes.length === 0;
         
-        if (startTime <= twoHoursFromNow && needsRounds) {
+        // If event starts within 15 mins (and hasn't been running for more than 30 mins), generate rounds
+        if (startTime <= fifteenMinsFromNow && startTime > (now - 30 * 60 * 1000) && needsRounds) {
           console.log(`🤖 Auto-generating rounds for upcoming event: ${eventDoc.id}`);
           
-          // Trigger your existing HTTP function internally
-          const generateRoundsUrl = "https://us-central1-circuit-eb73c.cloudfunctions.net/generateRounds";
-          
-          await fetch(generateRoundsUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ eventId: eventDoc.id }),
+          const signedUpSnap = await eventDoc.ref.collection('signedUpUsers').get();
+          const attendees = signedUpSnap.docs.map(doc => {
+            const data = doc.data();
+            let gender = data.gender || data.userGender || 'Unknown';
+            if (gender === 'Men') gender = 'Male';
+            else if (gender === 'Women') gender = 'Female';
+            return { id: doc.id, gender: gender };
           });
+
+          if (attendees.length === 0) continue;
+
+          const roundDuration = eventData.roundDurationSeconds || 360;
+          const breakDuration = eventData.breakDurationSeconds || 240;
           
+          // Using the helper function that already exists in your file
+          const { roundStartTimes, assignments } = generateRoundAssignments(attendees, roundDuration, breakDuration, startTime);
+
+          const timestampArray = roundStartTimes.map(ts => admin.firestore.Timestamp.fromMillis(ts));
+
+          await eventDoc.ref.update({
+            roundStartTimes: timestampArray,
+            status: 'live',
+          });
+
+          const batch = db.batch();
+          for (const [attendeeId, rounds] of Object.entries(assignments)) {
+            const attendeeRef = eventDoc.ref.collection('signedUpUsers').doc(attendeeId);
+            batch.update(attendeeRef, { roundAssignments: rounds });
+          }
+          await batch.commit();
           console.log(`✅ Auto-generated rounds for ${eventDoc.id}`);
         }
       }

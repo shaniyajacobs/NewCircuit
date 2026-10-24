@@ -4,7 +4,7 @@
 
 **NewCircuit** is a modern React-based dating/social networking application built with React 17, Firebase, and TailwindCSS. The application features user authentication, matchmaking algorithms, event management, business partnerships, and admin functionality.
 
-**Live URL:** https://www.circuitspeeddating.com
+**Live URL:** https://www.circuit.dating.com
 
 **Project Status:** Production-ready with ongoing development
 

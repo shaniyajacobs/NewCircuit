@@ -32,7 +32,7 @@ const Footer = () => {
         <div className="md:text-right">
           <h5 className="text-xs font-semibold uppercase mb-4">Get in touch</h5>
           <p className="text-2xl mb-1 underline">
-            <a href="mailto:hello@circuit.com">contact@circuitspeeddating.com</a>
+            <a href="mailto:hello@circuit.com">contact@circuit.dating.com</a>
           </p>
           <p className="text-2xl underline">+510.903.7210</p>
         </div>
