@@ -91,9 +91,13 @@ function getDatePartsFromMillis(millis) {
   const [spotsData, setSpotsData] = useState({ menCount: 0, womenCount: 0, menSpots: 0, womenSpots: 0 });
   const [isEventActive, setIsEventActive] = useState(false);
   const [hasJoinedEvent, setHasJoinedEvent] = useState(false);
-  
-  const dateParts = event.startTime ? getDatePartsFromMillis(event.startTime) : getDateParts(event.date, event.time, event.timeZone);
-  const { dayOfWeek, day, month, timeLabel } = dateParts;
+   let dateParts = { dayOfWeek: '', day: '', month: '', timeLabel: '' };
+  if (event.startTime) {
+    dateParts = getDatePartsFromMillis(event.startTime);
+  } else if (event.date) {
+    dateParts = getDateParts(event.date, event.time, event.timeZone);
+  }
+  const { dayOfWeek, day, month, timeLabel } = dateParts; 
   
   useEffect(() => {
     const fetchSpots = async () => {
@@ -301,40 +305,41 @@ const isQueerAudience = (audience) => {
 
         <div className="border-3 border-black p-2 rounded w-full">
           <div className="flex gap-4 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-6 w-full">
-            <div className="
-              flex-shrink-0 
-              border border-[#211F20] 
-              rounded-[8px] sm:rounded-[10px] lg:rounded-[12px] xl:rounded-[16px]
-              p-3 
-              text-center 
-              w-16
-              h-fit
-              flex flex-col items-center
-            ">
+            {day && (
               <div className="
-                font-medium
-                text-[#211F20]
-                font-bricolage
-                leading-[130%]
-                uppercase
-                text-[12px] sm:text-[12px] xl:text-[14px] 2xl:text-[16px]
+                flex-shrink-0 
+                border border-[#211F20] 
+                rounded-[8px] sm:rounded-[10px] lg:rounded-[12px] xl:rounded-[16px]
+                p-3 
+                text-center 
+                w-16
+                h-fit
+                flex flex-col items-center
               ">
-                {dayOfWeek}
+                <div className="
+                  font-medium
+                  text-[#211F20]
+                  font-bricolage
+                  leading-[130%]
+                  uppercase
+                  text-[12px] sm:text-[12px] xl:text-[14px] 2xl:text-[16px]
+                ">
+                  {dayOfWeek}
+                </div>
+                <div className="
+                  font-medium
+                  text-[#211F20]
+                  font-bricolage
+                  leading-normal
+                  text-[28px] sm:text-[30px] xl:text-[36px] 2xl:text-[40px]
+                ">
+                  {day}
+                </div>
+                <div className="text-xs font-semibold text-gray-600">
+                  {month}
+                </div>
               </div>
-              <div className="
-                font-medium
-                text-[#211F20]
-                font-bricolage
-                leading-normal
-                text-[28px] sm:text-[30px] xl:text-[36px] 2xl:text-[40px]
-              ">
-                {day}
-              </div>
-              <div className="text-xs font-semibold text-gray-600">
-                {month}
-              </div>
-            </div>
-
+            )}
             <div className="flex-1 flex flex-col gap-2 sm:gap-2 md:gap-[10px] lg:gap-3">
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-2 relative">

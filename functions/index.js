@@ -3858,7 +3858,7 @@ exports.generateRounds = onRequest(
       res.set('Access-Control-Allow-Origin', origin);
     } else {
       // Fallback so the request doesn't silently fail
-      res.set('Access-Control-Allow-Origin', 'https://www.circuit.dating.com');
+      res.set('Access-Control-Allow-Origin', 'https://circuit.dating.com');
     }
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');

@@ -99,11 +99,11 @@ const ContactPage = () => {
             <div className={styles.smsDisclosure}>
               <p>
                 By checking this box you agree to receive SMS messages from Circuit, including verification codes, event confirmations, real-time round updates, waitlist alerts, booking confirmations, event reminders, account notifications, and customer care. Message frequency varies. Message &amp; data rates may apply. Reply STOP to any message to opt out. Message HELP for help. View our{' '}
-                <a href="https://www.circuit.dating.com/terms-of-service#privacy" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                <a href="https://circuit.dating.com/terms-of-service#privacy" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
                   Privacy Policy
                 </a>{' '}
                 and our{' '}
-                <a href="https://www.circuit.dating.com/terms-of-service#intro" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
+                <a href="https://circuit.dating.com/terms-of-service#intro" className={styles.legalLink} target="_blank" rel="noopener noreferrer">
                   Terms and Conditions
                 </a>
                 . Circuit LLC does not share mobile numbers or opt-in data with third parties.
