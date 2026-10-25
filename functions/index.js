@@ -107,6 +107,12 @@ async function clearLatestEventIdIfNeeded(userId, eventId) {
     console.error(`Error clearing latestEventId for user ${userId}:`, error);
   }
 }
+exports.getServerTime = onCall(
+  { region: "us-central1", runtime: "nodejs20" },
+  async () => {
+    return Date.now();
+  }
+);
 // ========================================================
 // HELPER – Create Admin Notification
 // ========================================================
@@ -1220,7 +1226,7 @@ exports.sendTermsSMS = onCall(
       twilioAuthToken.value()
     );
 
-    const message = `Welcome to Circuit! Please review our Terms of Service: https://circuit.dating.com/terms-of-service and Privacy Policy: https://circuit.dating.com/privacy-policy`;
+    const message = `Welcome to Circuit! Please review our Terms of Service: https://circuit.dating/terms-of-service and Privacy Policy: https://circuit.dating.com/privacy-policy`;
       try {
       await client.messages.create({
         body: message,
@@ -1279,7 +1285,7 @@ exports.sendPurchaseConfirmation = onCall(
       twilioAccountSid.value(),
       twilioAuthToken.value()
     );
-    const dashboardUrl = `https://circuit.dating.com/dashboard/${encodeURIComponent(phoneNumber)}`;
+    const dashboardUrl = `https://circuit.dating/dashboard/${encodeURIComponent(phoneNumber)}`;
     const message = `⚡You're registered for ${eventTitle}! 📅 ${eventDate || 'TBD'} at ${venue || 'TBD'}, ${city || ''}. Ticket: ${ticketType || 'General'}'s Ticket. View your dashboard: ${dashboardUrl}`;
       try {
       await client.messages.create({
@@ -3795,7 +3801,7 @@ exports.claimWaitlistSpot = onCall(
 
         // 4a. Welcome + Terms SMS
         try {
-          const welcomeMessage = `Welcome to Circuit! Please review our Terms of Service: https://circuit.dating.com/terms-of-service and Privacy Policy: https://circuit.dating.com/privacy-policy`;
+          const welcomeMessage = `Welcome to Circuit! Please review our Terms of Service: https://circuit.dating/terms-of-service and Privacy Policy: https://circuit.dating/privacy-policy`;
           await client.messages.create({
             body: welcomeMessage,
             to: phoneNumber,
@@ -3813,7 +3819,7 @@ exports.claimWaitlistSpot = onCall(
           const venue = eventData.venue || 'TBD';
           const city = eventData.location || '';
 
-         const dashboardUrl = `https://circuit.dating.com/dashboard/${encodeURIComponent(phoneNumber)}`;
+         const dashboardUrl = `https://circuit.dating/dashboard/${encodeURIComponent(phoneNumber)}`;
          const message = `⚡You're registered for ${eventTitle}! 📅 ${eventDate || 'TBD'} at ${venue || 'TBD'}, ${city || ''}. Ticket: ${ticketType || 'General'}'s Ticket. View your dashboard: ${dashboardUrl}`;
 
           await client.messages.create({
@@ -3849,7 +3855,7 @@ exports.generateRounds = onRequest(
   async (req, res) => {
     // DYNAMIC CORS – accept www, non-www, and localhost
     const allowedOrigins = [
-      'https://circuit.dating.com',
+      'https://circuit.dating',
       'https://www.circuits.dating.com',
       'http://localhost:3000',
     ];
@@ -3858,7 +3864,7 @@ exports.generateRounds = onRequest(
       res.set('Access-Control-Allow-Origin', origin);
     } else {
       // Fallback so the request doesn't silently fail
-      res.set('Access-Control-Allow-Origin', 'https://circuit.dating.com');
+      res.set('Access-Control-Allow-Origin', 'https://circuit.dating');
     }
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
