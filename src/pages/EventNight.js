@@ -108,6 +108,7 @@ const EventNight = () => {
   const [icebreakers, setIcebreakers] = useState([]);
   const [phase, setPhase] = useState('preRound');
   const [timeLeft, setTimeLeft] = useState(0);
+  const [timeOffset, setTimeOffset] = useState(0);
   const intervalRef = useRef();
   const lastSmsSentRef = useRef({}); 
 
@@ -116,6 +117,20 @@ const EventNight = () => {
     if (ts && typeof ts.toMillis === 'function') return ts.toMillis();
     return 0;
   };
+
+  // 🔥 Sync with Server Time
+  useEffect(() => {
+    const fetchTime = async () => {
+      try {
+        const func = httpsCallable(getFunctions(), 'getServerTime');
+        const res = await func();
+        setTimeOffset(res.data - Date.now());
+      } catch (err) {
+        console.warn("Server time sync failed, using local time:", err);
+      }
+    };
+    fetchTime();
+  }, []);
 
   // SMS sender (will be updated in Step 4)
   const sendSMS = useCallback(async (type, data) => {
@@ -190,7 +205,7 @@ const EventNight = () => {
   //  Step 3 – Update state to handle noShow phase
   const updateState = useCallback(() => {
     if (!event || !attendee || Object.keys(allAttendees).length === 0) return;
-    const now = Date.now();
+        const now = Date.now() + timeOffset;
     const starts = roundStartTimes;
     if (!starts || starts.length === 0) return;
 
@@ -358,6 +373,7 @@ const EventNight = () => {
     phone,
     navigate,
     sendSMS,
+    timeOffset, // 🔥 Added timeOffset here so the timer stays in sync
   ]);
 
   useEffect(() => {
@@ -388,8 +404,9 @@ const EventNight = () => {
         checkInStatus: 'onTime',
         arrivedAtEvent: true,
         arrivedAt: new Date(),
+        eta: null, // 🔥 Added eta: null to clear the late timer for the partner
       });
-      setAttendee({ ...attendee, checkInStatus: 'onTime', arrivedAtEvent: true });
+      setAttendee({ ...attendee, checkInStatus: 'onTime', arrivedAtEvent: true, eta: null });
       console.log('✅ Marked as arrived');
     } catch (err) {
       console.error('Failed to mark as arrived:', err);

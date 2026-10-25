@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebaseConfig';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions'; // 🔥 ADDED IMPORT
 
 const EventLobby = () => {
   const { eventId, phone } = useParams();
@@ -13,6 +14,7 @@ const EventLobby = () => {
   const [roundAssignments, setRoundAssignments] = useState({});
   const [partners, setPartners] = useState({});
   const [timeLeft, setTimeLeft] = useState(0);
+  const [timeOffset, setTimeOffset] = useState(0); // 🔥 ADDED STATE
   const [attendeeDocId, setAttendeeDocId] = useState(null);
   const intervalRef = useRef();
 
@@ -21,6 +23,20 @@ const EventLobby = () => {
     if (ts && typeof ts.toMillis === 'function') return ts.toMillis();
     return 0;
   };
+
+  // 🔥 Sync with Server Time
+  useEffect(() => {
+    const fetchTime = async () => {
+      try {
+        const func = httpsCallable(getFunctions(), 'getServerTime');
+        const res = await func();
+        setTimeOffset(res.data - Date.now());
+      } catch (err) {
+        console.warn("Server time sync failed:", err);
+      }
+    };
+    fetchTime();
+  }, []);
 
   useEffect(() => {
     if (!eventId || !phone) {
@@ -90,12 +106,13 @@ const EventLobby = () => {
       clearInterval(intervalRef.current);
     };
   }, [eventId, phone]);
+  
   // Timer to navigate to night when round 1 starts
   useEffect(() => {
     if (!event) return;
 
     const updateTimer = () => {
-      const now = Date.now();
+      const now = Date.now() + timeOffset; // 🔥 Uses Server Time
       let targetTime = 0;
 
       // If rounds are generated, count down to Round 1
@@ -120,16 +137,17 @@ const EventLobby = () => {
     updateTimer();
     intervalRef.current = setInterval(updateTimer, 1000);
     return () => clearInterval(intervalRef.current);
-  }, [roundStartTimes, event, navigate, eventId, phone]);
+  }, [roundStartTimes, event, navigate, eventId, phone, timeOffset]); // 🔥 Added timeOffset to deps
+
   // Force redirect if event has already started (for late joiners)
   useEffect(() => {
     if (roundStartTimes.length === 0) return;
     const firstStart = getTimestampMillis(roundStartTimes[0]);
-    const now = Date.now();
+    const now = Date.now() + timeOffset; // 🔥 Uses Server Time
     if (now >= firstStart) {
       navigate(`/event/${eventId}/night/${phone}`);
     }
-  }, [roundStartTimes, navigate, eventId, phone]);
+  }, [roundStartTimes, navigate, eventId, phone, timeOffset]); // 🔥 Added timeOffset to deps
 
   const renderRounds = () => {
     const rounds = Object.keys(roundAssignments).sort(
