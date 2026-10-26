@@ -235,18 +235,25 @@ const Login = () => {
       /* noop */
     }
   }, []);
-
   const normalizePhone = (raw, cc) => {
     // Strip non-digits from the local part
-    const digits = raw.replace(/\D/g, '');
+    let digits = raw.replace(/\D/g, '');
     if (!digits) return '';
+    
     // If user typed a leading + themselves, respect it
     if (raw.trim().startsWith('+')) {
       return '+' + digits;
     }
+
+    // If the user typed the country code into the box (e.g., typed '266...' but selected '+266')
+    const ccDigits = cc.replace(/\D/g, '');
+    if (digits.startsWith(ccDigits)) {
+      digits = digits.substring(ccDigits.length);
+    }
+
     return `${cc}${digits}`;
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');

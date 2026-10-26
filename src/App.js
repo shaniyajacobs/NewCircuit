@@ -95,11 +95,16 @@ const PrivateRoute = ({ children }) => {
   const auth = getAuth();
   const location = useLocation();
 
-  // 1. Check if the URL contains a phone number (e.g., /dashboard/+126657142533)
+   // 1. Check the URL first and DECODE it properly
   const pathParts = location.pathname.split('/');
-  const urlPhone = pathParts[1] === 'dashboard' && pathParts[2] && pathParts[2].startsWith('+') 
-    ? decodeURIComponent(pathParts[2]) 
-    : null;
+  let urlPhone = null;
+  if (pathParts[1] === 'dashboard' && pathParts[2]) {
+    // Decode %2B to +, and replace any spaces with +
+    const decoded = decodeURIComponent(pathParts[2]).replace(/\s+/g, '+');
+    if (decoded.startsWith('+') || /^\d+$/.test(decoded)) {
+      urlPhone = decoded;
+    }
+  }
 
   // 2. Combine URL phone, state phone, and localStorage
   const guestUid = urlPhone || location.state?.guestUid || localStorage.getItem('guestUid');
