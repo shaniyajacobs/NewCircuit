@@ -62,10 +62,12 @@ async function isLatestEventWithin48Hours(userId) {
     let eventEndDateTime;
     
     if (eventData.endTime) {
-      eventEndDateTime = DateTime.fromMillis(Number(eventData.endTime));
+      const endMillis = eventData.endTime.toMillis ? eventData.endTime.toMillis() : Number(eventData.endTime);
+      eventEndDateTime = DateTime.fromMillis(endMillis);
       console.log('[48HOURS] Using endTime:', eventEndDateTime.toISO());
     } else if (eventData.startTime) {
-      const eventDateTime = DateTime.fromMillis(Number(eventData.startTime));
+      const startMillis = eventData.startTime.toMillis ? eventData.startTime.toMillis() : Number(eventData.startTime);
+      const eventDateTime = DateTime.fromMillis(startMillis);
       eventEndDateTime = eventDateTime.plus({ minutes: 90 });
       console.log('[48HOURS] Using startTime + 90min:', eventEndDateTime.toISO());
     } else {
@@ -97,6 +99,9 @@ async function isLatestEventWithin48Hours(userId) {
 const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect }, ref) => {
   const location = useLocation();
   const navigate = useNavigate();
+  // Use the guest phone number if available, otherwise fallback to Auth UID
+  const activeUserId = localStorage.getItem('guestUid') || auth.currentUser?.uid;
+  
   const [selectedConnection, setSelectedConnection] = useState(null);
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -116,15 +121,15 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
     setSelectingMatches(true);
     try {
       console.log('[DASHMYCONNECTIONS] handleMatchesClick started');
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.error('[DASHMYCONNECTIONS] No authenticated user found');
+      
+      if (!activeUserId) {
+        console.error('[DASHMYCONNECTIONS] No user found');
         setSelectingMatches(false);
         return;
       }
 
       // 1. Get latestEventId from user doc
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      const userDoc = await getDoc(doc(db, 'users', activeUserId));
       const latestEventId = userDoc.data()?.latestEventId;
       if (!latestEventId) {
         console.log('[DASHMYCONNECTIONS] No latestEventId found, showing error modal');
@@ -195,8 +200,8 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
       }
 
       // 5. Find current user's answers and profile
-      const currentUserAnswers = quizResponses.find(q => q.userId === currentUser.uid)?.answers;
-      const currentUserProfile = userProfiles.find(p => p.userId === currentUser.uid);
+      const currentUserAnswers = quizResponses.find(q => q.userId === activeUserId)?.answers;
+      const currentUserProfile = userProfiles.find(p => p.userId === activeUserId);
       
       if (!currentUserAnswers) {
         console.log('[DASHMYCONNECTIONS] No quiz answers found for current user');
@@ -211,8 +216,8 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
       }
 
       // 6. Filter other users by gender preference
-      const otherUsers = quizResponses.filter(q => q.userId !== currentUser.uid);
-      const otherUserProfiles = userProfiles.filter(p => p.userId !== currentUser.uid);
+      const otherUsers = quizResponses.filter(q => q.userId !== activeUserId);
+      const otherUserProfiles = userProfiles.filter(p => p.userId !== activeUserId);
       
       console.log('[DASHMYCONNECTIONS] Before gender filtering:', {
         totalUsers: otherUsers.length,
@@ -246,7 +251,7 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
       console.log('[DASHMYCONNECTIONS] Final matches:', matches);
 
       // 8. Save matches to Firestore
-      await setDoc(doc(db, 'matches', currentUser.uid), {
+      await setDoc(doc(db, 'matches', activeUserId), {
         timestamp: serverTimestamp(),
         results: matches
       });
@@ -282,9 +287,9 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
   // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!auth.currentUser) return;
+      if (!activeUserId) return;
       try {
-        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        const userDoc = await getDoc(doc(db, 'users', activeUserId));
         if (userDoc.exists()) {
           setUserProfile(userDoc.data());
         }
@@ -293,7 +298,7 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
       }
     };
     fetchUserProfile();
-  }, []);
+  }, [activeUserId]);
 
   // Handle navigation state from Current Sparks section
   useEffect(() => {
@@ -313,11 +318,10 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
     let intervalId;
     let isUnmounted = false;
     const checkSelectSparksCard = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
+      if (!activeUserId) return;
 
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userDoc = await getDoc(doc(db, 'users', activeUserId));
         if (!userDoc.exists()) return;
 
         const data = userDoc.data();
@@ -350,17 +354,16 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
       isUnmounted = true;
       if (intervalId) clearInterval(intervalId);
     };
-  }, []);
+  }, [activeUserId]);
 
   useEffect(() => {
     const fetchConnections = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
+      if (!activeUserId) return;
       
       setLoading(true);
       try {
         // Get all connections
-        const connectionsSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+        const connectionsSnap = await getDocs(collection(db, 'users', activeUserId, 'connections'));
         const connectionIds = connectionsSnap.docs.map(doc => doc.id);
         
         // Fetch profile data for each connection and check for mutual status
@@ -373,7 +376,7 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
               }
               
               // Get the connection document to retrieve the match score and status
-              const connectionDoc = await getDoc(doc(db, 'users', user.uid, 'connections', connectionId));
+              const connectionDoc = await getDoc(doc(db, 'users', activeUserId, 'connections', connectionId));
               const connectionData = connectionDoc.exists() ? connectionDoc.data() : {};
               
               // Only include mutual connections
@@ -423,7 +426,7 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
     };
 
     fetchConnections();
-  }, []);
+  }, [activeUserId]);
 
   const ConnectionList = () => {
     if (loading) {
@@ -648,4 +651,3 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
 });
 
 export default DashMyConnections;
-

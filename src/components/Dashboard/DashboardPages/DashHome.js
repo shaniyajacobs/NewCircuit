@@ -60,7 +60,7 @@ function isEventUpcoming(event, userLocation) {
   const userZone = cityToTimeZone[userLocation] || DateTime.local().zoneName || 'UTC';
   const nowZoned = now.setZone(userZone);
 
-  // 1. Check if startTime is a valid millisecond timestamp (Standard way)
+  // 1. Check if startTime is a valid millisecond timestamp
   if (event.startTime) {
     const ts = typeof event.startTime === 'object' && event.startTime.toMillis 
       ? event.startTime.toMillis() 
@@ -68,9 +68,19 @@ function isEventUpcoming(event, userLocation) {
     
     const eventDateTime = DateTime.fromMillis(ts);
     if (eventDateTime.isValid) {
-      const eventEnd = event.endTime 
-        ? DateTime.fromMillis(Number(event.endTime)).setZone(userZone)
-        : eventDateTime.plus({ minutes: 90 }).setZone(userZone);
+      let eventEnd;
+      
+      // Safely parse event.endTime just like we do for startTime
+      if (event.endTime) {
+        const endTs = typeof event.endTime === 'object' && event.endTime.toMillis 
+          ? event.endTime.toMillis() 
+          : Number(event.endTime);
+        eventEnd = DateTime.fromMillis(endTs).setZone(userZone);
+      } else {
+        // Default to 2 hours after start if no endTime is set
+        eventEnd = eventDateTime.plus({ hours: 2 }).setZone(userZone);
+      }
+      
       return eventEnd > nowZoned;
     }
   }
@@ -89,7 +99,8 @@ function isEventUpcoming(event, userLocation) {
     for (const fmt of formats) {
       const dt = DateTime.fromFormat(dateTimeStr, fmt, { zone: event.timeZone || 'UTC' });
       if (dt.isValid) {
-        const eventEnd = dt.plus({ minutes: 90 }).setZone(userZone);
+        // Default to 2 hours after start
+        const eventEnd = dt.plus({ hours: 2 }).setZone(userZone);
         return eventEnd > nowZoned;
       }
     }
@@ -1203,11 +1214,9 @@ const DashHome = () => {
   const handleDirectMatchesClick = () => {
     navigate('/dashboard/myMatches');
   };
-
   const handleConnectionsClick = () => {
-    navigate('dashMyConnections');
+    navigate('/dashboard/dashMyConnections');
   };
-
   const signUpEventLimit = useResponsiveEventLimit();
 
   // Filter cancelled events + only upcoming events
