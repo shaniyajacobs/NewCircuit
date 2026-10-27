@@ -340,6 +340,88 @@ export const synergyMatrices = new Map([
     ]
   ]);
   
+export function getTopMatches(currentUserAnswers, others) {
+  console.log('[MATCH] Starting matchmaking with gender-filtered users:', others.length);
+  console.log('[MATCH] User IDs being processed:', others.map(o => o.userId));
+  
+  // Get all question keys in sorted order for determinism
+  const questionKeys = Array.from(weights.keys()).sort();
+
+  // Helper to normalize answers for comparison
+  function normalize(str) {
+    return typeof str === 'string' ? str.trim().toLowerCase() : str;
+  }
+
+  // Helper to compute synergies for a pair of users
+  function computeSynergies(userA, userB, userIdB) {
+    const synergies = new Map();
+    for (const key of questionKeys) {
+      let answerA = userA[key];
+      let answerB = userB[key];
+      
+      // Special handling for Question 17 (drag-and-drop ranking)
+      if (key === "Question 17") {
+        // Use the synergy field for the top answer instead of the full array
+        answerA = userA[`${key}_synergy`] || answerA;
+        answerB = userB[`${key}_synergy`] || answerB;
+      }
+      
+      if (answerA == null || answerB == null) {
+        console.warn(`[MATCH] Missing answer for ${key}:`, { answerA, answerB, userA, userB });
+        synergies.set(key, 0.5); // Default/neutral synergy if missing
+        continue;
+      }
+      
+      // Build a sorted set key for lookup, normalize answers
+      const setKey = new Set([normalize(answerA), normalize(answerB)]);
+      // Convert all sets in the matrix to sorted string keys for comparison
+      const matrix = synergyMatrices.get(key);
+      let found = false;
+      for (const [set, value] of matrix) {
+        // Compare as sorted arrays, normalize
+        const arr1 = Array.from(set).map(normalize).sort();
+        const arr2 = Array.from(setKey).map(normalize).sort();
+        if (arr1.length === arr2.length && arr1.every((v, i) => v === arr2[i])) {
+          synergies.set(key, value);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        console.warn(`[MATCH] No synergy found for question '${key}' with answers:`, answerA, answerB, 'for user', userIdB);
+        synergies.set(key, 0.5); // Default if no match
+      } else {
+        console.log(`[MATCH] Synergy for question '${key}' with answers:`, answerA, answerB, 'is', synergies.get(key));
+      }
+    }
+    return synergies;
+  }
+
+  // Main matching logic
+  const results = others.map(o => {
+    console.log(`\n[MATCH] Comparing current user to userId: ${o.userId}`);
+    console.log('[MATCH] Current user answers:', currentUserAnswers);
+    console.log('[MATCH] Other user answers:', o.answers);
+    const synergies = computeSynergies(currentUserAnswers, o.answers, o.userId);
+    let weightSum = 0;
+    let score = 1;
+    for (const key of questionKeys) {
+      const w = weights.get(key);
+      const s = synergies.get(key);
+      const safeSynergy = Math.min(Math.max(s, 0.01), 1); // Clamp between 0.01 and 1 to prevent inflation
+      weightSum += w;
+      score *= Math.pow(safeSynergy, w);
+      console.log(`[MATCH] Question: ${key}, Weight: ${w}, Synergy: ${s}, Safe Synergy: ${safeSynergy}`);
+    }
+    const mean_score = Math.pow(score, 1 / weightSum) * 100;
+    console.log(`[MATCH] Final score for userId ${o.userId}:`, mean_score);
+    return { userId: o.userId, score: mean_score };
+  }).sort((a, b) => b.score - a.score);
+
+  console.log('[MATCH] Final sorted results:', results);
+  return results;
+}
+  
 const Synergies = () => {
     return {
         placeholderUserIDs,

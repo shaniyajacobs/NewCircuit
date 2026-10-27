@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import { getAuth, deleteUser, signOut, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { getAuth, signOut, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { doc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../pages/firebaseConfig";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 const DashDeleteAccount = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const auth = getAuth();
 
@@ -33,11 +36,10 @@ const DashDeleteAccount = () => {
       );
       await reauthenticateWithCredential(user, credential);
 
-      // Delete user data from Firestore
-      await deleteDoc(doc(db, "users", user.uid));
-
-      // Delete user from Firebase Auth
-      await deleteUser(user);
+      // Invoke backend cleanup
+      const functions = getFunctions();
+      const deleteFn = httpsCallable(functions, "deleteUser");
+      await deleteFn({ userId: user.uid });
 
       // Sign out and redirect to home
       await signOut(auth);
@@ -56,67 +58,117 @@ const DashDeleteAccount = () => {
   };
 
   return (
-    <div className="p-8 rounded-lg shadow-md w-full min-h-[calc(100vh-100px)] bg-white">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-12">
-          <h1 className="text-3xl font-bold text-[#0043F1] mb-6">Delete Account</h1>
-          <div className="p-8 bg-[#0043F1]/5 rounded-lg border border-[#0043F1]/20 mb-8">
-            <h2 className="text-2xl font-bold mb-6 text-[#0043F1]">Before You Delete</h2>
-            <ul className="list-disc list-inside text-gray-700 space-y-4 text-lg">
-              <li>All your profile information will be permanently deleted</li>
-              <li>Your matches and connections will be removed</li>
-              <li>Your account cannot be recovered once deleted</li>
-              <li>Any active coupons or rewards will be forfeited</li>
-            </ul>
-          </div>
-          
-          <div className="p-6 bg-red-50 rounded-lg border border-red-200 mb-8">
-            <p className="text-red-600 font-medium text-lg">
-              Warning: This action cannot be undone. All your data will be permanently deleted.
-            </p>
+    <div className="p-10 w-full min-h-screen bg-white relative flex flex-col">
+      {/* Header */}
+      <h1 
+        className="text-[#211F20] font-bricolage text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[32px] font-medium leading-[130%] mb-4 pt-4 pb-2"
+        style={{
+          fontFamily: '"Bricolage Grotesque", sans-serif',
+          fontStyle: 'normal',
+          fontWeight: 500,
+          lineHeight: '130%'
+        }}
+      >
+        Delete Account
+      </h1>
+
+      {/* Content Area - Takes up remaining space */}
+      <div className="flex-1 space-y-6">
+        {/* Before you delete section */}
+        <div 
+          className="p-6 rounded-[8px] border border-[rgba(0,0,0,0.10)]"
+          style={{
+            background: "radial-gradient(50% 50% at 50% 50%, rgba(226,255,101,0.50) 0%, rgba(210,255,215,0.50) 100%)"
+          }}
+        >
+          <h2
+            className="text-[#211F20] font-bricolage text-base sm:text-lg md:text-xl lg:text-2xl xl:text-[24px] font-medium leading-[130%] mb-2"
+            style={{
+              fontFamily: '"Bricolage Grotesque", sans-serif',
+              fontStyle: 'normal',
+              fontWeight: 500,
+              lineHeight: '130%'
+            }}
+          >
+            Before You Delete
+          </h2>
+          <ul className="space-y-2 text-[#211F20] font-poppins text-sm sm:text-base font-normal leading-normal">
+            <li>• All your profile information will be permanently deleted</li>
+            <li>• Your matches and connections will be removed</li>
+            <li>• Your account cannot be recovered once deleted</li>
+            <li>• Any active coupons or rewards will be forfeited</li>
+          </ul>
+        </div>
+
+        {/* Warning section */}
+        <div className="p-4 bg-red-50 rounded-[8px] border border-[rgba(0,0,0,0.10)]">
+          <p className="text-red-600 font-poppins text-sm sm:text-base font-normal leading-normal">
+            Warning: This action cannot be undone. All your data will be permanently deleted.
+          </p>
+        </div>
+
+        {/* Password Field */}
+        <div>
+          <h2
+            className="text-[#211F20] font-bricolage text-sm sm:text-base font-medium leading-normal mb-2"
+            style={{
+              fontFamily: '"Bricolage Grotesque", sans-serif',
+              fontStyle: 'normal',
+              fontWeight: 500,
+              lineHeight: '130%'
+            }}
+          >
+            ENTER YOUR PASSWORD TO CONFIRM DELETION
+          </h2>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 sm:px-6 md:px-8 lg:px-[24px] py-2 sm:py-3 md:py-4 lg:py-[12px] rounded-[8px] border border-[rgba(0,0,0,0.10)] bg-white font-poppins text-sm sm:text-base font-medium leading-normal text-[#211F20] placeholder-[rgba(33,31,32,0.75)] transition-all duration-200"
+              placeholder="Enter your password"
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-4 flex items-center"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <EyeSlashIcon className="w-7 h-7 text-gray-600" />
+              ) : (
+                <EyeIcon className="w-7 h-7 text-gray-600" />
+              )}
+            </button>
           </div>
         </div>
 
+        {/* Error Display */}
         {error && (
-          <div className="mb-8 p-6 bg-red-50 text-red-600 rounded-lg border border-red-200 text-lg">
+          <div className="text-red-600 font-poppins text-sm font-medium">
             {error}
           </div>
         )}
+      </div>
 
-        <div className="mt-12">
-          <div className="mb-8">
-            <label className="block text-gray-700 text-xl font-semibold mb-3">
-              Enter your password to confirm deletion:
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-5 border rounded-lg text-lg focus:border-[#0043F1] focus:ring-1 focus:ring-[#0043F1] outline-none"
-              placeholder="Enter your password"
-            />
-          </div>
-
-          <div className="space-y-5">
-            <button
-              onClick={handleDeleteAccount}
-              disabled={loading || !password}
-              className={`w-full py-5 ${
-                password ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-300'
-              } text-white rounded-lg text-xl font-semibold transition-colors`}
-            >
-              {loading ? 'Deleting Account...' : 'Delete My Account'}
-            </button>
-
-            <button
+      {/* Bottom Buttons */}
+      <div className="mt-auto pt-6 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+          {/* Back Button */}
+          <button 
+              className="w-full sm:flex-1 bg-white text-[#211F20] font-medium hover:bg-gray-50 transition-colors text-center rounded-lg py-2 sm:py-2 xl:py-2 2xl:py-2 px-6 sm:px-5 xl:px-5 2xl:px-5 font-poppins leading-normal text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px] border border-[#211F20]"
               onClick={() => navigate('/dashboard/dashSettings')}
               disabled={loading}
-              className="w-full py-5 bg-[#0043F1]/5 text-[#0043F1] rounded-lg text-xl font-semibold hover:bg-[#0043F1]/10 transition-colors border border-[#0043F1]/20"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+          >
+              Back
+          </button>
+
+          {/* Delete Button */}
+          <button 
+              className="w-full sm:flex-1 bg-red-600 text-white font-medium hover:bg-red-700 transition-colors text-center rounded-lg py-2 sm:py-2 xl:py-2 2xl:py-2 px-6 sm:px-5 xl:px-5 2xl:px-5 font-poppins leading-normal text-[12px] sm:text-[12px] lg:text-[14px] 2xl:text-[16px]"
+              onClick={handleDeleteAccount}
+              disabled={loading || !password}
+          >
+              {loading ? 'Deleting...' : 'Delete my account'}
+          </button>
       </div>
     </div>
   );
