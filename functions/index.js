@@ -276,12 +276,14 @@ function generateRoundAssignments(attendees, roundDurationSeconds, breakDuration
   );
 
   if (isQueer) {
-    //  QUEER EVENT LOGIC: Single pool Round-Robin
+    // QUEER EVENT LOGIC: Single pool Round-Robin
     let pool = [...attendees];
     // If odd number of people, add a "BYE" (null) to make it even
     if (pool.length % 2 !== 0) pool.push(null);
     const n = pool.length;
-    const numRounds = Math.min(Math.floor(n / 2), 4); // Max 4 rounds
+    
+    // Max 6 rounds for Queer events
+    const numRounds = Math.min(n - 1, 6); 
 
     if (numRounds === 0) return { roundStartTimes: [], assignments: {} };
 
@@ -309,12 +311,14 @@ function generateRoundAssignments(attendees, roundDurationSeconds, breakDuration
       currentTime += (roundDurationSeconds + breakDurationSeconds) * 1000;
     }
     return { roundStartTimes, assignments };
+
   } else {
     // STANDARD EVENT LOGIC: Men / Women rotation
     const men = attendees.filter(a => a.gender === 'Male');
     const women = attendees.filter(a => a.gender === 'Female');
     
-    const numRounds = Math.min(Math.min(men.length, women.length), 4);
+    // Max 6 rounds for Standard events
+    const numRounds = Math.min(Math.min(men.length, women.length), 6);
     if (numRounds === 0) return { roundStartTimes: [], assignments: {} };
 
     const assignments = {};
