@@ -5,6 +5,7 @@ import { doc, getDoc, onSnapshot, updateDoc, collection, query, where, getDocs }
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { format } from 'date-fns';
 
+
 /* ============================================================
    PRESENTATION ONLY — design tokens & shared style block.
    These do not affect logic, state, or side effects.
@@ -111,6 +112,7 @@ const EventNight = () => {
   const [timeOffset, setTimeOffset] = useState(0);
   const intervalRef = useRef();
   const lastSmsSentRef = useRef({}); 
+  const [noteStatus, setNoteStatus] = useState('');
 
   const getTimestampMillis = (ts) => {
     if (typeof ts === 'number') return ts;
@@ -285,7 +287,6 @@ const EventNight = () => {
       navigate(`/event/${eventId}/selections/${phone}`);
       return;
     }
-
     // In a round
     const roundNum = idx + 1;
     const roundKey = `round${roundNum}`;
@@ -293,6 +294,15 @@ const EventNight = () => {
     const partnerData = partnerId ? allAttendees[partnerId] : null;
     setPartner(partnerData);
     setCurrentRoundIndex(idx);
+    
+    if (!partnerData) {
+      // User has a BYE this round (no partner assigned)
+      setPhase('bye');
+      const roundEnd = getTimestampMillis(starts[idx]) + event.roundDurationSeconds * 1000;
+      setTimeLeft(Math.max(0, Math.floor((roundEnd - now) / 1000)));
+      return;
+    }
+
     if (partnerData) {
       let status = partnerData.checkInStatus || 'noShow';
 
@@ -373,7 +383,7 @@ const EventNight = () => {
     phone,
     navigate,
     sendSMS,
-    timeOffset, // 🔥 Added timeOffset here so the timer stays in sync
+    timeOffset, // Added timeOffset here so the timer stays in sync
   ]);
 
   useEffect(() => {
@@ -381,20 +391,22 @@ const EventNight = () => {
     intervalRef.current = setInterval(updateState, 1000);
     return () => clearInterval(intervalRef.current);
   }, [updateState]);
-
   const saveNote = async (roundNum, note) => {
     if (!attendeeDocId || !eventId) return;
+    setNoteStatus('Saving...');
     try {
       const attendeeRef = doc(db, 'events', eventId, 'signedUpUsers', attendeeDocId);
       const currentNotes = attendee.notes || {};
       currentNotes[`round${roundNum}`] = note;
       await updateDoc(attendeeRef, { notes: currentNotes });
       setAttendee({ ...attendee, notes: currentNotes });
+      setNoteStatus('Saved ✓');
+      setTimeout(() => setNoteStatus(''), 2000); // Clear indicator after 2 seconds
     } catch (err) {
       console.error('Error saving note:', err);
+      setNoteStatus('Error saving');
     }
   };
-
   //  Mark the current user as arrived (removes the "imLate" screen)
   const markAsArrived = async () => {
     if (!attendeeDocId || !eventId) return;
@@ -404,10 +416,10 @@ const EventNight = () => {
         checkInStatus: 'onTime',
         arrivedAtEvent: true,
         arrivedAt: new Date(),
-        eta: null, // 🔥 Added eta: null to clear the late timer for the partner
+        eta: null, // null to clear the late timer for the partner
       });
       setAttendee({ ...attendee, checkInStatus: 'onTime', arrivedAtEvent: true, eta: null });
-      console.log('✅ Marked as arrived');
+      console.log(' Marked as arrived');
     } catch (err) {
       console.error('Failed to mark as arrived:', err);
     }
@@ -511,7 +523,31 @@ const EventNight = () => {
         </div>
       );
     }
+    if (phase === 'bye') {
+      const roundNum = currentRoundIndex + 1;
+      return (
+        <div className={CX.card + ' p-7 sm:p-9 text-center'}>
+          <div className={CX.accentBar} />
+          <div className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#FFF7E0] text-3xl shadow-[0_6px_16px_-6px_rgba(255,193,7,0.5)]">
+            ☕
+          </div>
+          <p className={CX.eyebrow + ' mb-1'}>Round {roundNum}</p>
+          <h3 className="text-[24px] sm:text-[28px] font-extrabold tracking-[-0.02em] text-[#211F20]">
+            Take a breather!
+          </h3>
+          <p className="mx-auto mt-3 max-w-md text-[14.5px] leading-relaxed text-[#55514C]">
+            You don't have a match for this round. Grab a drink, relax, and get ready for your next date.
+          </p>
 
+          <div className="my-7">
+            <p className={CX.eyebrow + ' mb-2'}>Next round begins in</p>
+            <div className={CX.timer + ' text-[#B8730A]'}>
+              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+            </div>
+          </div>
+        </div>
+      );
+    }
     if (phase === 'break') {
       const nextRoundNum = currentRoundIndex + 1;
       const nextPartner = partner;
@@ -621,11 +657,17 @@ const EventNight = () => {
                 {icebreaker}
               </p>
             </div>
-
             <div className="mt-6">
-              <p className={CX.eyebrow + ' mb-2'}>Your notes</p>
+              <div className="flex justify-between items-center mb-2">
+                <p className={CX.eyebrow}>Your notes</p>
+                {noteStatus && (
+                  <span className="text-[12px] font-semibold text-[#8A8377]">
+                    {noteStatus}
+                  </span>
+                )}
+              </div>
               <textarea
-                placeholder="Add a note about this date…"
+                placeholder="Add a note about this date… (Auto-saves)"
                 className={CX.textarea}
                 rows="3"
                 value={attendee?.notes?.[`round${roundNum}`] || ''}
@@ -681,11 +723,17 @@ const EventNight = () => {
                 </p>
               </div>
             </div>
-
             <div className="mt-6">
-              <p className={CX.eyebrow + ' mb-2'}>Your notes</p>
+              <div className="flex justify-between items-center mb-2">
+                <p className={CX.eyebrow}>Your notes</p>
+                {noteStatus && (
+                  <span className="text-[12px] font-semibold text-[#8A8377]">
+                    {noteStatus}
+                  </span>
+                )}
+              </div>
               <textarea
-                placeholder="Add a note about this date…"
+                placeholder="Add a note about this date… (Auto-saves)"
                 className={CX.textarea}
                 rows="3"
                 value={attendee?.notes?.[`round${roundNum}`] || ''}
