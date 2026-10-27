@@ -268,46 +268,82 @@ function getPayPalClient() {
 // ========================================================
 // HELPER – Generate Round Assignments
 // ========================================================
-function generateRoundAssignments(attendees, roundDurationSeconds, breakDurationSeconds, eventStartTime) {
-  // attendees: array of { id, gender }
-  const men = attendees.filter(a => a.gender === 'Male');
-  const women = attendees.filter(a => a.gender === 'Female');
-  
-  // We'll pair men with women, rotating.
-  const numRounds = Math.min(men.length, women.length);
-  if (numRounds === 0) return { roundStartTimes: [], assignments: {} };
+function generateRoundAssignments(attendees, roundDurationSeconds, breakDurationSeconds, eventStartTime, audience) {
+  // Check if it's a queer event (single pool) or standard (men/women)
+  const isQueer = audience && (
+    audience.toLowerCase().includes('queer') || 
+    audience.toLowerCase() === 'all'
+  );
 
-  // Create a round-robin schedule: men fixed, women rotated
-  const schedule = [];
-  for (let round = 0; round < numRounds; round++) {
-    const roundPairs = [];
-    for (let i = 0; i < men.length; i++) {
-      const womanIndex = (i + round) % women.length;
-      roundPairs.push({ man: men[i].id, woman: women[womanIndex].id });
+  if (isQueer) {
+    //  QUEER EVENT LOGIC: Single pool Round-Robin
+    let pool = [...attendees];
+    // If odd number of people, add a "BYE" (null) to make it even
+    if (pool.length % 2 !== 0) pool.push(null);
+    const n = pool.length;
+    const numRounds = Math.min(Math.floor(n / 2), 4); // Max 4 rounds
+
+    if (numRounds === 0) return { roundStartTimes: [], assignments: {} };
+
+    const assignments = {};
+    attendees.forEach(a => { assignments[a.id] = {}; });
+
+    for (let r = 0; r < numRounds; r++) {
+      for (let i = 0; i < Math.floor(n / 2); i++) {
+        const p1 = pool[i];
+        const p2 = pool[n - 1 - i];
+        if (p1 && p2) {
+          assignments[p1.id][`round${r+1}`] = p2.id;
+          assignments[p2.id][`round${r+1}`] = p1.id;
+        }
+      }
+      // Rotate the array (keep first person fixed, rotate the rest)
+      const last = pool.pop();
+      pool.splice(1, 0, last);
     }
-    schedule.push(roundPairs);
+
+    const roundStartTimes = [];
+    let currentTime = eventStartTime;
+    for (let i = 0; i < numRounds; i++) {
+      roundStartTimes.push(currentTime);
+      currentTime += (roundDurationSeconds + breakDurationSeconds) * 1000;
+    }
+    return { roundStartTimes, assignments };
+  } else {
+    // STANDARD EVENT LOGIC: Men / Women rotation
+    const men = attendees.filter(a => a.gender === 'Male');
+    const women = attendees.filter(a => a.gender === 'Female');
+    
+    const numRounds = Math.min(Math.min(men.length, women.length), 4);
+    if (numRounds === 0) return { roundStartTimes: [], assignments: {} };
+
+    const assignments = {};
+    attendees.forEach(a => { assignments[a.id] = {}; });
+
+    const n = Math.max(men.length, women.length);
+    
+    const paddedMen = [...men, ...Array(n - men.length).fill(null)];
+    const paddedWomen = [...women, ...Array(n - women.length).fill(null)];
+
+    for (let r = 0; r < numRounds; r++) {
+      for (let i = 0; i < n; i++) {
+        const man = paddedMen[i];
+        const woman = paddedWomen[(i + r) % n];
+        if (man && woman) {
+          assignments[man.id][`round${r+1}`] = woman.id;
+          assignments[woman.id][`round${r+1}`] = man.id;
+        }
+      }
+    }
+
+    const roundStartTimes = [];
+    let currentTime = eventStartTime;
+    for (let i = 0; i < numRounds; i++) {
+      roundStartTimes.push(currentTime);
+      currentTime += (roundDurationSeconds + breakDurationSeconds) * 1000;
+    }
+    return { roundStartTimes, assignments };
   }
-
-  // Build assignment map: attendeeId -> { round: partnerId }
-  const assignments = {};
-  attendees.forEach(a => { assignments[a.id] = {}; });
-
-  schedule.forEach((roundPairs, roundIndex) => {
-    roundPairs.forEach(pair => {
-      assignments[pair.man][`round${roundIndex+1}`] = pair.woman;
-      assignments[pair.woman][`round${roundIndex+1}`] = pair.man;
-    });
-  });
-
-  // Calculate round start times
-  const roundStartTimes = [];
-  let currentTime = eventStartTime;
-  for (let i = 0; i < numRounds; i++) {
-    roundStartTimes.push(currentTime);
-    currentTime += (roundDurationSeconds + breakDurationSeconds) * 1000;
-  }
-
-  return { roundStartTimes, assignments };
 }
 // ========================================================
 // HELPER – Create mutual connections using phone numbers
@@ -3853,10 +3889,10 @@ exports.generateRounds = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
-    // DYNAMIC CORS – accept www, non-www, and localhost
+    //DYNAMIC CORS – accept www, non-www, and localhost
     const allowedOrigins = [
       'https://circuit.dating',
-      'https://www.circuits.dating.com',
+      'https://www.circuit.dating',
       'http://localhost:3000',
     ];
     const origin = req.headers.origin;
@@ -3864,7 +3900,7 @@ exports.generateRounds = onRequest(
       res.set('Access-Control-Allow-Origin', origin);
     } else {
       // Fallback so the request doesn't silently fail
-      res.set('Access-Control-Allow-Origin', 'https://circuit.dating');
+      res.set('Access-Control-Allow-Origin', 'https://www.circuit.dating');
     }
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -3929,12 +3965,12 @@ exports.generateRounds = onRequest(
 
       const roundDuration = eventData.roundDurationSeconds || 360;
       const breakDuration = eventData.breakDurationSeconds || 240;
-
       const { roundStartTimes, assignments } = generateRoundAssignments(
         attendees,
         roundDuration,
         breakDuration,
-        startTime
+        startTime,
+        eventData.audience // 🔥 Pass the audience!
       );
 
       const timestampArray = roundStartTimes.map(ts => admin.firestore.Timestamp.fromMillis(ts));
@@ -4724,7 +4760,7 @@ exports.autoGenerateRounds = onSchedule(
           const breakDuration = eventData.breakDurationSeconds || 240;
           
           // Using the helper function that already exists in your file
-          const { roundStartTimes, assignments } = generateRoundAssignments(attendees, roundDuration, breakDuration, startTime);
+         const { roundStartTimes, assignments } = generateRoundAssignments(attendees, roundDuration, breakDuration, startTime, eventData.audience);
 
           const timestampArray = roundStartTimes.map(ts => admin.firestore.Timestamp.fromMillis(ts));
 

@@ -1214,8 +1214,8 @@ const DashHome = () => {
   const handleDirectMatchesClick = () => {
     navigate('/dashboard/myMatches');
   };
-  const handleConnectionsClick = () => {
-    navigate('/dashboard/dashMyConnections');
+   const handleConnectionsClick = () => {
+    navigate('/dashboard/mysparks');
   };
   const signUpEventLimit = useResponsiveEventLimit();
 

@@ -6,6 +6,7 @@ import { httpsCallable } from 'firebase/functions';
 import { IoChevronBack, IoLocationSharp } from 'react-icons/io5';
 import styles from './EventsPage.module.css';
 import { buildEventSlug } from '../utils/slugUtils';
+import { DateTime } from 'luxon'; 
 
 const EventsPage = () => {
   const navigate = useNavigate();
@@ -248,13 +249,19 @@ const EventsPage = () => {
 
   const formatEventTime = (event) => {
     if (event.startTime) {
-      const date = new Date(event.startTime);
-      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      // Safely get the timestamp whether it's a Firebase Timestamp or a number
+      const ts = event.startTime.toMillis ? event.startTime.toMillis() : new Date(event.startTime).getTime();
+      
+      // Fallback to a default timezone if the event doesn't have one saved yet
+      const eventZone = event.timeZone || 'America/New_York'; 
+      
+      // Format the time specifically in the Event's timezone
+      const dt = DateTime.fromMillis(ts).setZone(eventZone);
+      return dt.toFormat('h:mm a'); 
     }
     if (event.time) return event.time;
     return 'Time TBD';
   };
-
   if (loading) {
     return (
       <div className={styles.container}>

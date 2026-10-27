@@ -84,12 +84,25 @@ const EventSelections = () => {
           setLoading(false);
           return;
         }
-
         // Fetch only the partner attendees
         const allAttendeesSnap = await getDocs(attendeesRef);
         const partners = allAttendeesSnap.docs
           .filter(d => partnerIds.includes(d.id))
-          .map(d => ({ id: d.id, ...d.data() }));
+          .map(d => {
+            const partnerData = d.data();
+            // Find the round number this partner was assigned to
+            const roundKey = Object.keys(myRoundAssignments).find(
+              key => myRoundAssignments[key] === d.id
+            );
+            // Get the note for that specific round
+            const roundNote = roundKey ? currentData.notes?.[roundKey] : null;
+            
+            return { 
+              id: d.id, 
+              ...partnerData, 
+              savedNote: roundNote // Attach the note here!
+            };
+          });
 
         console.log('🔎 Partners found:', partners.length);
 
@@ -345,7 +358,6 @@ const EventSelections = () => {
                       >
                         {initial}
                       </span>
-
                       {/* Info */}
                       <div className="min-w-0 flex-1">
                         <p className="m-0 text-[15.5px] font-extrabold leading-tight text-[#1c1917]">
@@ -354,8 +366,18 @@ const EventSelections = () => {
                         <p className="m-0 mt-1.5 text-[13.5px] leading-snug text-[#4a4540]">
                           {outfit}
                         </p>
+                        {/*  Display the notes saved during the date */}
+                        {attendee.savedNote && (
+                          <div className="mt-3 rounded-lg bg-[#fffaf0] p-3 border border-[#eae4d2]">
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-[#a85e02] mb-1">
+                              Your Note:
+                            </p>
+                            <p className="text-[13px] italic text-[#55514C]">
+                              "{attendee.savedNote}"
+                            </p>
+                          </div>
+                        )}
                       </div>
-
                       {/* Checkmark badge */}
                       {isSelected && (
                         <span className="circuit-selections-check absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-b from-[#f59e0b] to-[#d97706] text-[13px] font-extrabold text-white shadow-[0_4px_10px_-2px_rgba(168,94,2,0.7)]">

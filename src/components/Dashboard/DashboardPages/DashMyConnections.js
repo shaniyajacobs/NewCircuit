@@ -479,24 +479,6 @@ const DashMyConnections = forwardRef(({ onConnectionSelect, onConnectionDeselect
               {connection.name}, {connection.age}
             </div>
 
-            {/* Compatibility badge */}
-            <div className="flex px-2 py-2 justify-center items-center gap-[10px] rounded-[100px] border border-[rgba(33,31,32,0.10)] mr-6"
-                 style={{
-                   background: 'radial-gradient(50% 50% at 50% 50%, rgba(226, 255, 101, 0.50) 0%, rgba(210, 255, 215, 0.50) 100%)'
-                 }}>
-              <span className="text-[#211F20] font-bricolage text-h8 font-medium leading-[130%] uppercase">
-                {connection.compatibility}% COMPATIBILITY
-              </span>
-            </div>
-
-            {/* Compatibility line */}
-            <div className="flex-1 h-1 rounded-[24px] bg-gray-200 mr-6 relative">
-              <div 
-                className="h-1 rounded-[24px] bg-[#211F20] absolute top-0 left-0"
-                style={{ width: `${connection.compatibility}%` }}
-              ></div>
-            </div>
-
             {/* Message button */}
             <button 
               onClick={async () => {

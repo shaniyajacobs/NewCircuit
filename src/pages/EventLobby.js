@@ -193,13 +193,6 @@ const EventLobby = () => {
           <p className="text-sm text-gray-500 mt-4 text-center">
             When the timer hits zero, locate your Round 1 date based on their outfit description.
           </p>
-          {/* Manual fallback button */}
-          <button
-            onClick={() => navigate(`/event/${eventId}/night/${phone}`)}
-            className="mt-4 w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
-          >
-            Enter Event Now
-          </button>
         </div>
       </div>
     </div>

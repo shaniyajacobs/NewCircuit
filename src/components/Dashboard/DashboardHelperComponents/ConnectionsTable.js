@@ -112,20 +112,6 @@ const ConnectionsTable = ({ connections, onMessageClick }) => {
               </div>
             </div>
 
-            {/* Compatibility badge - on its own line on mobile */}
-            <div className="flex justify-center lg:justify-start lg:mr-6">
-              <div
-                className="flex justify-center items-center px-2 py-2 gap-2 rounded-[100px] border border-[rgba(33,31,32,0.10)]"
-                style={{
-                  background:
-                    'radial-gradient(50% 50% at 50% 50%, rgba(226, 255, 101, 0.50) 0%, rgba(210, 255, 215, 0.50) 100%)'
-                }}
-              >
-                <span className="text-[#211F20] font-bricolage text-h8 font-medium leading-[130%] uppercase">
-                  {compatibility}% COMPATIBILITY
-                </span>
-              </div>
-            </div>
 
             {/* Progress bar - on its own line on mobile */}
             <div className="w-full lg:flex-1 lg:mr-6">
