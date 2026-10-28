@@ -69,9 +69,11 @@ function getDateParts(dateString, timeString, timeZone) {
   };
 }
 
-function getDatePartsFromMillis(millis) {
+function getDatePartsFromMillis(millis, timeZone) {
   if (!millis) return { dayOfWeek: '', day: '', month: '' };
-  const dt = DateTime.fromMillis(Number(millis));
+  // Force the time to the Event's timezone
+  const zone = timeZone || 'America/New_York';
+  const dt = DateTime.fromMillis(Number(millis)).setZone(zone);
   return {
     dayOfWeek: dt.toFormat('ccc').toUpperCase(),
     day: dt.toFormat('d'),
@@ -79,7 +81,6 @@ function getDatePartsFromMillis(millis) {
     timeLabel: dt.toFormat('h:mm a'),
   };
 }
-
   const EventCard = ({ event, type, userGender, onSignUp, datesRemaining, onCancel, canCancel = true }) => {
   const [signUpClicked, setSignUpClicked] = useState(false);
   const [showMapsMenu, setShowMapsMenu] = useState(false);
@@ -93,7 +94,7 @@ function getDatePartsFromMillis(millis) {
   const [hasJoinedEvent, setHasJoinedEvent] = useState(false);
    let dateParts = { dayOfWeek: '', day: '', month: '', timeLabel: '' };
   if (event.startTime) {
-    dateParts = getDatePartsFromMillis(event.startTime);
+    dateParts = getDatePartsFromMillis(event.startTime, event.timeZone);
   } else if (event.date) {
     dateParts = getDateParts(event.date, event.time, event.timeZone);
   }
@@ -146,8 +147,10 @@ function getDatePartsFromMillis(millis) {
 
   const getTimeRange = () => {
     if (event.startTime && event.endTime) {
-      const startDt = DateTime.fromMillis(Number(event.startTime));
-      const endDt = DateTime.fromMillis(Number(event.endTime));
+      // Force the time range to the Event's timezone
+      const zone = event.timeZone || 'America/New_York';
+      const startDt = DateTime.fromMillis(Number(event.startTime)).setZone(zone);
+      const endDt = DateTime.fromMillis(Number(event.endTime)).setZone(zone);
       const startTime = startDt.toFormat('h:mm a');
       const endTime = endDt.toFormat('h:mm a');
       return `${startTime} - ${endTime}`;

@@ -110,6 +110,7 @@ const EventNight = () => {
   const [phase, setPhase] = useState('preRound');
   const [timeLeft, setTimeLeft] = useState(0);
   const [timeOffset, setTimeOffset] = useState(0);
+  const [lastRoundWasNoShow, setLastRoundWasNoShow] = useState(false);
   const intervalRef = useRef();
   const lastSmsSentRef = useRef({}); 
   const [noteStatus, setNoteStatus] = useState('');
@@ -120,7 +121,7 @@ const EventNight = () => {
     return 0;
   };
 
-  // 🔥 Sync with Server Time
+  // Sync with Server Time
   useEffect(() => {
     const fetchTime = async () => {
       try {
@@ -320,9 +321,9 @@ const EventNight = () => {
           const diff = Math.floor((nextStart - now) / 1000);
           setTimeLeft(Math.max(0, diff));
         } else {
-          setPhase('postEvent');
-          sendSMS('eventEnd', {});
-          navigate(`/event/${eventId}/selections/${phone}`);
+          // It's the last round. Wait for the timer to end instead of kicking them immediately.
+          const roundEnd = getTimestampMillis(starts[idx]) + event.roundDurationSeconds * 1000;
+          setTimeLeft(Math.max(0, Math.floor((roundEnd - now) / 1000)));
         }
         sendSMS('noShow', {
           roundNum,
@@ -368,8 +369,9 @@ const EventNight = () => {
       if (nextStart) {
         setTimeLeft(Math.floor((nextStart - now) / 1000));
       } else {
-        setPhase('postEvent');
-        navigate(`/event/${eventId}/selections/${phone}`);
+        // It's the last round. Wait for the timer to end.
+        const roundEnd = getTimestampMillis(starts[idx]) + event.roundDurationSeconds * 1000;
+        setTimeLeft(Math.max(0, Math.floor((roundEnd - now) / 1000)));
       }
     }
   }, [
@@ -556,13 +558,18 @@ const EventNight = () => {
           <div className={CX.accentBar} />
           <div className="text-center">
             <span className={CX.chip + ' mx-auto'}>☕ Break time</span>
+            
+            {/*Dynamic text based on the last round */}
             <h3 className="mt-4 text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] text-[#211F20]">
-              Great round! look for your next partner.
+              {lastRoundWasNoShow 
+                ? "Sorry your date didn't show!" 
+                : "Great round! look for your next partner."}
             </h3>
             <p className="mx-auto mt-2 max-w-md text-[14.5px] leading-relaxed text-[#55514C]">
-              Head to your Round {nextRoundNum} seat when the timer hits zero.
+              {lastRoundWasNoShow 
+                ? "Take a breather, grab a drink, and we'll get you back in for the next round."
+                : `Head to your Round ${nextRoundNum} seat when the timer hits zero.`}
             </p>
-
             <div className="my-7">
               <p className={CX.eyebrow + ' mb-2'}>Round {nextRoundNum} starts in</p>
               <div className={CX.timer}>
@@ -775,9 +782,10 @@ const EventNight = () => {
               Your date for this round hasn&rsquo;t confirmed attendance. We&rsquo;re
               sorry about that.
             </p>
-
             <div className="my-7">
-              <p className={CX.eyebrow + ' mb-2'}>Next round starts in</p>
+              <p className={CX.eyebrow + ' mb-2'}>
+                {currentRoundIndex === roundStartTimes.length - 1 ? 'Event ends in' : 'Next round starts in'}
+              </p>
               <div className={CX.timerMd}>
                 {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
               </div>

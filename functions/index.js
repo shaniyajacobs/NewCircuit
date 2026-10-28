@@ -4603,7 +4603,7 @@ exports.autoMarkNoShow = onSchedule(
 // ========================================================
 exports.send15MinLobbySMS = onSchedule(
   {
-    schedule: "*/5 * * * *", // Run every 5 minutes
+    schedule: "*/5 * * * *", // Runs every 5 minutes
     region: "us-central1",
     runtime: "nodejs20",
     secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
@@ -4611,27 +4611,32 @@ exports.send15MinLobbySMS = onSchedule(
   async () => {
     const db = admin.firestore();
     const now = Date.now();
-    const fifteenMinsFromNow = now + 15 * 60 * 1000;
-    const sixteenMinsFromNow = now + 16 * 60 * 1000;
+    const twentyMinsFromNow = now + 20 * 60 * 1000;
 
     const eventsSnap = await db.collection('events').where('status', 'in', ['upcoming', 'live']).get();
     const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
 
     for (const eventDoc of eventsSnap.docs) {
       const eventData = eventDoc.data();
-      const startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
+      let startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
       
-      // If event starts between 15 and 16 minutes from now
-      if (startTime && startTime >= fifteenMinsFromNow && startTime <= sixteenMinsFromNow) {
+      // If it's a string, convert to number just in case
+      if (typeof startTime === 'string') startTime = new Date(startTime).getTime();
+
+      //  Check if the event starts anytime in the next 20 minutes
+      if (startTime && startTime > now && startTime <= twentyMinsFromNow) {
         const attendeesSnap = await eventDoc.ref.collection('signedUpUsers').get();
-        
+
         for (const attendeeDoc of attendeesSnap.docs) {
           const a = attendeeDoc.data();
           const phone = a.phoneNumber || a.userId;
-          if (!phone || a.checkInStatus) continue; // Skip if no phone or already checked in
+          if (!phone) continue;
+
+          // SAFETY GUARD: Skip if they already got the 15-min text
+          if (a.smsSent?.lobby) continue;
 
           const lobbyLink = `${WEB_APP_BASE_URL}/event/${eventDoc.id}/lobby/${encodeURIComponent(phone)}`;
-          const msg = `⏰ 15 minutes until Circuit starts! Tap here to check in and see your Round 1 date: ${lobbyLink}`;
+          const msg = `⏰ 15 minutes until Circuit starts! Tap here to check in and view your Round 1 date: ${lobbyLink}`;
 
           try {
             await client.messages.create({
@@ -4640,8 +4645,11 @@ exports.send15MinLobbySMS = onSchedule(
               from: twilioPhoneNumber.value(),
             });
             console.log(` 15-min lobby reminder sent to ${phone}`);
+            
+            // Mark as sent so they don't get it again on the next cron run
+            await attendeeDoc.ref.update({ 'smsSent.lobby': true });
           } catch (err) {
-            console.error(` Failed to send 15-min reminder to ${phone}:`, err);
+            console.error(` Failed to send to ${phone}:`, err);
           }
         }
       }

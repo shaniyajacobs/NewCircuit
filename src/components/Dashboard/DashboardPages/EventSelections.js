@@ -320,11 +320,16 @@ const EventSelections = () => {
                     attendee.userName ||
                     attendee.displayName ||
                     'Unknown';
+
                   const outfit = attendee.outfitDescription || 'No outfit';
                   const isSelected = selected.includes(attendee.id);
-                  const isDimmed = atLimit && !isSelected;
+                  
+                  // Check if this person was a no-show (or never checked in)
+                  const isNoShow = attendee.checkInStatus === 'noShow' || !attendee.checkInStatus;
+                  
+                  // Dim the card if the limit is reached OR if they were a no-show
+                  const isDimmed = (atLimit && !isSelected) || isNoShow;
                   const initial = name.charAt(0).toUpperCase();
-
                   return (
                     <button
                       key={attendee.id}
@@ -366,6 +371,13 @@ const EventSelections = () => {
                         <p className="m-0 mt-1.5 text-[13.5px] leading-snug text-[#4a4540]">
                           {outfit}
                         </p>
+                        
+                        {/* The No Show Badge */}
+                        {isNoShow && (
+                          <span className="inline-block mt-2 rounded bg-[#fdecef] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#c7385a]">
+                            No Show
+                          </span>
+                        )}
                         {/*  Display the notes saved during the date */}
                         {attendee.savedNote && (
                           <div className="mt-3 rounded-lg bg-[#fffaf0] p-3 border border-[#eae4d2]">

@@ -425,6 +425,7 @@ const handleGenerateRounds = async (eventId) => {
 
       const docRef = await addDoc(collection(db, 'events'), {
         ...eventData,
+        timeZone: cityToTimeZone[eventData.location] || 'America/New_York', 
         menSpots,
         womenSpots,
         menSignupCount: 0,
@@ -432,7 +433,7 @@ const handleGenerateRounds = async (eventId) => {
         capacity: parseInt(newEvent.capacity) || 0,
         status: newEvent.status || 'upcoming',
         roundDurationSeconds: newEvent.roundDurationSeconds || 360,
-        breakDurationSeconds: newEvent.breakDurationSeconds || 240, // ✅ Step 1 fix
+        breakDurationSeconds: newEvent.breakDurationSeconds || 240, 
         noShowBreakSeconds: newEvent.noShowBreakSeconds || 540,
         icebreakers: newEvent.icebreakers || ['', '', '', '', '', '', '', ''],
         roundStartTimes: [],
@@ -456,7 +457,7 @@ const handleGenerateRounds = async (eventId) => {
         capacity: '',
         status: 'upcoming',
         roundDurationSeconds: 360,
-        breakDurationSeconds: 240, // ✅ Step 1 fix
+        breakDurationSeconds: 240,
         noShowBreakSeconds: 540,
         icebreakers: ['', '', '', '', '', '', '', ''],
       });
@@ -487,6 +488,7 @@ const handleGenerateRounds = async (eventId) => {
 
       await updateDoc(doc(db, 'events', selectedEvent.id), {
         ...selectedEvent,
+        timeZone: cityToTimeZone[selectedEvent.location] || 'America/New_York', // 🔥 SAVE THE TIMEZONE
         startTime: finalStartTime,
         endTime: finalEndTime,
         menSpots,
