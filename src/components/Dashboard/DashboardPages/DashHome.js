@@ -1486,7 +1486,7 @@ const DashHome = () => {
                 <div className="flex items-center gap-2 sm:gap-2 md:gap-3 lg:gap-4">
                   <button
                     className="flex justify-center items-center px-5 py-2 sm:px-5 sm:py-2 md:px-6 md:py-2.5 lg:px-6 lg:py-2.5 text-sm font-medium text-gray-800 bg-white border border-[rgba(33,31,32,0.50)] rounded hover:bg-gray-100 transition-colors"
-                    onClick={() => navigate('/dashboard/dashMyConnections')}
+                    onClick={() => navigate('/dashboard/mysparks')}
                   >
                     See all
                   </button>

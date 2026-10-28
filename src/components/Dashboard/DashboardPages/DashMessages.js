@@ -189,22 +189,6 @@ export function DashMessages({ connection }) {
 
           {/* Action Buttons moved to the right side */}
           <div className="flex gap-3">
-            <button
-              onClick={() => setDatesModalOpen(true)}
-              className="flex px-6 py-3 justify-center items-center gap-3 rounded-lg border border-[rgba(33,31,32,0.50)]"
-            >
-              <span className="text-[#211F20] font-poppins text-[16px] font-medium leading-normal">
-                View Dates
-              </span>
-            </button>
-            <button
-              onClick={handleOpenInviteModal}
-              className="flex px-6 py-3 justify-center items-center gap-3 rounded-lg bg-[#211F20]"
-            >
-              <span className="text-white font-poppins text-[16px] font-medium leading-normal">
-                Invite to Date
-              </span>
-            </button>
           </div>
         </div>
       </div>

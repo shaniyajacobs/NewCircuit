@@ -250,7 +250,7 @@ async function sendKlaviyoEventForSMS({ email, metricName, properties, apiKey })
     if (!response.ok) {
       console.error(`Klaviyo event ${metricName} error for ${email}:`, await response.text());
     } else {
-      console.log(`✅ Klaviyo event "${metricName}" sent for ${email}`);
+      console.log(`Klaviyo event "${metricName}" sent for ${email}`);
     }
   } catch (err) {
     console.error(`Klaviyo fetch error for ${metricName}:`, err);
@@ -970,10 +970,10 @@ exports.loginWithPhone = onCall(
     let authUser = null;
     try {
       authUser = await admin.auth().getUserByPhoneNumber(normalizedPhone);
-      console.log(`✅ loginWithPhone: found Auth user for ${normalizedPhone}`);
+      console.log(`loginWithPhone: found Auth user for ${normalizedPhone}`);
     } catch (error) {
       if (error.code === "auth/user-not-found") {
-        console.log(`ℹ️ loginWithPhone: no Auth user for ${normalizedPhone}`);
+        console.log(` loginWithPhone: no Auth user for ${normalizedPhone}`);
         authUser = null;
       } else {
         console.error("❌ loginWithPhone: getUserByPhoneNumber error:", error);
@@ -1002,7 +1002,7 @@ exports.loginWithPhone = onCall(
         if (userDoc.exists) {
           firestoreUserData = userDoc.data();
           firestoreUserPhoneKey = phoneKey;
-          console.log(`✅ loginWithPhone: found Firestore user for ${phoneKey}`);
+          console.log(` loginWithPhone: found Firestore user for ${phoneKey}`);
           break;
         }
       } catch (err) {
@@ -1012,7 +1012,7 @@ exports.loginWithPhone = onCall(
 
     // If neither Auth nor Firestore → genuine no-account
     if (!authUser && !firestoreUserData) {
-      console.log(`ℹ️ loginWithPhone: no account for ${normalizedPhone}`);
+      console.log(` loginWithPhone: no account for ${normalizedPhone}`);
       return {
         success: false,
         reason: "no_account",
@@ -1058,7 +1058,7 @@ exports.loginWithPhone = onCall(
             `loginWithPhone: linked phone ${normalizedPhone} to existing Auth user ${updated.uid} (via email match)`
           );
         } catch (linkErr) {
-          console.error("❌ loginWithPhone: failed to link phone to existing user:", linkErr.code, linkErr.message);
+          console.error(" loginWithPhone: failed to link phone to existing user:", linkErr.code, linkErr.message);
           throw new HttpsError(
             "failed-precondition",
             "This email is registered but we couldn't link your phone to it. Please contact support."
@@ -1076,7 +1076,7 @@ exports.loginWithPhone = onCall(
                 : undefined),
           });
           authUser = newAuthUser;
-          console.log(`✅ loginWithPhone: created new Auth user ${authUser.uid}`);
+          console.log(` loginWithPhone: created new Auth user ${authUser.uid}`);
         } catch (createError) {
           // Fallback: create WITHOUT email (phone-only)
           if (
@@ -1094,14 +1094,14 @@ exports.loginWithPhone = onCall(
               });
               authUser = newAuthUser;
               console.log(
-                `✅ loginWithPhone: created phone-only Auth user ${authUser.uid} (email was in use)`
+                ` loginWithPhone: created phone-only Auth user ${authUser.uid} (email was in use)`
               );
             } catch (retryErr) {
-              console.error("❌ loginWithPhone: phone-only create failed:", retryErr.code, retryErr.message);
+              console.error(" loginWithPhone: phone-only create failed:", retryErr.code, retryErr.message);
               throw new HttpsError("internal", "Unable to create account. Please contact support.");
             }
           } else {
-            console.error("❌ loginWithPhone: createUser error:", createError.code, createError.message);
+            console.error(" loginWithPhone: createUser error:", createError.code, createError.message);
             throw new HttpsError(
               "internal",
               `Unable to create account (${createError.code || "unknown"}). Please contact support.`
@@ -1129,7 +1129,7 @@ exports.loginWithPhone = onCall(
         .get();
       isAdmin = adminDoc.exists;
     } catch (error) {
-      console.error("❌ loginWithPhone: admin lookup error:", error);
+      console.error(" loginWithPhone: admin lookup error:", error);
       isAdmin = false;
     }
 
@@ -1154,12 +1154,12 @@ exports.loginWithPhone = onCall(
           .get();
         if (!snap.empty) {
           hasEvents = true;
-          console.log(`✅ loginWithPhone: found signedUpEvents under users/${key}`);
+          console.log(` loginWithPhone: found signedUpEvents under users/${key}`);
           break;
         }
       }
     } catch (error) {
-      console.error("❌ loginWithPhone: signedUpEvents lookup error:", error);
+      console.error(" loginWithPhone: signedUpEvents lookup error:", error);
       hasEvents = false;
     }
 
@@ -1170,11 +1170,11 @@ exports.loginWithPhone = onCall(
     try {
       customToken = await admin.auth().createCustomToken(uid);
     } catch (error) {
-      console.error("❌ loginWithPhone: createCustomToken error:", error);
+      console.error(" loginWithPhone: createCustomToken error:", error);
       throw new HttpsError("internal", "Unable to complete sign-in.");
     }
 
-    console.log(`✅ loginWithPhone: issued token uid=${uid} isAdmin=${isAdmin} hasEvents=${hasEvents}`);
+    console.log(` loginWithPhone: issued token uid=${uid} isAdmin=${isAdmin} hasEvents=${hasEvents}`);
 
     return {
       success: true,
@@ -1703,7 +1703,7 @@ exports.joinWaitlist = onCall(
             ?.meta
             ?.duplicate_profile_id;
         console.log(
-          `ℹ️ Klaviyo profile already exists for ${normalizedEmail}`
+          ` Klaviyo profile already exists for ${normalizedEmail}`
         );
       } else {
         console.error(
@@ -3018,7 +3018,7 @@ exports.addSubscriberToKlaviyo = onCall(
         existingListResult.data.length > 0
       ) {
         console.log(
-          `ℹ️ ${normalizedEmail} is already subscribed to the Circuit newsletter.`
+          ` ${normalizedEmail} is already subscribed to the Circuit newsletter.`
         );
 
         return {
@@ -3867,7 +3867,7 @@ exports.claimWaitlistSpot = onCall(
             to: phoneNumber,
             from: twilioPhoneNumber.value(),
           });
-          console.log(`✅ Purchase confirmation SMS sent to ${phoneNumber}`);
+          console.log(` Purchase confirmation SMS sent to ${phoneNumber}`);
         } catch (smsErr) {
           console.error('Purchase confirmation SMS failed (non-blocking):', smsErr);
         }
@@ -3877,7 +3877,7 @@ exports.claimWaitlistSpot = onCall(
 
       return { success: true };
     } catch (error) {
-      console.error('❌ claimWaitlistSpot error:', error);
+      console.error(' claimWaitlistSpot error:', error);
       if (error instanceof HttpsError) throw error;
       throw new HttpsError('internal', error.message);
     }
@@ -3974,7 +3974,7 @@ exports.generateRounds = onRequest(
         roundDuration,
         breakDuration,
         startTime,
-        eventData.audience // 🔥 Pass the audience!
+        eventData.audience
       );
 
       const timestampArray = roundStartTimes.map(ts => admin.firestore.Timestamp.fromMillis(ts));
@@ -3997,7 +3997,7 @@ exports.generateRounds = onRequest(
         roundsGenerated: roundStartTimes.length,
       });
     } catch (error) {
-      console.error('❌ generateRounds error:', error);
+      console.error(' generateRounds error:', error);
       res.status(500).send({
         error: error.message || 'Internal server error',
       });
@@ -4033,11 +4033,22 @@ exports.computeMatches = onCall(
       throw new HttpsError('not-found', 'Event not found');
     }
 
+    const eventData = eventSnap.data();
+
+    // If matches were already computed, stop here to prevent duplicate SMS!
+    if (eventData.matchesComputed === true) {
+      console.log(`Matches already computed for event ${eventId}. Skipping to prevent duplicate SMS.`);
+      return { 
+        success: true, 
+        matches: 0, 
+        message: 'Matches were already computed for this event.' 
+      };
+    }
+
     const attendeesSnap = await eventRef
       .collection('signedUpUsers')
       .where('selectionSubmitted', '==', true)
       .get();
-
     if (attendeesSnap.empty) {
       return { success: true, matches: 0, message: 'No selections submitted yet' };
     }
@@ -4779,11 +4790,11 @@ exports.autoGenerateRounds = onSchedule(
             batch.update(attendeeRef, { roundAssignments: rounds });
           }
           await batch.commit();
-          console.log(`✅ Auto-generated rounds for ${eventDoc.id}`);
+          console.log(` Auto-generated rounds for ${eventDoc.id}`);
         }
       }
     } catch (error) {
-      console.error("❌ Error in autoGenerateRounds:", error);
+      console.error(" Error in autoGenerateRounds:", error);
     }
   }
 );

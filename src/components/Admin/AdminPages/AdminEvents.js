@@ -14,6 +14,18 @@ const toLocalDatetimeInput = (ms) => {
   const offset = d.getTimezoneOffset() * 60000;
   return new Date(d.getTime() - offset).toISOString().slice(0, 16);
 };
+const cityToTimeZone = {
+  'Atlanta': 'America/New_York',
+  'Chicago': 'America/Chicago',
+  'Dallas': 'America/Chicago',
+  'Houston': 'America/Chicago',
+  'Los Angeles': 'America/Los_Angeles',
+  'Miami': 'America/New_York',
+  'New York City': 'America/New_York',
+  'San Francisco / Bay Area': 'America/Los_Angeles',
+  'Seattle': 'America/Los_Angeles',
+  'Washington D.C.': 'America/New_York',
+};
 
 const AdminEvents = () => {
   const [events, setEvents] = useState([]);
@@ -40,7 +52,7 @@ const AdminEvents = () => {
     capacity: '',
     status: 'upcoming',
     roundDurationSeconds: 360,
-    breakDurationSeconds: 240, // ✅ Step 1 fix
+    breakDurationSeconds: 240, 
     noShowBreakSeconds: 540,
     icebreakers: ['', '', '', '', '', '', '', ''],
   });
@@ -392,16 +404,21 @@ const handleGenerateRounds = async (eventId) => {
     }
   };
 
-  // ✅ UPDATED: handleAddEvent with parseInt for spots and breakDuration 240
+  // handleAddEvent with parseInt for spots and breakDuration 240
   const handleAddEvent = async (e) => {
     e.preventDefault();
     try {
-      const eventData = { ...newEvent };
+           const eventData = { ...newEvent };
       if (eventData.eventFormat === 'in-person') {
-        if (eventData.startTime) eventData.startTime = new Date(eventData.startTime).getTime();
-        if (eventData.endTime) eventData.endTime = new Date(eventData.endTime).getTime();
+        const eventZone = cityToTimeZone[eventData.location] || 'America/New_York';
+        // Use Luxon to parse the input in the event's specific timezone
+        if (eventData.startTime) {
+          eventData.startTime = DateTime.fromISO(eventData.startTime, { zone: eventZone }).toMillis();
+        }
+        if (eventData.endTime) {
+          eventData.endTime = DateTime.fromISO(eventData.endTime, { zone: eventZone }).toMillis();
+        }
       }
-
       // Parse spots to numbers
       const menSpots = parseInt(eventData.menSpots, 10) || 0;
       const womenSpots = parseInt(eventData.womenSpots, 10) || 0;
@@ -449,16 +466,29 @@ const handleGenerateRounds = async (eventId) => {
     }
   };
 
-  // ✅ UPDATED: handleUpdateEvent with parseInt and breakDuration 240
+  //  handleUpdateEvent with parseInt and breakDuration 240
   const handleUpdateEvent = async (e) => {
     e.preventDefault();
     try {
       // Parse spots to numbers
       const menSpots = parseInt(selectedEvent.menSpots, 10) || 0;
       const womenSpots = parseInt(selectedEvent.womenSpots, 10) || 0;
+      const eventZone = cityToTimeZone[selectedEvent.location] || 'America/New_York';
+      let finalStartTime = selectedEvent.startTime;
+      let finalEndTime = selectedEvent.endTime;
+
+      // If they edited the times as text strings, convert them using the event's timezone
+      if (selectedEvent._startTimeLocal) {
+        finalStartTime = DateTime.fromISO(selectedEvent._startTimeLocal, { zone: eventZone }).toMillis();
+      }
+      if (selectedEvent._endTimeLocal) {
+        finalEndTime = DateTime.fromISO(selectedEvent._endTimeLocal, { zone: eventZone }).toMillis();
+      }
 
       await updateDoc(doc(db, 'events', selectedEvent.id), {
         ...selectedEvent,
+        startTime: finalStartTime,
+        endTime: finalEndTime,
         menSpots,
         womenSpots,
         capacity: parseInt(selectedEvent.capacity) || 0,
@@ -474,7 +504,7 @@ const handleGenerateRounds = async (eventId) => {
       console.error('Error updating event:', error);
     }
   };
-// ✅ Force men/women spots equal for queer events
+// Force men/women spots equal for queer events
 if (selectedEvent && isQueerAudience(selectedEvent.audience)) {
   const t = parseInt(selectedEvent.totalSpots || selectedEvent.menSpots || selectedEvent.womenSpots, 10) || 0;
   selectedEvent.menSpots = t;
@@ -643,8 +673,10 @@ if (selectedEvent && isQueerAudience(selectedEvent.audience)) {
                 filteredEvents.map(evt => (
                   <tr key={evt.id} className="hover:bg-gray-50">
                     {(() => {
-                      const startDt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)) : null;
-                      const endDt = evt.endTime ? DateTime.fromMillis(Number(evt.endTime)) : null;
+                      // Force the table to display times in the Event's timezone
+                      const eventZone = cityToTimeZone[evt.location] || 'America/New_York';
+                      const startDt = evt.startTime ? DateTime.fromMillis(Number(evt.startTime)).setZone(eventZone) : null;
+                      const endDt = evt.endTime ? DateTime.fromMillis(Number(evt.endTime)).setZone(eventZone) : null;                   
                       const dateStr = startDt ? startDt.toFormat('MM/dd/yyyy') : (evt.date ? DateTime.fromISO(evt.date).toFormat('MM/dd/yyyy') : '');
                       const startTimeStr = startDt ? startDt.toFormat('h:mm a') : (evt.time || '');
                       const endTimeStr = endDt ? endDt.toFormat('h:mm a') : '-';
@@ -721,7 +753,7 @@ if (selectedEvent && isQueerAudience(selectedEvent.audience)) {
                               >
                                 <FaTrash className="w-4 h-4" />
                               </button>
-                              {/* ✅ NEW: Generate Rounds button */}
+                              {/* Generate Rounds button */}
                               <button
                                 onClick={() => handleGenerateRounds(evt.id)}
                                 disabled={generatingRounds === evt.id}
@@ -730,10 +762,11 @@ if (selectedEvent && isQueerAudience(selectedEvent.audience)) {
                               >
                                 <FaClock className="w-4 h-4" />
                               </button>
-                              <button
+                                <button
                                 onClick={() => handleComputeMatches(evt.id)}
-                                className="text-green-600 hover:text-green-900 transition-colors p-1 rounded hover:bg-green-50"
-                                title="Compute Matches"
+                                disabled={evt.matchesComputed === true}
+                                className={`transition-colors p-1 rounded ${evt.matchesComputed ? 'text-gray-400 cursor-not-allowed' : 'text-green-600 hover:text-green-900 hover:bg-green-50'}`}
+                                title={evt.matchesComputed ? "Matches already computed" : "Compute Matches"}
                               >
                                 <FaHeart className="w-4 h-4" />
                               </button>
