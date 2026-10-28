@@ -30,4 +30,4 @@ functions/firebase-debug.log
 # Service account keys — NEVER commit
 functions/scripts/*.json
 *serviceAccountKey*.json
-*firebase-adminsdk*.json
+*firebase-adminsdk*.jsonfirebase-debug.log
