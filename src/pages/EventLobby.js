@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebaseConfig';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions'; // 🔥 ADDED IMPORT
+import { getFunctions, httpsCallable } from 'firebase/functions'; 
 
 const EventLobby = () => {
   const { eventId, phone } = useParams();
@@ -14,7 +14,7 @@ const EventLobby = () => {
   const [roundAssignments, setRoundAssignments] = useState({});
   const [partners, setPartners] = useState({});
   const [timeLeft, setTimeLeft] = useState(0);
-  const [timeOffset, setTimeOffset] = useState(0); // 🔥 ADDED STATE
+  const [timeOffset, setTimeOffset] = useState(0); 
   const [attendeeDocId, setAttendeeDocId] = useState(null);
   const intervalRef = useRef();
 
@@ -24,7 +24,7 @@ const EventLobby = () => {
     return 0;
   };
 
-  // 🔥 Sync with Server Time
+  // Sync with Server Time
   useEffect(() => {
     const fetchTime = async () => {
       try {
@@ -78,9 +78,13 @@ const EventLobby = () => {
             const map = {};
             snapshot.forEach((doc) => {
               const data = doc.data();
+              // Sanitize the string "undefined" from the database
+              const rawFirst = data.firstName === 'undefined' ? '' : data.firstName;
+              const rawLast = data.lastName === 'undefined' ? '' : data.lastName;
+              
               map[doc.id] = {
-                firstName: data.firstName || data.userName?.split(' ')[0] || 'Unknown',
-                lastName: data.lastName || data.userName?.split(' ')[1] || '',
+                firstName: rawFirst || data.userName?.split(' ')[0] || 'Guest',
+                lastName: rawLast || data.userName?.split(' ')[1] || '',
                 outfitDescription: data.outfitDescription || '',
               };
             });
@@ -112,7 +116,7 @@ const EventLobby = () => {
     if (!event) return;
 
     const updateTimer = () => {
-      const now = Date.now() + timeOffset; // 🔥 Uses Server Time
+      const now = Date.now() + timeOffset; // Uses Server Time
       let targetTime = 0;
 
       // If rounds are generated, count down to Round 1
@@ -143,7 +147,7 @@ const EventLobby = () => {
   useEffect(() => {
     if (roundStartTimes.length === 0) return;
     const firstStart = getTimestampMillis(roundStartTimes[0]);
-    const now = Date.now() + timeOffset; // 🔥 Uses Server Time
+    const now = Date.now() + timeOffset; // Uses Server Time
     if (now >= firstStart) {
       navigate(`/event/${eventId}/night/${phone}`);
     }
@@ -180,8 +184,10 @@ const EventLobby = () => {
         <h2 className="text-2xl font-bold text-center mb-2">{event.city || 'Event'} Speed Dating</h2>
         <p className="text-center text-gray-600 mb-4">{event.venue} - {event.date} at {event.time}</p>
         <div className="text-center">
-          <div className="text-6xl font-bold text-[#211F20] mb-2">
-            {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+          <div className="text-5xl font-bold text-[#211F20] mb-4">
+            {timeLeft > 0 
+              ? `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}` 
+              : 'Starting...'}
           </div>
           <p className="text-gray-500">Until Round 1 starts</p>
         </div>
