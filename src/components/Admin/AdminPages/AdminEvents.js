@@ -54,7 +54,7 @@ const AdminEvents = () => {
     roundDurationSeconds: 360,
     breakDurationSeconds: 240, 
     noShowBreakSeconds: 540,
-    icebreakers: ['', '', '', '', '', '', '', ''],
+    icebreakers: Array(15).fill(''),
   });
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -143,9 +143,9 @@ const AdminEvents = () => {
       roundDurationSeconds: event.roundDurationSeconds || 360,
       breakDurationSeconds: event.breakDurationSeconds || 240, // ✅ Step 1 fix
       noShowBreakSeconds: event.noShowBreakSeconds || 540,
-      icebreakers: Array.isArray(event.icebreakers) && event.icebreakers.length === 8
+      icebreakers: Array.isArray(event.icebreakers) && event.icebreakers.length > 0
         ? event.icebreakers
-        : ['', '', '', '', '', '', '', ''],
+        : Array(15).fill(''),
     };
     setSelectedEvent(eventWithDefaults);
     setShowEditModal(true);
@@ -166,7 +166,7 @@ const AdminEvents = () => {
     }
   };
 
-  // ✅ NEW: Handler for generating rounds
+  //  Handler for generating rounds
 const handleGenerateRounds = async (eventId) => {
   try {
     setGeneratingRounds(eventId);
@@ -459,14 +459,13 @@ const handleGenerateRounds = async (eventId) => {
         roundDurationSeconds: 360,
         breakDurationSeconds: 240,
         noShowBreakSeconds: 540,
-        icebreakers: ['', '', '', '', '', '', '', ''],
+        icebreakers: Array(15).fill(''),
       });
       fetchEvents();
     } catch (error) {
       console.error('Error adding event:', error);
     }
   };
-
   //  handleUpdateEvent with parseInt and breakDuration 240
   const handleUpdateEvent = async (e) => {
     e.preventDefault();
@@ -1038,8 +1037,8 @@ if (selectedEvent && isQueerAudience(selectedEvent.audience)) {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Icebreakers (8 questions)</label>
-                {[0,1,2,3,4,5,6,7].map((i) => (
+                <label className="text-sm font-medium text-gray-700">Icebreakers (15 questions)</label>
+                {Array.from({ length: 15 }).map((_, i) => (
                   <input
                     key={i}
                     type="text"
@@ -1301,8 +1300,8 @@ if (selectedEvent && isQueerAudience(selectedEvent.audience)) {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Icebreakers (8 questions)</label>
-                {[0,1,2,3,4,5,6,7].map((i) => (
+                <label className="text-sm font-medium text-gray-700">Icebreakers (15 questions)</label>
+                {Array.from({ length: 15 }).map((_, i) => (
                   <input
                     key={i}
                     type="text"

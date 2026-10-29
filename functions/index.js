@@ -283,7 +283,7 @@ function generateRoundAssignments(attendees, roundDurationSeconds, breakDuration
     const n = pool.length;
     
     // Max 6 rounds for Queer events
-    const numRounds = Math.min(n - 1, 6); 
+    const numRounds = Math.min(n - 1, 15);
 
     if (numRounds === 0) return { roundStartTimes: [], assignments: {} };
 
@@ -316,9 +316,8 @@ function generateRoundAssignments(attendees, roundDurationSeconds, breakDuration
     // STANDARD EVENT LOGIC: Men / Women rotation
     const men = attendees.filter(a => a.gender === 'Male');
     const women = attendees.filter(a => a.gender === 'Female');
-    
-    // Max 6 rounds for Standard events
-    const numRounds = Math.min(Math.min(men.length, women.length), 6);
+
+    const numRounds = Math.min(Math.min(men.length, women.length), 15);    
     if (numRounds === 0) return { roundStartTimes: [], assignments: {} };
 
     const assignments = {};
