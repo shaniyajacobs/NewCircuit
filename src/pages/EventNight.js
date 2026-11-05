@@ -135,17 +135,22 @@ const EventNight = () => {
     fetchTime();
   }, []);
 
-  // SMS sender (will be updated in Step 4)
+  // SMS sender
   const sendSMS = useCallback(async (type, data) => {
+    //  Don't try to send if we don't have the Firestore Doc ID yet
+    if (!attendeeDocId) {
+      console.warn("No attendeeDocId yet, skipping SMS");
+      return;
+    }
     try {
       const functions = getFunctions();
       const func = httpsCallable(functions, 'sendEventSMS');
-      await func({ type, ...data, attendeeId: phone, eventId });
+      // Use attendeeDocId instead of phone
+      await func({ type, ...data, attendeeId: attendeeDocId, eventId });
     } catch (err) {
       console.error('SMS send error:', err);
     }
-  }, [phone, eventId]);
-
+  }, [attendeeDocId, eventId]);
   useEffect(() => {
     if (!eventId || !phone) {
       setError('Missing event or phone.');
@@ -383,9 +388,10 @@ const EventNight = () => {
     icebreakers,
     eventId,
     phone,
+    attendeeDocId,
     navigate,
     sendSMS,
-    timeOffset, // Added timeOffset here so the timer stays in sync
+    timeOffset, 
   ]);
 
   useEffect(() => {

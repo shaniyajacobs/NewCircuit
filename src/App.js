@@ -94,21 +94,27 @@ const PrivateRoute = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
   const auth = getAuth();
   const location = useLocation();
-
-   // 1. Check the URL first and DECODE it properly
+  // 1. Check the URL first and DECODE it
   const pathParts = location.pathname.split('/');
   let urlPhone = null;
+  let urlToken = null;
+  
   if (pathParts[1] === 'dashboard' && pathParts[2]) {
-    // Decode %2B to +, and replace any spaces with +
     const decoded = decodeURIComponent(pathParts[2]).replace(/\s+/g, '+');
     if (decoded.startsWith('+') || /^\d+$/.test(decoded)) {
       urlPhone = decoded;
+    } else {
+      urlToken = decoded; 
     }
   }
 
-  // 2. Combine URL phone, state phone, and localStorage
-  const guestUid = urlPhone || location.state?.guestUid || localStorage.getItem('guestUid');
+  // 2. Priority: Phone -> local storage -> Auth user
+  const guestUid = urlPhone || location.state?.guestUid || localStorage.getItem('guestUid') || auth.currentUser?.phoneNumber;
 
+  // 3. If it's a token, allow access to the dashboard so it can resolve it
+  if (!user && !guestUid && !urlToken) {
+    return <Navigate to="/login" />;
+  }
   useEffect(() => {
     // 3. If the phone is in the URL, save it to localStorage immediately
     if (urlPhone) {

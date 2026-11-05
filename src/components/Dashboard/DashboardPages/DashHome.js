@@ -167,19 +167,48 @@ async function emailsToUserIds(emails) {
 const DashHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  // 1. Check the URL first and DECODE it properly (handles %2B -> +)
+  // 1. Check the URL
   const pathParts = location.pathname.split('/');
   let urlPhone = null;
+  let urlToken = null;
+  
   if (pathParts[1] === 'dashboard' && pathParts[2]) {
-    const decoded = decodeURIComponent(pathParts[2]);
+    const decoded = decodeURIComponent(pathParts[2]).replace(/\s+/g, '+');
     if (decoded.startsWith('+') || /^\d+$/.test(decoded)) {
       urlPhone = decoded;
+    } else {
+      urlToken = decoded; 
     }
   }
 
-  // 2. Priority: URL first, then localStorage (saved guest), then logged-in user
-  const guestUid = urlPhone || location.state?.guestUid || localStorage.getItem('guestUid') || auth.currentUser?.phoneNumber;
+  const [resolvedUid, setResolvedUid] = useState(null);
 
+  //  Resolve Token to Phone Number
+  useEffect(() => {
+    if (urlToken && !resolvedUid) {
+      const resolveToken = async () => {
+        try {
+          const q = query(collection(db, 'users'), where('dashboardToken', '==', urlToken));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const realPhone = snap.docs[0].id;
+            localStorage.setItem('guestUid', realPhone);
+            setResolvedUid(realPhone);
+            // Replace the URL in the browser without reloading
+            window.history.replaceState({}, document.title, `/dashboard/${encodeURIComponent(realPhone)}`);
+          } else {
+            console.error("Invalid dashboard token");
+          }
+        } catch (err) {
+          console.error("Error resolving token:", err);
+        }
+      };
+      resolveToken();
+    }
+  }, [urlToken, resolvedUid]);
+
+  // 2. Priority: URL first, then localStorage (saved guest), then logged-in user
+  const guestUid = urlPhone || resolvedUid || location.state?.guestUid || localStorage.getItem('guestUid') || auth.currentUser?.phoneNumber;
   // 3. Save the URL phone to localStorage so the Sidebar doesn't lose it!
   useEffect(() => {
     if (urlPhone) {

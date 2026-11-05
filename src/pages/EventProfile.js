@@ -67,7 +67,7 @@ const EventProfile = () => {
     return time;
   };
 
-  // 🔥 Fix 1: Format gender for display – "Male" → "Men", "Female" → "Women"
+  // Fix 1: Format gender for display – "Male" → "Men", "Female" → "Women"
   const formatGender = (gender) => {
     if (gender === 'Male') return 'Men';
     if (gender === 'Female') return 'Women';
@@ -195,7 +195,7 @@ useEffect(() => {
     }
 
     try {
-      // 🔥 FIX: Always use the phone number as userId
+      // FIX: Always use the phone number as userId
       const userId = phoneNumber;
 
       if (!userId) {
@@ -244,6 +244,8 @@ const userData = {
 if (!userSnap.exists()) {
   userData.createdAt = new Date();
   userData.datesRemaining = 0;
+  //  Generate a random 8-character token for the dashboard link
+  userData.dashboardToken = Math.random().toString(36).substring(2, 10);
 }
 
 await setDoc(userRef, userData, { merge: true });
@@ -284,7 +286,7 @@ await setDoc(userRef, userData, { merge: true });
       <div className={styles.card}>
         <h1 className={styles.title}>Complete Your Profile</h1>
 
-        {/* 🔥 Fixed gender labels */}
+        {/* Fixed gender labels */}
         <p className={styles.subtitle}>
           You're registering for <strong>{eventTitle || 'Event'}</strong> as a{' '}
           <strong>{formatGender(selectedGender) || 'General'}</strong> attendee.

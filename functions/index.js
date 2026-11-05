@@ -108,7 +108,7 @@ async function clearLatestEventIdIfNeeded(userId, eventId) {
   }
 }
 exports.getServerTime = onCall(
-  { region: "us-central1", runtime: "nodejs20" },
+  { region: "us-central1", runtime: "nodejs24" },
   async () => {
     return Date.now();
   }
@@ -423,7 +423,7 @@ exports.createPaymentIntent = onCall(
   {
     region: "us-central1",
     secrets: [stripeSecret],
-    runtime: 'nodejs20',
+    runtime: 'nodejs24',
   },
   async (data, context) => {   
     const amount = Number(data?.data?.amount);
@@ -467,7 +467,7 @@ exports.getEventData = onCall(
   {
     region: 'us-central1',
     secrets: [remoSecret, remoCompanyIdSecret],
-    runtime: 'nodejs20',
+    runtime: 'nodejs24',
   },
   async (data, context) => {
     console.log('📝 getEventData – received data:', util.inspect(data.data || data, { depth: 3 }));
@@ -543,7 +543,7 @@ exports.addUserToRemoEvent = onCall(
   {
     region: 'us-central1',
     secrets: [remoSecret, remoCompanyIdSecret],
-    runtime: 'nodejs20',
+    runtime: 'nodejs24',
   },
   async (data, context) => {
     console.log('📝 addUserToRemoEvent – received data:', util.inspect(data.data || data, { depth: 3 }));
@@ -593,7 +593,7 @@ exports.getEventMembers = onCall(
   {
     region: 'us-central1',
     secrets: [remoSecret, remoCompanyIdSecret],
-    runtime: 'nodejs20',
+    runtime: 'nodejs24',
   },
   async (data, context) => {
     const eventId = data?.data?.eventId || data?.data?.eventID || data?.eventId || data?.eventID;
@@ -649,7 +649,7 @@ exports.getEventMembers = onCall(
 // ========================================================
 exports.deleteUser = onCall({
   region: 'us-central1',
-  runtime: 'nodejs20',
+  runtime: 'nodejs24',
 }, async (data, context) => {
   const uid = data?.data?.userId || data?.userId;
   if (!uid) {
@@ -699,7 +699,7 @@ exports.deleteUser = onCall({
 exports.sendContactEmail = onCall({
   region: 'us-central1',
   secrets: [emailUser, emailPass],
-  runtime: 'nodejs20',
+  runtime: 'nodejs24',
 }, async (data, context) => {
   const { name, email, phone, message } = data?.data || data;
 
@@ -737,7 +737,7 @@ exports.sendContactEmail = onCall({
 exports.createPayPalOrder = onCall(
   {
     region: "us-central1",
-    runtime: 'nodejs20',
+    runtime: 'nodejs24',
     secrets: [payPalClientId, payPalClientSecret],
   },
   async (data, context) => {   
@@ -766,7 +766,7 @@ exports.createPayPalOrder = onCall(
 exports.capturePayPalOrder = onCall(
   {
     region: "us-central1",
-    runtime: 'nodejs20',
+    runtime: 'nodejs24',
     secrets: [payPalClientId, payPalClientSecret],
   },
   async (data, context) => {
@@ -797,7 +797,7 @@ exports.paymentClientId = onCall(
   {
     region: "us-central1",
     secrets: [payPalClientId],
-    runtime: 'nodejs20',
+    runtime: 'nodejs24',
   },
   (data, context) => {
     return { clientId: payPalClientId.value() }
@@ -811,7 +811,7 @@ exports.getFbPixelId = onCall(
   {
     region: "us-central1",
     secrets: [fbPixelId],
-    runtime: 'nodejs20',
+    runtime: 'nodejs24',
   },
   () => ({ pixelId: fbPixelId.value() })
 );
@@ -819,7 +819,7 @@ exports.getFbPixelId = onCall(
 exports.markPixelTracked = onCall(
   {
     region: "us-central1",
-    runtime: 'nodejs20',
+    runtime: 'nodejs24',
   },
   async (data, context) => {
     const { paymentIntentId } = data.data;
@@ -855,7 +855,7 @@ exports.markPixelTracked = onCall(
 exports.sendOTP = onCall( 
   { 
     region: "us-central1", 
-    runtime: "nodejs20", 
+    runtime: "nodejs24", 
     secrets: [ 
       twilioAccountSid, 
       twilioAuthToken, 
@@ -902,7 +902,7 @@ exports.sendOTP = onCall(
 exports.loginWithPhone = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     invoker: "public",
     secrets: [
       twilioAccountSid,
@@ -1191,7 +1191,7 @@ exports.loginWithPhone = onCall(
   exports.verifyOTP = onCall(                                                                                                                                                                          
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [
       twilioAccountSid,
       twilioAuthToken,
@@ -1242,7 +1242,7 @@ exports.loginWithPhone = onCall(
 exports.sendTermsSMS = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
       secrets: [
       twilioAccountSid,
       twilioAuthToken,
@@ -1302,7 +1302,7 @@ exports.sendTermsSMS = onCall(
 exports.sendPurchaseConfirmation = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [
       twilioAccountSid,
       twilioAuthToken,
@@ -1324,7 +1324,14 @@ exports.sendPurchaseConfirmation = onCall(
       twilioAccountSid.value(),
       twilioAuthToken.value()
     );
-    const dashboardUrl = `https://circuit.dating/dashboard/${encodeURIComponent(phoneNumber)}`;
+    // Fetch the user to get their dashboard token
+    const db = admin.firestore();
+    const userSnap = await db.collection("users").doc(phoneNumber).get();
+    let token = phoneNumber; // Fallback to phone if no token exists
+    if (userSnap.exists && userSnap.data().dashboardToken) {
+      token = userSnap.data().dashboardToken;
+    }
+    const dashboardUrl = `https://circuit.dating/dashboard/${token}`;    
     const message = `⚡You're registered for ${eventTitle}! 📅 ${eventDate || 'TBD'} at ${venue || 'TBD'}, ${city || ''}. Ticket: ${ticketType || 'General'}'s Ticket. View your dashboard: ${dashboardUrl}`;
       try {
       await client.messages.create({
@@ -1384,7 +1391,7 @@ exports.sendPurchaseConfirmation = onCall(
 exports.payPalWebhook = onRequest(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [payPalClientId, payPalClientSecret],
     maxInstances: 10,
   },
@@ -1442,7 +1449,7 @@ exports.payPalWebhook = onRequest(
 exports.joinWaitlist = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [klaviyoApiKey],
   },
 
@@ -1875,7 +1882,7 @@ exports.joinWaitlist = onCall(
 exports.leaveWaitlist = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
   },
 
   async (request) => {
@@ -2008,7 +2015,7 @@ exports.leaveWaitlist = onCall(
 exports.getWaitlistPosition = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
   },
 
   async (request) => {
@@ -2157,7 +2164,7 @@ exports.promoteFromWaitlist = onDocumentDeleted(
   {
     document: "events/{eventId}/signedUpUsers/{uid}",
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     // Added secrets so Twilio and Klaviyo work
     secrets: [
       twilioAccountSid,
@@ -2404,7 +2411,7 @@ exports.cleanupExpiredClaims = onSchedule(
   {
     schedule: "every 5 minutes",
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     // Added secrets so Twilio and Klaviyo work
     secrets: [
       twilioAccountSid,
@@ -2629,7 +2636,7 @@ exports.sendWaitlistReminder = onSchedule(
   {
     schedule: "*/15 * * * *",
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [
       klaviyoApiKey,
       twilioAccountSid,
@@ -2822,7 +2829,7 @@ exports.send12HourReminder = onSchedule(
   {
     schedule: "every 30 minutes",
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber, klaviyoApiKey],
   },
   async () => {
@@ -2915,7 +2922,7 @@ exports.send12HourReminder = onSchedule(
 exports.addSubscriberToKlaviyo = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [klaviyoApiKey, klaviyoListId],
   },
   async (request) => {
@@ -3346,7 +3353,7 @@ async function clearLatestEventIdIfNeeded(userId, eventId) {
 exports.cancelEventRegistration = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
   },
   async (request) => {
     const db = admin.firestore();
@@ -3732,7 +3739,7 @@ phoneCandidates.forEach(p => {
 exports.claimWaitlistSpot = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [
       twilioAccountSid,
       twilioAuthToken,
@@ -3857,8 +3864,14 @@ exports.claimWaitlistSpot = onCall(
           const eventDateStr = eventData.date || '';
           const venue = eventData.venue || 'TBD';
           const city = eventData.location || '';
+    // Fetch the user to get their dashboard token
+    const userSnap = await db.collection("users").doc(phoneNumber).get();
+    let token = phoneNumber; 
+    if (userSnap.exists && userSnap.data().dashboardToken) {
+      token = userSnap.data().dashboardToken;
+    }
+    const dashboardUrl = `https://circuit.dating/dashboard/${token}`;
 
-         const dashboardUrl = `https://circuit.dating/dashboard/${encodeURIComponent(phoneNumber)}`;
          const message = `⚡You're registered for ${eventTitle}! 📅 ${eventDate || 'TBD'} at ${venue || 'TBD'}, ${city || ''}. Ticket: ${ticketType || 'General'}'s Ticket. View your dashboard: ${dashboardUrl}`;
 
           await client.messages.create({
@@ -3888,7 +3901,7 @@ exports.claimWaitlistSpot = onCall(
 exports.generateRounds = onRequest(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     maxInstances: 10,
   },
   async (req, res) => {
@@ -4009,7 +4022,7 @@ exports.generateRounds = onRequest(
 exports.computeMatches = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     invoker: "public",
     secrets: [
       twilioAccountSid,
@@ -4134,10 +4147,10 @@ exports.computeMatches = onCall(
         if (phone1) {
           try {
             await twilioClient.messages.create({
-              body: `You have a Spark with ${name2}! Send them a message: ${baseUrl}/dashboard/messages/${phone2}/${eventId}`,
+              body: `⚡ You have a Spark with ${name2}! Log in to Circuit to send them a message: ${baseUrl}/dashboard/mysparks`,
               to: phone1,
               from: twilioFrom,
-            });
+            });        
             console.log(` Spark SMS sent to ${phone1}`);
             if (a1.email) {
               await sendKlaviyoEventForSMS({
@@ -4160,7 +4173,7 @@ exports.computeMatches = onCall(
         if (phone2) {
           try {
             await twilioClient.messages.create({
-              body: `You have a Spark with ${name1}! Send them a message: ${baseUrl}/dashboard/messages/${phone1}/${eventId}`,
+              body: `⚡ You have a Spark with ${name1}! Log in to Circuit to send them a message: ${baseUrl}/dashboard/mysparks`,
               to: phone2,
               from: twilioFrom,
             });
@@ -4204,7 +4217,7 @@ exports.autoComputeMatches = onSchedule(
   {
     schedule: "0 * * * *",
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [
       twilioAccountSid,
       twilioAuthToken,
@@ -4323,7 +4336,7 @@ exports.autoComputeMatches = onSchedule(
 exports.sendEventSMS = onCall(
   {
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [
       twilioAccountSid,
       twilioAuthToken,
@@ -4544,7 +4557,7 @@ exports.autoMarkNoShow = onSchedule(
   {
     schedule: "*/1 * * * *",
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [], // no secrets needed
   },
   async () => {
@@ -4604,7 +4617,7 @@ exports.send15MinLobbySMS = onSchedule(
   {
     schedule: "*/5 * * * *", // Runs every 5 minutes
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
   },
   async () => {
@@ -4662,7 +4675,7 @@ exports.sendDayOfSMS = onSchedule(
   {
     schedule: "*/5 * * * *", // Runs every 5 minutes
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
     secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
   },
   async () => {
@@ -4746,7 +4759,7 @@ exports.autoGenerateRounds = onSchedule(
   {
     schedule: "*/5 * * * *", // Every 5 minutes
     region: "us-central1",
-    runtime: "nodejs20",
+    runtime: "nodejs24",
   },
   async () => {
     const db = admin.firestore();
