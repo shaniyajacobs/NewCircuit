@@ -1,6 +1,6 @@
 const functions = require("firebase-functions/v2");
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentDeleted } = require("firebase-functions/v2/firestore");
+const { onDocumentDeleted, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret, defineString } = require("firebase-functions/params");
 const admin = require("firebase-admin");
@@ -4937,6 +4937,87 @@ exports.retryUnconfirmedSMS = onSchedule(
           }
         }
       }
+    }
+  }
+);
+// ========================================================
+// NOTIFY NEWSLETTER SUBSCRIBERS WHEN EVENT IS CREATED
+// ========================================================
+exports.onEventCreatedSendNewsletter = onDocumentCreated(
+  {
+    document: "events/{eventId}",
+    region: "us-central1",
+    runtime: "nodejs24",
+    secrets: [klaviyoApiKey],
+  },
+  async (event) => {
+    const db = admin.firestore();
+    const eventData = event.data.data();
+    const eventId = event.params.eventId;
+
+    // Only trigger for In-Person events that have a location and title
+    if (eventData.eventFormat !== 'in-person' || !eventData.location || !eventData.title) {
+      return;
+    }
+
+    try {
+      const apiKey = klaviyoApiKey.value().trim();
+      
+      // Format the date nicely for the email
+      let dateString = 'TBD';
+      if (eventData.startTime) {
+        const ts = eventData.startTime.toMillis ? eventData.startTime.toMillis() : eventData.startTime;
+        const zone = eventData.timeZone || 'America/New_York';
+        dateString = new Date(ts).toLocaleDateString('en-US', { 
+          weekday: 'long', month: 'long', day: 'numeric', timeZone: zone 
+        });
+      }
+
+      // Trigger the "New Event Announced" metric in Klaviyo
+      const response = await fetch("https://a.klaviyo.com/api/events", {
+        method: "POST",
+        headers: {
+          Authorization: `Klaviyo-API-Key ${apiKey}`,
+          "Content-Type": "application/vnd.api+json",
+          Accept: "application/vnd.api+json",
+          revision: "2026-07-15",
+        },
+        body: JSON.stringify({
+          data: {
+            type: "event",
+            attributes: {
+              metric: {
+                data: {
+                  type: "metric",
+                  attributes: { name: "New Event Announced" },
+                },
+              },
+              profile: {
+                data: {
+                  type: "profile",
+                  // We use a dummy email because Klaviyo requires a profile to log the event
+                  attributes: { email: "system@circuit.dating" }, 
+                },
+              },
+              properties: {
+                event_city: eventData.location, // e.g., "New York City"
+                event_title: eventData.title,
+                event_date: dateString,
+                event_age_range: eventData.ageRange,
+                event_url: `${WEB_APP_BASE_URL}/events`,
+              },
+            },
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Klaviyo Newsletter Event Error:", await response.text());
+      } else {
+        console.log(`✅ "New Event Announced" sent to Klaviyo for ${eventData.location}`);
+      }
+    } catch (error) {
+      console.error("Error triggering newsletter:", error);
     }
   }
 );

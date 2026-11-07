@@ -235,7 +235,6 @@ const DashHome = () => {
   const [hideNewSparksNotification, setHideNewSparksNotification] = useState(false);
   const [showCongratulationsModal, setShowCongratulationsModal] = useState(false);
   const [selectingMatches, setSelectingMatches] = useState(false);
-  const [selectedConnection, setSelectedConnection] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [signupTimes, setSignupTimes] = useState({});
@@ -423,11 +422,12 @@ const DashHome = () => {
   const [showSignUpSuccessModal, setShowSignUpSuccessModal] = useState(false);
 
   const handleMessageClick = (connection) => {
-    setSelectedConnection(connection);
-  };
-
-  const handleCloseMessages = () => {
-    setSelectedConnection(null);
+    // Get the partner's ID (phone number) and the current event ID
+    const partnerId = connection.userId || connection.id;
+    const eventId = userProfile?.latestEventId || 'latest';
+    
+    // Navigate to the dedicated messages page, just like the Sparks page does
+    navigate(`/dashboard/messages/${partnerId}/${eventId}`);
   };
 
   const fetchUserSignedUpEventIds = async (userId) => {
@@ -1593,24 +1593,6 @@ const DashHome = () => {
                 OK
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {selectedConnection && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black opacity-50" onClick={handleCloseMessages} />
-          <div className="relative bg-white rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 z-10">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Message {selectedConnection.name}</h2>
-              <button
-                className="text-gray-500 hover:text-gray-800 text-2xl"
-                onClick={handleCloseMessages}
-              >
-                &times;
-              </button>
-            </div>
-            <DashMessages connection={selectedConnection} />
           </div>
         </div>
       )}
