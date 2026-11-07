@@ -62,6 +62,20 @@ const OutfitDescription = () => {
         const docSnap = querySnapshot.docs[0];
         const docId = docSnap.id;
         const data = docSnap.data();
+        
+        // SMART LINK LOGIC
+        // If they already submitted an outfit, skip this page and send them forward
+        if (data.outfitDescription && data.outfitDescription.trim() !== '') {
+          if (data.checkInStatus === 'onTime' || data.checkInStatus === 'late') {
+            // Already checked in -> Go to Lobby
+            navigate(`/event/${eventId}/lobby/${phoneNumber}`);
+          } else {
+            // Outfit done, but needs to check in -> Go to Check In
+            navigate(`/checkin/${eventId}/${phoneNumber}`);
+          }
+          return; // Stop loading the form
+        }
+
         setAttendeeId(docId);
         setOutfit(data.outfitDescription || '');
         setLoading(false);

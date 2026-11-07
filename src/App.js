@@ -94,6 +94,7 @@ const PrivateRoute = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
   const auth = getAuth();
   const location = useLocation();
+
   // 1. Check the URL first and DECODE it
   const pathParts = location.pathname.split('/');
   let urlPhone = null;
@@ -111,12 +112,8 @@ const PrivateRoute = ({ children }) => {
   // 2. Priority: Phone -> local storage -> Auth user
   const guestUid = urlPhone || location.state?.guestUid || localStorage.getItem('guestUid') || auth.currentUser?.phoneNumber;
 
-  // 3. If it's a token, allow access to the dashboard so it can resolve it
-  if (!user && !guestUid && !urlToken) {
-    return <Navigate to="/login" />;
-  }
+  //  All Hooks MUST be called before any early returns!
   useEffect(() => {
-    // 3. If the phone is in the URL, save it to localStorage immediately
     if (urlPhone) {
       localStorage.setItem('guestUid', urlPhone);
     }
@@ -128,15 +125,16 @@ const PrivateRoute = ({ children }) => {
     return () => unsubscribe();
   }, [auth, urlPhone]);
 
+  // Now it is safe to have early returns
   if (authLoading) return <div className="p-4 text-center">Loading...</div>;
 
-  // Allow access if user is logged in OR if a guestUid is present
-  if (!user && !guestUid) {
+  if (!user && !guestUid && !urlToken) {
     return <Navigate to="/login" />;
   }
 
   return children;
 };
+
 function App() {
   useEffect(() => {
     preloadImages();

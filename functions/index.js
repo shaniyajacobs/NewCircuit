@@ -4646,10 +4646,8 @@ exports.send15MinLobbySMS = onSchedule(
 
           // SAFETY GUARD: Skip if they already got the 15-min text
           if (a.smsSent?.lobby) continue;
-
-          const lobbyLink = `${WEB_APP_BASE_URL}/event/${eventDoc.id}/lobby/${encodeURIComponent(phone)}`;
-          const msg = `⏰ 15 minutes until Circuit starts! Tap here to check in and view your Round 1 date: ${lobbyLink}`;
-
+          const outfitLink = `${WEB_APP_BASE_URL}/outfit/${eventDoc.id}/${encodeURIComponent(phone)}`;
+          const msg = `⏰ 15 minutes until Circuit starts! Please tap the link to check in and confirm your outfit: ${outfitLink}`;
           try {
             await client.messages.create({
               body: msg,
@@ -4673,7 +4671,7 @@ exports.send15MinLobbySMS = onSchedule(
 // ========================================================
 exports.sendDayOfSMS = onSchedule(
   {
-    schedule: "*/5 * * * *", // Runs every 5 minutes
+    schedule: "*/5 * * * *",
     region: "us-central1",
     runtime: "nodejs24",
     secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
@@ -4683,73 +4681,65 @@ exports.sendDayOfSMS = onSchedule(
     const now = Date.now();
     const twoHoursFromNow = now + 2 * 60 * 60 * 1000;
 
-    const eventsSnapshot = await db.collection('events').where('status', 'in', ['upcoming', 'live']).get();
-    
-    let count = 0;
+    const eventsSnapshot = await db.collection('events').get();
+    const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
+
     for (const eventDoc of eventsSnapshot.docs) {
       const eventData = eventDoc.data();
-      const startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
+      let startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
+      if (typeof startTime === 'string') startTime = new Date(startTime).getTime();
       
-      if (!startTime) continue;
-
-      // 1. Check if the event is starting in the next 2 hours
-      if (startTime > now && startTime <= twoHoursFromNow) {
-        
+      if (startTime && startTime > now && startTime <= twoHoursFromNow) {
         const attendeesSnap = await eventDoc.ref.collection('signedUpUsers').get();
-        if (attendeesSnap.empty) continue;
 
-        const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
-        const fromNumber = twilioPhoneNumber.value();
-
-        // Timezone Formatting
-        let timeString = 'the scheduled time';
-        if (eventData.time && typeof eventData.time === 'string') {
-          timeString = eventData.time;
-        } else {
-          const cityToTimeZone = {
-            'atlanta': 'America/New_York', 'chicago': 'America/Chicago', 'dallas': 'America/Chicago',
-            'houston': 'America/Chicago', 'los angeles': 'America/Los_Angeles', 'louisville': 'America/New_York',
-            'miami': 'America/New_York', 'new york city': 'America/New_York', 'new york': 'America/New_York',
-            'sacramento': 'America/Los_Angeles', 'san francisco / bay area': 'America/Los_Angeles',
-            'seattle': 'America/Los_Angeles', 'washington d.c.': 'America/New_York',
-            'maseru': 'Africa/Maseru', 'lesotho': 'Africa/Maseru'
-          };
-          const eventZone = eventData.timeZone || cityToTimeZone[(eventData.location || '').toLowerCase().trim()] || 'America/New_York';
-          timeString = new Date(startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: eventZone });
-        }
-        
+        // Format event details
+        const zone = eventData.timeZone || 'America/New_York';
+        const timeString = new Date(startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: zone });
         const venueString = eventData.venue || eventData.location || 'the venue';
 
-        // 2. Loop through attendees and check their INDIVIDUAL flag
         for (const attendeeDoc of attendeesSnap.docs) {
-          const attendeeData = attendeeDoc.data();
-          const phone = attendeeData.phoneNumber || attendeeData.userId;
+          const a = attendeeDoc.data();
+          const phone = a.phoneNumber || a.userId;
           
-          if (!phone) continue;
-          if (attendeeData.smsSent?.dayOf) continue;
+          // Skip if no phone or already sent
+          if (!phone || a.smsSent?.dayOfPromptSent) continue; 
 
-          const message = `Tonight is the night! Circuit starts at ${timeString} at ${venueString}. Tap here to enter your outfit description: ${WEB_APP_BASE_URL}/outfit/${eventDoc.id}/${attendeeDoc.id}`;
+          // --- MESSAGE 1: What to expect ---
+          await client.messages.create({
+            body: `Hi ${a.firstName || 'there'}! Tonight is your Circuit Speed Dating event. Here is what to expect:\n\n• You'll go on multiple 6-minute dates.\n• We'll text you when each round starts.\n• At the end, you'll pick your top 3 matches!`,
+            to: phone, from: twilioPhoneNumber.value(),
+          });
+          // --- MESSAGE 2: The Introduction (fake delay for realism) ---
+          await new Promise(r => setTimeout(r, 2000)); 
+          await client.messages.create({
+            body: `This is your host, Mpho. I'll be guiding you through the rounds tonight to make sure everything runs smoothly.`,
+            to: phone, from: twilioPhoneNumber.value(),
+          });
+
+          // --- MESSAGE 3: Event Details ---
+          await new Promise(r => setTimeout(r, 2000)); 
+          await client.messages.create({
+            body: `📍 ${venueString}\n⏰ Dates start at ${timeString}.\n\nPlease arrive 15 minutes early to park, dine, and check in with us.`,
+            to: phone, from: twilioPhoneNumber.value(),
+          });
+
+          // --- MESSAGE 4: The Prompt ---
+          await new Promise(r => setTimeout(r, 2000)); 
+          await client.messages.create({
+            body: `Reply YES to confirm you have received the message above.`,
+            to: phone, from: twilioPhoneNumber.value(),
+          });
+
+          // Mark as sent and save the timestamp for the 15-min retry logic
+          await attendeeDoc.ref.update({ 
+            'smsSent.dayOfPrompt': true,
+            'smsSent.dayOfPromptSentAt': now 
+          });
           
-          try {
-            await client.messages.create({
-              body: message,
-              to: phone,
-              from: fromNumber,
-            });
-            console.log(` 2-Hour SMS sent to ${phone} for event ${eventDoc.id}`);
-            
-            // 3. Mark THIS user as having received the message
-            await attendeeDoc.ref.update({
-              'smsSent.dayOf': true
-            });
-            count++;
-          } catch (err) {
-            console.error(` Failed to send SMS to ${phone}:`, err);
-          }
+          console.log(`Multi-part SMS sent to ${phone}`);
         }
       }
     }
-    console.log(`sendDayOfSMS completed. ${count} SMS messages processed.`);
   }
 );
 // ========================================================
@@ -4815,6 +4805,138 @@ exports.autoGenerateRounds = onSchedule(
       }
     } catch (error) {
       console.error(" Error in autoGenerateRounds:", error);
+    }
+  }
+);
+// ========================================================
+// 1. TWILIO INBOUND SMS WEBHOOK (Listens for "YES")
+// ========================================================
+exports.twilioSmsWebhook = onRequest(
+  {
+    region: "us-central1",
+    runtime: "nodejs24",
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
+  },
+  async (req, res) => {
+    // Twilio sends form-urlencoded data
+    const fromPhone = req.body.From;
+    const messageBody = (req.body.Body || "").trim().toUpperCase();
+
+    console.log(`Inbound SMS from ${fromPhone}: ${messageBody}`);
+
+    if (!fromPhone) {
+      return res.status(400).send('Missing From number');
+    }
+
+    // Twilio expects a 200 OK with TwiML to avoid errors
+    res.set('Content-Type', 'text/xml');
+    res.status(200).send('<Response></Response>');
+
+    try {
+      const db = admin.firestore();
+      
+      // Find the user by phone number
+      const userSnap = await db.collection('users').doc(fromPhone).get();
+      if (!userSnap.exists) return;
+
+      // Only process if they replied YES
+      if (messageBody === 'YES') {
+        // Check if they already confirmed to prevent double-texting
+        if (userSnap.data().attendingConfirmed === true) return;
+
+        // 1. Mark as confirmed in Firestore
+        await userSnap.ref.update({ attendingConfirmed: true });
+
+        // 2. Find their upcoming event to get the outfit link
+        const latestEventId = userSnap.data().latestEventId;
+        if (!latestEventId) return;
+
+        const eventDoc = await db.collection('events').doc(latestEventId).get();
+        const eventData = eventDoc.data() || {};
+        
+        // Find their attendee doc to get the exact doc ID for the outfit link
+        const attendeesSnap = await db.collection('events').latestEventId.collection('signedUpUsers')
+          .where('phoneNumber', '==', fromPhone).get();
+          
+        if (!attendeesSnap.empty) {
+          const attendeeId = attendeesSnap.docs[0].id;
+          
+          // 3. Send the final "Thank You" message with the Outfit Link
+          const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
+          const outfitLink = `${WEB_APP_BASE_URL}/outfit/${latestEventId}/${attendeeId}`;
+          
+          await client.messages.create({
+            body: `Thank you for confirming! We can't wait to see you tonight. 🎉\n\nPlease take 60 seconds to submit your outfit description so your dates can spot you: ${outfitLink}`,
+            to: fromPhone,
+            from: twilioPhoneNumber.value(),
+          });
+          console.log(`Confirmation & Outfit link sent to ${fromPhone}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling inbound SMS:', error);
+    }
+  }
+);
+// ========================================================
+// 2. 15-MINUTE RETRY FOR UNCONFIRMED GUESTS
+// ========================================================
+exports.retryUnconfirmedSMS = onSchedule(
+  {
+    schedule: "*/5 * * * *", // Runs every 5 mins
+    region: "us-central1",
+    runtime: "nodejs24",
+    secrets: [twilioAccountSid, twilioAuthToken, twilioPhoneNumber],
+  },
+  async () => {
+    const db = admin.firestore();
+    const now = Date.now();
+    const fifteenMinsAgo = now - 15 * 60 * 1000;
+
+    // Look for events happening in the next 4 hours
+    const fourHoursFromNow = now + 4 * 60 * 60 * 1000;
+    const eventsSnap = await db.collection('events').get();
+
+    for (const eventDoc of eventsSnap.docs) {
+      const eventData = eventDoc.data();
+      let startTime = eventData.startTime?.toMillis?.() || eventData.startTime;
+      if (typeof startTime === 'string') startTime = new Date(startTime).getTime();
+
+      // Only process events starting soon
+      if (startTime && startTime > now && startTime <= fourHoursFromNow) {
+        const attendeesSnap = await eventDoc.ref.collection('signedUpUsers').get();
+        
+        for (const attendeeDoc of attendeesSnap.docs) {
+          const a = attendeeDoc.data();
+          const phone = a.phoneNumber || a.userId;
+          const firstPromptSentAt = a.smsSent?.dayOfPromptSentAt;
+          
+          // Check if they got the prompt, haven't confirmed, and 15 mins have passed
+          if (phone && firstPromptSentAt && firstPromptSentAt < fifteenMinsAgo && !a.attendingConfirmed) {
+            
+            // Check if we already sent the retry
+            if (a.smsSent?.dayOfRetrySent) continue;
+
+            const client = twilio(twilioAccountSid.value(), twilioAuthToken.value());
+            const timeString = new Date(startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: eventData.timeZone || 'America/New_York' });
+            
+            const retryMsg = `Just checking in! Please reply YES to confirm you received the details for tonight's Circuit event at ${timeString}.`;
+
+            try {
+              await client.messages.create({
+                body: retryMsg,
+                to: phone,
+                from: twilioPhoneNumber.value(),
+              });
+              // Mark as sent so we don't spam them
+              await attendeeDoc.ref.update({ 'smsSent.dayOfRetrySent': true });
+              console.log(`Retry SMS sent to ${phone}`);
+            } catch (err) {
+              console.error(`Failed to send retry to ${phone}:`, err);
+            }
+          }
+        }
+      }
     }
   }
 );
